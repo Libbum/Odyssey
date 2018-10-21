@@ -7,7 +7,7 @@ import Html.Attributes exposing (href, type_, value)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode exposing (Decoder)
-import Partition exposing (Partition, largestDifference)
+import Partition exposing (KPartition, greedyK, sumOfKSets)
 import Task
 import Url exposing (Url)
 import Url.Builder
@@ -32,9 +32,9 @@ main =
 type alias Model =
     { key : Nav.Key
     , url : Url
-    , left : List Int
-    , right : List Int
+    , rows : KPartition Int
     , images : List Image
+    , sums : List Int
     }
 
 
@@ -80,7 +80,7 @@ getRatios images =
 type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url
-    | GetPartition
+    | GetPartition Int
     | LoadManifest (Result Http.Error (List Image))
 
 
@@ -100,12 +100,17 @@ update msg model =
             , Cmd.none
             )
 
-        GetPartition ->
+        GetPartition k ->
             let
-                ( left, right ) =
-                    largestDifference <| weights <| getRatios model.images
+                rows =
+                    greedyK (weights <| getRatios model.images) k
             in
-            ( { model | left = left, right = right }, Cmd.none )
+            ( { model
+                | rows = rows
+                , sums = rows |> sumOfKSets
+              }
+            , Cmd.none
+            )
 
         LoadManifest result ->
             case result of
@@ -140,9 +145,11 @@ view model =
             , viewLink "/profile"
             ]
         , div [] [ text (Debug.toString <| getRatios model.images) ]
-        , button [ onClick GetPartition ] [ text "partition" ]
-        , div [] [ text (Debug.toString model.left) ]
-        , div [] [ text (Debug.toString model.right) ]
+        , button [ onClick (GetPartition 10) ] [ text "10 rows" ]
+        , button [ onClick (GetPartition 20) ] [ text "20 rows" ]
+        , button [ onClick (GetPartition 30) ] [ text "30 rows" ]
+        , div [] [ text (Debug.toString model.rows) ]
+        , div [] [ text (stats model.sums) ]
         ]
     }
 
@@ -155,3 +162,34 @@ viewLink path =
 weights : List Float -> List Int
 weights =
     List.map (\p -> floor (p * 100))
+
+
+stats : List Int -> String
+stats lst =
+    String.concat
+        [ String.fromFloat (mean lst)
+        , "±"
+        , String.fromFloat (std lst)
+        ]
+
+
+mean : List Int -> Float
+mean lst =
+    toFloat (List.sum lst) / toFloat (List.length lst)
+
+
+meanf : List Float -> Float
+meanf lst =
+    List.sum lst / toFloat (List.length lst)
+
+
+std : List Int -> Float
+std lst =
+    let
+        seriesMean =
+            mean lst
+    in
+    lst
+        |> List.map (\n -> (toFloat n - seriesMean) ^ 2)
+        |> meanf
+        |> sqrt
