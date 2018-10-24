@@ -1,6 +1,8 @@
 module Main exposing (Msg(..), main, update, view)
 
 import Browser
+import Browser.Dom exposing (getViewport)
+import Browser.Events
 import Browser.Navigation as Nav
 import Html exposing (Html, a, b, button, div, input, li, text, ul)
 import Html.Attributes exposing (href, type_, value)
@@ -35,12 +37,18 @@ type alias Model =
     , rows : KPartition Int
     , images : List Image
     , sums : List Int
+    , viewWidth : Float
     }
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( Model key url [] [] [], Http.send LoadManifest (Http.get manifest manifestDecoder) )
+    ( Model key url [] [] [] 0
+    , Cmd.batch
+        [ Http.send LoadManifest (Http.get manifest manifestDecoder)
+        , Task.attempt GotViewPort getViewport
+        ]
+    )
 
 
 manifest : String
@@ -82,6 +90,8 @@ type Msg
     | UrlChanged Url
     | GetPartition Int
     | LoadManifest (Result Http.Error (List Image))
+    | GetViewPort
+    | GotViewPort (Result () Browser.Dom.Viewport)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -120,6 +130,17 @@ update msg model =
                 Err _ ->
                     ( model, Cmd.none )
 
+        GetViewPort ->
+            ( model, Task.attempt GotViewPort getViewport )
+
+        GotViewPort result ->
+            case result of
+                Ok vp ->
+                    ( { model | viewWidth = vp.viewport.width }, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
 
 
 --- Subscriptions
@@ -127,7 +148,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    Browser.Events.onResize (\w h -> GetViewPort)
 
 
 
@@ -150,6 +171,7 @@ view model =
         , button [ onClick (GetPartition 30) ] [ text "30 rows" ]
         , div [] [ text (Debug.toString model.rows) ]
         , div [] [ text (stats model.sums) ]
+        , div [] [ text (String.fromFloat model.viewWidth) ]
         ]
     }
 
