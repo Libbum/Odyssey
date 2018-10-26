@@ -42,10 +42,7 @@ type alias Model =
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     ( Model key url [] []
-    , Task.sequence
-        [ Http.send LoadManifest (Http.get manifest manifestDecoder)
-        , Task.attempt GotViewPort getViewport
-        ]
+    , Http.send LoadManifest (Http.get manifest manifestDecoder)
     )
 
 
@@ -87,8 +84,8 @@ type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url
     | LoadManifest (Result Http.Error (List Image))
-    | GetViewPort
-    | GotViewPort (Result () Browser.Dom.Viewport)
+    | RePartition
+    | Partition (Result () Browser.Dom.Viewport)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -110,15 +107,17 @@ update msg model =
         LoadManifest result ->
             case result of
                 Ok imageList ->
-                    ( { model | images = imageList }, Cmd.none )
+                    ( { model | images = imageList }
+                    , getPartition
+                    )
 
                 Err _ ->
                     ( model, Cmd.none )
 
-        GetViewPort ->
-            ( model, Task.attempt GotViewPort getViewport )
+        RePartition ->
+            ( model, getPartition )
 
-        GotViewPort result ->
+        Partition result ->
             case result of
                 Ok vp ->
                     let
@@ -134,13 +133,18 @@ update msg model =
                     ( model, Cmd.none )
 
 
+getPartition : Cmd Msg
+getPartition =
+    Task.attempt Partition getViewport
+
+
 
 --- Subscriptions
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Browser.Events.onResize (\w h -> GetViewPort)
+    Browser.Events.onResize (\w h -> RePartition)
 
 
 
@@ -172,37 +176,6 @@ viewLink path =
 weights : List Float -> List Int
 weights =
     List.map (\p -> floor (p * 100))
-
-
-stats : List Int -> String
-stats lst =
-    String.concat
-        [ String.fromFloat (mean lst)
-        , "±"
-        , String.fromFloat (std lst)
-        ]
-
-
-mean : List Int -> Float
-mean lst =
-    toFloat (List.sum lst) / toFloat (List.length lst)
-
-
-meanf : List Float -> Float
-meanf lst =
-    List.sum lst / toFloat (List.length lst)
-
-
-std : List Int -> Float
-std lst =
-    let
-        seriesMean =
-            mean lst
-    in
-    lst
-        |> List.map (\n -> (toFloat n - seriesMean) ^ 2)
-        |> meanf
-        |> sqrt
 
 
 optimalRowCount : List Float -> Float -> Float -> Int
