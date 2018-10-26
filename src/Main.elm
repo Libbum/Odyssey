@@ -1,6 +1,8 @@
 module Main exposing (Msg(..), main, update, view)
 
 import Browser
+import Browser.Dom exposing (getViewport)
+import Browser.Events
 import Browser.Navigation as Nav
 import Html exposing (Html, a, b, button, div, input, li, text, ul)
 import Html.Attributes exposing (href, type_, value)
@@ -34,13 +36,14 @@ type alias Model =
     , url : Url
     , rows : KPartition Int
     , images : List Image
-    , sums : List Int
     }
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( Model key url [] [] [], Http.send LoadManifest (Http.get manifest manifestDecoder) )
+    ( Model key url [] []
+    , Http.send LoadManifest (Http.get manifest manifestDecoder)
+    )
 
 
 manifest : String
@@ -80,8 +83,9 @@ getRatios images =
 type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url
-    | GetPartition Int
     | LoadManifest (Result Http.Error (List Image))
+    | RePartition
+    | Partition (Result () Browser.Dom.Viewport)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -100,25 +104,38 @@ update msg model =
             , Cmd.none
             )
 
-        GetPartition k ->
-            let
-                rows =
-                    greedyK (weights <| getRatios model.images) k
-            in
-            ( { model
-                | rows = rows
-                , sums = rows |> sumOfKSets
-              }
-            , Cmd.none
-            )
-
         LoadManifest result ->
             case result of
                 Ok imageList ->
-                    ( { model | images = imageList }, Cmd.none )
+                    ( { model | images = imageList }
+                    , getPartition
+                    )
 
                 Err _ ->
                     ( model, Cmd.none )
+
+        RePartition ->
+            ( model, getPartition )
+
+        Partition result ->
+            case result of
+                Ok vp ->
+                    let
+                        ratios =
+                            getRatios model.images
+
+                        rowsBest =
+                            optimalRowCount ratios vp.viewport.width vp.scene.height
+                    in
+                    ( { model | rows = greedyK (weights ratios) rowsBest }, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
+
+getPartition : Cmd Msg
+getPartition =
+    Task.attempt Partition getViewport
 
 
 
@@ -127,7 +144,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    Browser.Events.onResize (\w h -> RePartition)
 
 
 
@@ -145,11 +162,8 @@ view model =
             , viewLink "/profile"
             ]
         , div [] [ text (Debug.toString <| getRatios model.images) ]
-        , button [ onClick (GetPartition 10) ] [ text "10 rows" ]
-        , button [ onClick (GetPartition 20) ] [ text "20 rows" ]
-        , button [ onClick (GetPartition 30) ] [ text "30 rows" ]
         , div [] [ text (Debug.toString model.rows) ]
-        , div [] [ text (stats model.sums) ]
+        , div [] [ text (String.fromInt <| List.length model.rows) ]
         ]
     }
 
@@ -164,32 +178,13 @@ weights =
     List.map (\p -> floor (p * 100))
 
 
-stats : List Int -> String
-stats lst =
-    String.concat
-        [ String.fromFloat (mean lst)
-        , "±"
-        , String.fromFloat (std lst)
-        ]
-
-
-mean : List Int -> Float
-mean lst =
-    toFloat (List.sum lst) / toFloat (List.length lst)
-
-
-meanf : List Float -> Float
-meanf lst =
-    List.sum lst / toFloat (List.length lst)
-
-
-std : List Int -> Float
-std lst =
+optimalRowCount : List Float -> Float -> Float -> Int
+optimalRowCount imageRatios viewportWidth sceneHeight =
     let
-        seriesMean =
-            mean lst
+        idealHeight =
+            sceneHeight / 4.0
+
+        summedWidth =
+            imageRatios |> List.map (\r -> r * 100.0) |> List.foldl (+) 0
     in
-    lst
-        |> List.map (\n -> (toFloat n - seriesMean) ^ 2)
-        |> meanf
-        |> sqrt
+    round (summedWidth / viewportWidth)
