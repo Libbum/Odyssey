@@ -34,7 +34,7 @@ main =
 type alias Model =
     { key : Nav.Key
     , url : Url
-    , rows : KPartition Int
+    , partition : KPartition Int
     , images : List Image
     }
 
@@ -127,7 +127,7 @@ update msg model =
                         rowsBest =
                             optimalRowCount ratios vp.viewport.width vp.scene.height
                     in
-                    ( { model | rows = greedyK (weights ratios) rowsBest }, Cmd.none )
+                    ( { model | partition = greedyK (weights ratios) rowsBest }, Cmd.none )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -162,8 +162,9 @@ view model =
             , viewLink "/profile"
             ]
         , div [] [ text (Debug.toString <| getRatios model.images) ]
-        , div [] [ text (Debug.toString model.rows) ]
-        , div [] [ text (String.fromInt <| List.length model.rows) ]
+        , div [] [ text (Debug.toString model.partition) ]
+        , div [] [ text (String.fromInt <| List.length model.partition) ]
+        , displayImage (List.head model.images)
         ]
     }
 
@@ -188,3 +189,13 @@ optimalRowCount imageRatios viewportWidth sceneHeight =
             imageRatios |> List.map (\r -> r * 100.0) |> List.foldl (+) 0
     in
     round (summedWidth / viewportWidth)
+
+
+displayImage : Maybe Image -> Html Msg
+displayImage image =
+    case image of
+        Just i ->
+            Html.img [ Html.Attributes.src i.thumbnail ] []
+
+        Nothing ->
+            text ""
