@@ -36,15 +36,13 @@ type alias Model =
     , url : Url
     , rows : KPartition Int
     , images : List Image
-    , sums : List Int
-    , viewWidth : Float
     }
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( Model key url [] [] [] 0
-    , Cmd.batch
+    ( Model key url [] []
+    , Task.sequence
         [ Http.send LoadManifest (Http.get manifest manifestDecoder)
         , Task.attempt GotViewPort getViewport
         ]
@@ -88,7 +86,6 @@ getRatios images =
 type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url
-    | GetPartition Int
     | LoadManifest (Result Http.Error (List Image))
     | GetViewPort
     | GotViewPort (Result () Browser.Dom.Viewport)
@@ -110,18 +107,6 @@ update msg model =
             , Cmd.none
             )
 
-        GetPartition k ->
-            let
-                rows =
-                    greedyK (weights <| getRatios model.images) k
-            in
-            ( { model
-                | rows = rows
-                , sums = rows |> sumOfKSets
-              }
-            , Cmd.none
-            )
-
         LoadManifest result ->
             case result of
                 Ok imageList ->
@@ -136,7 +121,14 @@ update msg model =
         GotViewPort result ->
             case result of
                 Ok vp ->
-                    ( { model | viewWidth = vp.viewport.width }, Cmd.none )
+                    let
+                        ratios =
+                            getRatios model.images
+
+                        rowsBest =
+                            optimalRowCount ratios vp.viewport.width vp.scene.height
+                    in
+                    ( { model | rows = greedyK (weights ratios) rowsBest }, Cmd.none )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -166,12 +158,8 @@ view model =
             , viewLink "/profile"
             ]
         , div [] [ text (Debug.toString <| getRatios model.images) ]
-        , button [ onClick (GetPartition 10) ] [ text "10 rows" ]
-        , button [ onClick (GetPartition 20) ] [ text "20 rows" ]
-        , button [ onClick (GetPartition 30) ] [ text "30 rows" ]
         , div [] [ text (Debug.toString model.rows) ]
-        , div [] [ text (stats model.sums) ]
-        , div [] [ text (String.fromFloat model.viewWidth) ]
+        , div [] [ text (String.fromInt <| List.length model.rows) ]
         ]
     }
 
@@ -215,3 +203,15 @@ std lst =
         |> List.map (\n -> (toFloat n - seriesMean) ^ 2)
         |> meanf
         |> sqrt
+
+
+optimalRowCount : List Float -> Float -> Float -> Int
+optimalRowCount imageRatios viewportWidth sceneHeight =
+    let
+        idealHeight =
+            sceneHeight / 4.0
+
+        summedWidth =
+            imageRatios |> List.map (\r -> r * 100.0) |> List.foldl (+) 0
+    in
+    round (summedWidth / viewportWidth)
