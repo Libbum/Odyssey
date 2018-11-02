@@ -1,29 +1,24 @@
-module Main exposing (Msg(..), main, update, view)
+module Main exposing (main)
 
 import Browser
-import Browser.Dom exposing (getViewportOf)
+import Browser.Dom exposing (getViewport)
 import Browser.Events
-import Browser.Navigation as Nav
-import Html exposing (Html, a, b, button, div, input, li, text, ul)
-import Html.Attributes exposing (height, href, src, type_, value, width)
-import Html.Events exposing (onClick)
+import Html exposing (Html, a, div)
+import Html.Attributes exposing (height, href, src, width)
 import Http
 import Json.Decode exposing (Decoder)
-import Partition exposing (KPartition, greedyK, sumOfKSets)
+import Partition exposing (KPartition, greedyK)
 import Task
-import Url exposing (Url)
 import Url.Builder
 
 
 main : Program () Model Msg
 main =
-    Browser.application
+    Browser.element
         { init = init
         , view = view
         , update = update
         , subscriptions = subscriptions
-        , onUrlChange = UrlChanged
-        , onUrlRequest = LinkClicked
         }
 
 
@@ -32,17 +27,15 @@ main =
 
 
 type alias Model =
-    { key : Nav.Key
-    , url : Url
-    , partition : KPartition Int
+    { partition : KPartition Int
     , images : List Image
     , viewportWidth : Float
     }
 
 
-init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
-init flags url key =
-    ( Model key url [] [] 0
+init : () -> ( Model, Cmd Msg )
+init flags =
+    ( Model [] [] 0
     , Http.send LoadManifest (Http.get manifest manifestDecoder)
     )
 
@@ -82,9 +75,7 @@ getRatios =
 
 
 type Msg
-    = LinkClicked Browser.UrlRequest
-    | UrlChanged Url
-    | LoadManifest (Result Http.Error (List Image))
+    = LoadManifest (Result Http.Error (List Image))
     | RePartition
     | Partition (Result Browser.Dom.Error Browser.Dom.Viewport)
 
@@ -92,19 +83,6 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        LinkClicked urlRequest ->
-            case urlRequest of
-                Browser.Internal url ->
-                    ( model, Nav.pushUrl model.key (Url.toString url) )
-
-                Browser.External href ->
-                    ( model, Nav.load href )
-
-        UrlChanged url ->
-            ( { model | url = url }
-            , Cmd.none
-            )
-
         LoadManifest result ->
             case result of
                 Ok imageList ->
@@ -126,7 +104,7 @@ update msg model =
                             getRatios model.images
 
                         rowsBest =
-                            optimalRowCount ratios vp.viewport.width vp.scene.height
+                            optimalRowCount ratios vp.viewport.width vp.viewport.height
                     in
                     ( { model
                         | partition = greedyK (weights ratios) rowsBest
@@ -141,7 +119,7 @@ update msg model =
 
 getPartition : Cmd Msg
 getPartition =
-    Task.attempt Partition (getViewportOf "gallery")
+    Task.attempt Partition getViewport
 
 
 
@@ -157,19 +135,10 @@ subscriptions _ =
 --- View
 
 
-view : Model -> Browser.Document Msg
+view : Model -> Html Msg
 view model =
-    { title = "Iridescence"
-    , body =
-        [ div [ Html.Attributes.id "gallery" ] <|
-            displayImages model.images model.viewportWidth model.partition []
-        ]
-    }
-
-
-viewLink : String -> Html msg
-viewLink path =
-    li [] [ a [ href path ] [ text path ] ]
+    div [ Html.Attributes.id "gallery" ] <|
+        displayImages model.images model.viewportWidth model.partition []
 
 
 weights : List Float -> List Int
@@ -184,7 +153,7 @@ optimalRowCount imageRatios viewportWidth sceneHeight =
             sceneHeight / 4.0
 
         summedWidth =
-            imageRatios |> List.map (\r -> r * 100.0) |> List.foldl (+) 0
+            imageRatios |> List.map (\r -> r * idealHeight) |> List.foldl (+) 0
     in
     round (summedWidth / viewportWidth)
 
@@ -227,7 +196,8 @@ displayRowOfImages images viewportWidth =
 
 displayImage : Image -> Int -> Int -> Html Msg
 displayImage image w h =
-    Html.img [ src image.thumbnail, width w, height h ] []
+    -- Note the - 8 here on the width is to take into account the two 4px margins in resets.css
+    Html.img [ src image.thumbnail, width (w - 8), height h ] []
 
 
 getWidths : List Image -> Float -> Float -> List Int -> List Int
