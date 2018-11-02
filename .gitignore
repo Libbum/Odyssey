@@ -3,4 +3,5 @@ elm-stuff
 # elm-repl generated files
 repl-temp-*
 manifest.json
-src/gallery
+gallery
+index.html

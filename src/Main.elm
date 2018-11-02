@@ -1,11 +1,11 @@
 module Main exposing (Msg(..), main, update, view)
 
 import Browser
-import Browser.Dom exposing (getViewport)
+import Browser.Dom exposing (getViewportOf)
 import Browser.Events
 import Browser.Navigation as Nav
 import Html exposing (Html, a, b, button, div, input, li, text, ul)
-import Html.Attributes exposing (href, type_, value)
+import Html.Attributes exposing (height, href, src, type_, value, width)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode exposing (Decoder)
@@ -36,12 +36,13 @@ type alias Model =
     , url : Url
     , partition : KPartition Int
     , images : List Image
+    , viewportWidth : Float
     }
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( Model key url [] []
+    ( Model key url [] [] 0
     , Http.send LoadManifest (Http.get manifest manifestDecoder)
     )
 
@@ -72,8 +73,8 @@ manifestDecoder =
 
 
 getRatios : List Image -> List Float
-getRatios images =
-    List.map .aspectRatio images
+getRatios =
+    List.map .aspectRatio
 
 
 
@@ -85,7 +86,7 @@ type Msg
     | UrlChanged Url
     | LoadManifest (Result Http.Error (List Image))
     | RePartition
-    | Partition (Result () Browser.Dom.Viewport)
+    | Partition (Result Browser.Dom.Error Browser.Dom.Viewport)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -127,7 +128,12 @@ update msg model =
                         rowsBest =
                             optimalRowCount ratios vp.viewport.width vp.scene.height
                     in
-                    ( { model | partition = greedyK (weights ratios) rowsBest }, Cmd.none )
+                    ( { model
+                        | partition = greedyK (weights ratios) rowsBest
+                        , viewportWidth = vp.viewport.width
+                      }
+                    , Cmd.none
+                    )
 
                 Err _ ->
                     ( model, Cmd.none )
@@ -135,7 +141,7 @@ update msg model =
 
 getPartition : Cmd Msg
 getPartition =
-    Task.attempt Partition getViewport
+    Task.attempt Partition (getViewportOf "gallery")
 
 
 
@@ -155,16 +161,8 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "Iridescence"
     , body =
-        [ text "The current URL is: "
-        , b [] [ text (Url.toString model.url) ]
-        , ul []
-            [ viewLink "/home"
-            , viewLink "/profile"
-            ]
-        , div [] [ text (Debug.toString <| getRatios model.images) ]
-        , div [] [ text (Debug.toString model.partition) ]
-        , div [] [ text (String.fromInt <| List.length model.partition) ]
-        , displayImage (List.head model.images)
+        [ div [ Html.Attributes.id "gallery" ] <|
+            displayImages model.images model.viewportWidth model.partition []
         ]
     }
 
@@ -191,11 +189,61 @@ optimalRowCount imageRatios viewportWidth sceneHeight =
     round (summedWidth / viewportWidth)
 
 
-displayImage : Maybe Image -> Html Msg
-displayImage image =
-    case image of
-        Just i ->
-            Html.img [ Html.Attributes.src i.thumbnail ] []
+displayImages : List Image -> Float -> KPartition Int -> List (Html Msg) -> List (Html Msg)
+displayImages images viewportWidth partition imageRows =
+    case partition of
+        one :: theRest ->
+            let
+                rowWidth =
+                    List.length one
 
-        Nothing ->
-            text ""
+                newImageRows =
+                    displayRowOfImages (List.take rowWidth images) viewportWidth :: imageRows
+            in
+            displayImages (List.drop rowWidth images) viewportWidth theRest newImageRows
+
+        one ->
+            let
+                rowOfImages =
+                    List.take (List.length one) images
+            in
+            displayRowOfImages rowOfImages viewportWidth :: imageRows
+
+
+displayRowOfImages : List Image -> Float -> Html Msg
+displayRowOfImages images viewportWidth =
+    let
+        arSum =
+            summedAspectRatios images
+
+        widths =
+            List.reverse <| getWidths images viewportWidth arSum []
+
+        h =
+            floor (viewportWidth / arSum)
+    in
+    div [] <| List.map2 (\img w -> displayImage img w h) images widths
+
+
+displayImage : Image -> Int -> Int -> Html Msg
+displayImage image w h =
+    Html.img [ src image.thumbnail, width w, height h ] []
+
+
+getWidths : List Image -> Float -> Float -> List Int -> List Int
+getWidths images viewportWidth arSum widths =
+    case images of
+        one :: theRest ->
+            let
+                w =
+                    floor (viewportWidth / arSum * one.aspectRatio)
+            in
+            getWidths theRest viewportWidth arSum (w :: widths)
+
+        one ->
+            floor viewportWidth - List.sum widths :: widths
+
+
+summedAspectRatios : List Image -> Float
+summedAspectRatios images =
+    List.foldl (+) 0 (getRatios images)
