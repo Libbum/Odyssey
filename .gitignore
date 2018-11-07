@@ -5,3 +5,4 @@ repl-temp-*
 manifest.json
 gallery
 iridescence*.js
+manifester/target
