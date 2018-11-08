@@ -31,7 +31,7 @@ impl Serialize for Image {
         state.serialize_field("file", &self.file)?;
         state.serialize_field("desc", &self.description)?;
         state.serialize_field("loc", &self.locale)?;
-        state.serialize_field("ar", &format!("{:.3}", self.aspect_ratio))?;
+        state.serialize_field("ar", &format!("{:.3}", self.aspect_ratio).parse::<f32>().ok())?;
         state.end()
     }
 }
