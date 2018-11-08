@@ -3,6 +3,7 @@ module Main exposing (main)
 import Browser
 import Browser.Dom exposing (getViewport)
 import Browser.Events
+import Dict exposing (Dict)
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Http
@@ -47,20 +48,72 @@ manifest =
 
 type alias Image =
     { file : String
+    , thumb : String
+    , path : String
     , description : String
     , locale : String
     , aspectRatio : Float
     }
 
 
-manifestDecoder : Decoder (List Image)
+type alias ManifestImage =
+    { file : String
+    , description : String
+    , locale : String
+    , aspectRatio : Float
+    }
+
+
+type alias Manifest =
+    Dict String (Dict String (Dict String (Dict String (List ManifestImage))))
+
+
+manifestDecoder : Decoder Manifest
 manifestDecoder =
+    Json.Decode.dict <|
+        Json.Decode.dict <|
+            Json.Decode.dict <|
+                Json.Decode.dict imageListDecoder
+
+
+imageListDecoder : Decoder (List ManifestImage)
+imageListDecoder =
     Json.Decode.list <|
-        Json.Decode.map4 Image
+        Json.Decode.map4 ManifestImage
             (Json.Decode.field "file" Json.Decode.string)
             (Json.Decode.field "desc" Json.Decode.string)
             (Json.Decode.field "loc" Json.Decode.string)
             (Json.Decode.field "ar" Json.Decode.float)
+
+
+parseManifest : Manifest -> List Image
+parseManifest mani =
+    case Dict.get "2007" mani of
+        Just month ->
+            case Dict.get "12" month of
+                Just country ->
+                    case Dict.get "Singapore" country of
+                        Just locale ->
+                            Dict.foldl unwrapManifestList [] locale
+
+                        Nothing ->
+                            []
+
+                Nothing ->
+                    []
+
+        Nothing ->
+            []
+
+
+unwrapManifestList : String -> List ManifestImage -> List Image -> List Image
+unwrapManifestList locale manifestImages images =
+    List.map
+        (\m ->
+            Image m.file (thumbnailFromFile m.file) locale m.description m.locale m.aspectRatio
+        )
+        manifestImages
+        ++ images
 
 
 getRatios : List Image -> List Float
@@ -73,7 +126,7 @@ getRatios =
 
 
 type Msg
-    = LoadManifest (Result Http.Error (List Image))
+    = LoadManifest (Result Http.Error Manifest)
     | RePartition
     | Partition (Result Browser.Dom.Error Browser.Dom.Viewport)
 
@@ -83,12 +136,16 @@ update msg model =
     case msg of
         LoadManifest result ->
             case result of
-                Ok imageList ->
-                    ( { model | images = imageList }
+                Ok mani ->
+                    ( { model | images = parseManifest mani }
                     , getPartition
                     )
 
-                Err _ ->
+                Err err ->
+                    let
+                        a =
+                            Debug.log "Manifest" err
+                    in
                     ( model, Cmd.none )
 
         RePartition ->
@@ -195,7 +252,7 @@ displayRowOfImages images viewportWidth =
 displayImage : Image -> Int -> Int -> Html Msg
 displayImage image w h =
     -- Note the - 8 here on the width is to take into account the two 4px margins in resets.css
-    Html.img [ src (thumbnailURI image.file), width (w - 8), height h ] []
+    Html.img [ src (thumbURL image), width (w - 8), height h ] []
 
 
 getWidths : List Image -> Float -> Float -> List Int -> List Int
@@ -217,8 +274,18 @@ summedAspectRatios images =
     List.foldl (+) 0 (getRatios images)
 
 
-thumbnailURI : String -> String
-thumbnailURI file =
+imgURL : Image -> String
+imgURL image =
+    String.join "/" [ image.path, image.file ]
+
+
+thumbURL : Image -> String
+thumbURL image =
+    String.join "/" [ image.path, image.file ]
+
+
+thumbnailFromFile : String -> String
+thumbnailFromFile file =
     let
         splitfile =
             unconsLast <| String.split "." file
