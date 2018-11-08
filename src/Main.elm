@@ -42,27 +42,25 @@ init flags =
 
 manifest : String
 manifest =
-    Url.Builder.relative [ "..", "manifest.json" ] []
+    Url.Builder.relative [ "..", "manifester/manifest.json" ] []
 
 
 type alias Image =
-    { thumbnail : String
-    , full : String
-    , aspectRatio : Float
+    { file : String
     , description : String
     , locale : String
+    , aspectRatio : Float
     }
 
 
 manifestDecoder : Decoder (List Image)
 manifestDecoder =
     Json.Decode.list <|
-        Json.Decode.map5 Image
-            (Json.Decode.field "small" Json.Decode.string)
-            (Json.Decode.field "big" Json.Decode.string)
-            (Json.Decode.field "aspect_ratio" Json.Decode.float)
+        Json.Decode.map4 Image
+            (Json.Decode.field "file" Json.Decode.string)
             (Json.Decode.field "desc" Json.Decode.string)
-            (Json.Decode.field "locale" Json.Decode.string)
+            (Json.Decode.field "loc" Json.Decode.string)
+            (Json.Decode.field "ar" Json.Decode.float)
 
 
 getRatios : List Image -> List Float
@@ -197,7 +195,7 @@ displayRowOfImages images viewportWidth =
 displayImage : Image -> Int -> Int -> Html Msg
 displayImage image w h =
     -- Note the - 8 here on the width is to take into account the two 4px margins in resets.css
-    Html.img [ src image.thumbnail, width (w - 8), height h ] []
+    Html.img [ src (thumbnailURI image.file), width (w - 8), height h ] []
 
 
 getWidths : List Image -> Float -> Float -> List Int -> List Int
@@ -217,3 +215,32 @@ getWidths images viewportWidth arSum widths =
 summedAspectRatios : List Image -> Float
 summedAspectRatios images =
     List.foldl (+) 0 (getRatios images)
+
+
+thumbnailURI : String -> String
+thumbnailURI file =
+    let
+        splitfile =
+            unconsLast <| String.split "." file
+    in
+    case splitfile of
+        Just ( ext, splitname ) ->
+            let
+                name =
+                    String.join "." splitname
+            in
+            String.join "_small." [ name, ext ]
+
+        Nothing ->
+            ""
+
+
+unconsLast : List a -> Maybe ( a, List a )
+unconsLast list =
+    case List.reverse list of
+        [] ->
+            Nothing
+
+        last_ :: rest ->
+            ( last_, List.reverse rest )
+                |> Just
