@@ -88,13 +88,17 @@ imageListDecoder =
 
 parseManifest : Manifest -> List Image
 parseManifest mani =
-    case Dict.get "2007" mani of
+    case Dict.get "2017" mani of
         Just month ->
-            case Dict.get "12" month of
+            case Dict.get "05" month of
                 Just country ->
-                    case Dict.get "Singapore" country of
-                        Just locale ->
-                            Dict.foldl unwrapManifestList [] locale
+                    let
+                        countryList =
+                            Dict.map (\cntry locale -> Dict.foldl unwrapManifestList [] locale) country
+                    in
+                    case Dict.get "Ukraine" countryList of
+                        Just imgs ->
+                            imgs
 
                         Nothing ->
                             []
