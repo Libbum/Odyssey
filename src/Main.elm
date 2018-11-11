@@ -46,6 +46,12 @@ manifest =
     Url.Builder.relative [ "..", "manifester/manifest.json" ] []
 
 
+
+{- Consider expanding path to country, data, location to better search for an image.
+   Should we consider merging the manifiest into a module in general? Make country a union type etc?
+-}
+
+
 type alias Image =
     { file : String
     , thumb : String
@@ -94,14 +100,14 @@ parseManifest mani =
                 Just country ->
                     let
                         countryList =
-                            Dict.map (\cntry locale -> Dict.foldl unwrapManifestList [] locale) country
+                            Dict.map
+                                (\cntry location ->
+                                    Dict.foldl unwrapManifestList [] location
+                                        |> List.map (\i -> { i | path = String.join "/" [ cntry, i.path ] })
+                                )
+                                country
                     in
-                    case Dict.get "Ukraine" countryList of
-                        Just imgs ->
-                            imgs
-
-                        Nothing ->
-                            []
+                    Dict.values countryList |> List.concat
 
                 Nothing ->
                     []
@@ -111,10 +117,10 @@ parseManifest mani =
 
 
 unwrapManifestList : String -> List ManifestImage -> List Image -> List Image
-unwrapManifestList locale manifestImages images =
+unwrapManifestList location manifestImages images =
     List.map
         (\m ->
-            Image m.file (thumbnailFromFile m.file) locale m.description m.locale m.aspectRatio
+            Image m.file (thumbnailFromFile m.file) location m.description m.locale m.aspectRatio
         )
         manifestImages
         ++ images
@@ -308,6 +314,7 @@ thumbnailFromFile file =
 
 unconsLast : List a -> Maybe ( a, List a )
 unconsLast list =
+    --List.Extra
     case List.reverse list of
         [] ->
             Nothing
