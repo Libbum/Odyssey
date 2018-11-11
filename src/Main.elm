@@ -94,26 +94,26 @@ imageListDecoder =
 
 parseManifest : Manifest -> List Image
 parseManifest mani =
-    case Dict.get "2017" mani of
-        Just month ->
-            case Dict.get "05" month of
-                Just country ->
-                    let
-                        countryList =
-                            Dict.map
-                                (\cntry location ->
-                                    Dict.foldl unwrapManifestList [] location
-                                        |> List.map (\i -> { i | path = String.join "/" [ cntry, i.path ] })
-                                )
-                                country
-                    in
-                    Dict.values countryList |> List.concat
-
-                Nothing ->
-                    []
-
-        Nothing ->
-            []
+    Dict.map
+        (\year mnth ->
+            Dict.map
+                (\month cntry ->
+                    Dict.map
+                        (\country loc ->
+                            Dict.foldl unwrapManifestList [] loc
+                                |> List.map (\i -> { i | path = String.join "/" [ "gallery", year, month, country, i.path ] })
+                        )
+                        cntry
+                        |> Dict.values
+                        |> List.concat
+                )
+                mnth
+                |> Dict.values
+                |> List.concat
+        )
+        mani
+        |> Dict.values
+        |> List.concat
 
 
 unwrapManifestList : String -> List ManifestImage -> List Image -> List Image
