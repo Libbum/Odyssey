@@ -8,6 +8,7 @@ import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Http
 import Json.Decode exposing (Decoder)
+import Manifest exposing (Image, Manifest)
 import Partition exposing (KPartition, greedyK)
 import Task
 import Url.Builder
@@ -56,15 +57,6 @@ init flags =
 manifest : String
 manifest =
     Url.Builder.relative [ "..", "manifest.json" ] []
-
-
-type alias Image =
-    { thumbnail : String
-    , full : String
-    , aspectRatio : Float
-    , description : String
-    , locale : String
-    }
 
 
 manifestDecoder : Decoder (List Image)
