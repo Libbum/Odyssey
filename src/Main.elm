@@ -259,24 +259,25 @@ displayRowOfImages images viewportWidth =
     div [] <| List.map2 (\img w -> displayImage img w h) images widths
 
 
-displayImage : Image -> Int -> Int -> Html Msg
+displayImage : Image -> Float -> Int -> Html Msg
 displayImage image w h =
     -- Note the - 8 here on the width is to take into account the two 4px margins in resets.css
-    Html.img [ src (thumbURL image), width (w - 8), height h ] []
+    -- We also send in a float as the width attribute to clean up the right edge
+    Html.img [ src (String.join "/" [ image.path, image.thumb ]), Html.Attributes.attribute "width" (String.fromFloat <| w - 8.0), height h ] []
 
 
-getWidths : List Image -> Float -> Float -> List Int -> List Int
+getWidths : List Image -> Float -> Float -> List Float -> List Float
 getWidths images viewportWidth arSum widths =
     case images of
         one :: theRest ->
             let
                 w =
-                    floor (viewportWidth / arSum * one.aspectRatio)
+                    viewportWidth / arSum * one.aspectRatio
             in
             getWidths theRest viewportWidth arSum (w :: widths)
 
         one ->
-            floor viewportWidth - List.sum widths :: widths
+            viewportWidth - List.sum widths :: widths
 
 
 summedAspectRatios : List Image -> Float
