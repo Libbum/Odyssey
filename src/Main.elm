@@ -5,6 +5,7 @@ import Browser.Dom exposing (getViewport)
 import Browser.Events
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
+import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Http
 import Json.Decode exposing (Decoder)
 import Partition exposing (KPartition, greedyK)
@@ -30,12 +31,24 @@ type alias Model =
     { partition : KPartition Int
     , images : List Image
     , viewportWidth : Float
+    , locale : String
+    , zoom : Maybe Image
+    }
+
+
+emptyModel : Model
+emptyModel =
+    { partition = []
+    , images = []
+    , viewportWidth = 0
+    , locale = ""
+    , zoom = Nothing
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init flags =
-    ( Model [] [] 0
+    ( emptyModel
     , Http.send LoadManifest (Http.get manifest manifestDecoder)
     )
 
@@ -78,11 +91,15 @@ type Msg
     = LoadManifest (Result Http.Error (List Image))
     | RePartition
     | Partition (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | PutLocale String
+    | PopLocale
+    | ZoomImage (Maybe Image)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        -- GALLERY
         LoadManifest result ->
             case result of
                 Ok imageList ->
@@ -116,6 +133,17 @@ update msg model =
                 Err _ ->
                     ( model, Cmd.none )
 
+        -- VIEW CHANGES
+        PutLocale locale ->
+            ( { model | locale = locale }, Cmd.none )
+
+        PopLocale ->
+            ( { model | locale = "" }, Cmd.none )
+
+        -- IMAGE VIEWER
+        ZoomImage image ->
+            ( { model | zoom = image }, Cmd.none )
+
 
 getPartition : Cmd Msg
 getPartition =
@@ -137,8 +165,13 @@ subscriptions _ =
 
 view : Model -> Html Msg
 view model =
-    div [ Html.Attributes.id "gallery" ] <|
-        displayImages model.images model.viewportWidth model.partition []
+    case model.zoom of
+        Nothing ->
+            div [ Html.Attributes.id "gallery" ] <|
+                displayImages model.images model.viewportWidth model.partition []
+
+        Just image ->
+            showImage image (floor model.viewportWidth)
 
 
 weights : List Float -> List Int
@@ -198,7 +231,15 @@ displayImage : Image -> Float -> Int -> Html Msg
 displayImage image w h =
     -- Note the - 8 here on the width is to take into account the two 4px margins in resets.css
     -- We alse send in a float as the width attribute to clean up the right edge
-    Html.img [ src image.thumbnail, Html.Attributes.attribute "width" (String.fromFloat <| w - 8.0), height h ] []
+    Html.img
+        [ src image.thumbnail
+        , Html.Attributes.attribute "width" (String.fromFloat <| w - 8.0)
+        , height h
+        , onClick (ZoomImage <| Just image)
+        , onMouseEnter (PutLocale image.locale)
+        , onMouseLeave PopLocale
+        ]
+        []
 
 
 getWidths : List Image -> Float -> Float -> List Float -> List Float
@@ -218,3 +259,13 @@ getWidths images viewportWidth arSum widths =
 summedAspectRatios : List Image -> Float
 summedAspectRatios images =
     List.foldl (+) 0 (getRatios images)
+
+
+showImage : Image -> Int -> Html Msg
+showImage image viewportWidth =
+    Html.img
+        [ src image.full
+        , onClick (ZoomImage Nothing)
+        , width viewportWidth
+        ]
+        []
