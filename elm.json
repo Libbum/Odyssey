@@ -12,7 +12,8 @@
             "elm/html": "1.0.0",
             "elm/http": "1.0.0",
             "elm/url": "1.0.0",
-            "elm-community/list-extra": "8.1.0"
+            "elm-community/list-extra": "8.1.0",
+            "matthewsj/elm-ordering": "2.0.0"
         },
         "indirect": {
             "avh4/elm-fifo": "1.0.4",

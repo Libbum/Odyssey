@@ -7,7 +7,7 @@ import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Http
-import Manifest exposing (Image, imageURL, locale, manifest, thumbURL)
+import Manifest exposing (Country(..), Image, Location(..), byCountry, dateOrderLatest, dateOrderOldest, imageURL, locale, manifest, thumbURL)
 import Partition exposing (KPartition, greedyK)
 import Task
 import Url.Builder
@@ -131,8 +131,13 @@ view : Model -> Html Msg
 view model =
     case model.zoom of
         Nothing ->
+            let
+                layout =
+                    List.sortWith dateOrderLatest model.images
+                        |> List.filter (byCountry Germany)
+            in
             div [ Html.Attributes.id "gallery" ] <|
-                displayImages model.images model.viewportWidth model.partition []
+                displayImages layout model.viewportWidth model.partition []
 
         Just image ->
             showImage image (floor model.viewportWidth)
