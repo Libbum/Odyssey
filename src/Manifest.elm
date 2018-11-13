@@ -1,4 +1,4 @@
-module Manifest exposing (Country(..), Image, Location(..), byCountry, dateOrderLatest, dateOrderOldest, imageURL, locale, manifest, thumbURL)
+module Manifest exposing (Country(..), Image, Location(..), Trip(..), byCountry, byLocation, byTrip, dateOrderLatest, dateOrderOldest, imageURL, locale, manifest, thumbURL)
 
 import List.Extra exposing (unconsLast)
 import Ordering exposing (Ordering)
@@ -1219,7 +1219,7 @@ type alias TripInformation =
     { name : String
     , description : String
     , locations : List Location
-    , dates : List ( Year, Month )
+    , dates : List Date
     }
 
 
@@ -1229,15 +1229,15 @@ tripInformation trip =
         SingaporeJapan2007 ->
             { name = "J07"
             , description = "Singapore/Japan 2007"
-            , locations = [] --[ Melbourne, Singapore, Osaka, Himeji, Osaka, Hiroshima, Koyasan, Osaka, Tokyo, Kyoto, Osaka ]
-            , dates = [ ( 2007, Dec ) ]
+            , locations = [ Melbourne, SingaporeCity, Osaka, Himeji, Osaka, Hiroshima, Koyasan, Osaka, Tokyo, Kyoto, Osaka ]
+            , dates = [ Date 2007 Dec ]
             }
 
         _ ->
             { name = "E12"
             , description = "Europe 2012"
-            , locations = [] --[ Melbourne, Singapore, Frankfurt, Karlsruhe, Heidelberg, Munich, Vienna, Budapest, Prague, Riga, Copenhagen, Dronningmolle, Helsingor, Helsingborg, Copenhagen, Berlin, Paris, Singapore ]
-            , dates = [ ( 2012, Jun ), ( 2012, Jul ) ]
+            , locations = [ Melbourne, SingaporeCity, Frankfurt, Karlsruhe, Heidelberg, Munich, Vienna, Budapest, Prague, Riga, Copenhagen, Dronningmolle, Helsingor, Helsingborg, Copenhagen, Berlin, Paris, SingaporeCity ]
+            , dates = [ Date 2012 Jun, Date 2012 Jul ]
             }
 
 
@@ -1356,6 +1356,21 @@ byCountry country image =
             locationInformation image.location
     in
     loc.country == country
+
+
+byLocation : Location -> Image -> Bool
+byLocation location image =
+    image.location == location
+
+
+byTrip : Trip -> Image -> Bool
+byTrip trip image =
+    case image.trip of
+        Just name ->
+            name == trip
+
+        Nothing ->
+            False
 
 
 
@@ -1619,7 +1634,7 @@ manifest =
     , Image "PC102683.jpg" (Date 2007 Dec) Tokyo Nothing 1.333 ""
     , Image "PC112693.jpg" (Date 2007 Dec) Tokyo Nothing 1.267 ""
     , Image "PC102687.jpg" (Date 2007 Dec) Tokyo Nothing 1.805 ""
-    , Image "PC022372.jpg" (Date 2007 Dec) SingaporeCity Nothing 1.384 ""
+    , Image "PC022372.jpg" (Date 2007 Dec) SingaporeCity (Just SingaporeJapan2007) 1.384 ""
     , Image "PC022447.jpg" (Date 2007 Dec) SingaporeCity Nothing 2.137 ""
     , Image "PC012340.jpg" (Date 2007 Dec) SingaporeCity Nothing 2.497 ""
     , Image "PC022375.jpg" (Date 2007 Dec) SingaporeCity Nothing 1.862 ""

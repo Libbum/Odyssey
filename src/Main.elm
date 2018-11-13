@@ -7,7 +7,7 @@ import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Http
-import Manifest exposing (Country(..), Image, Location(..), byCountry, dateOrderLatest, dateOrderOldest, imageURL, locale, manifest, thumbURL)
+import Manifest exposing (Country(..), Image, Location(..), Trip(..), byCountry, byLocation, byTrip, dateOrderLatest, dateOrderOldest, imageURL, locale, manifest, thumbURL)
 import Partition exposing (KPartition, greedyK)
 import Task
 import Url.Builder
@@ -134,7 +134,7 @@ view model =
             let
                 layout =
                     List.sortWith dateOrderLatest model.images
-                        |> List.filter (byCountry Germany)
+                        |> List.filter (byTrip SingaporeJapan2007)
             in
             div [ Html.Attributes.id "gallery" ] <|
                 displayImages layout model.viewportWidth model.partition []
