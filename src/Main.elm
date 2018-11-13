@@ -134,7 +134,7 @@ view model =
             let
                 layout =
                     List.sortWith dateOrderLatest model.images
-                        |> List.filter (byTrip SingaporeJapan2007)
+                        |> List.filter (byTrip Summer2017)
             in
             div [ Html.Attributes.id "gallery" ] <|
                 displayImages layout model.viewportWidth model.partition []

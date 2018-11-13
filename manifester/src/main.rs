@@ -320,7 +320,7 @@ fn main() -> Result<(), Error> {
             .and_then(|p| p.to_str())
             .ok_or_else(|| failure::err_msg("Year unwrap issue."))?;
 
-        write!(manifest, ",Image \"{}\" (Date {} {:?}) {:?} Nothing {:.3} \"{}\"\n", name, year, month, location, ratio, description.trim())?;
+        write!(manifest, ",Image \"{}\" (Date {} {:?}) {:?} {:.3} \"{}\"\n", name, year, month, location, ratio, description.trim())?;
 
         bar.inc(1);
     }

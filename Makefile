@@ -12,6 +12,9 @@ build: iridescence.min.js
 
 rebuild: clean build
 
+manifest:
+	cd manifester; cargo run --release; cd ..
+
 serve:
 	elm-live src/Main.elm --open -- --output=iridescence.js --optimize
 
