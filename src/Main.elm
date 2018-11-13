@@ -3,6 +3,10 @@ module Main exposing (main)
 import Browser
 import Browser.Dom exposing (getViewport)
 import Browser.Events
+import Element
+import Element.Events
+import Element.Input as Input
+import Element.Region as Region
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
@@ -131,16 +135,36 @@ view : Model -> Html Msg
 view model =
     case model.zoom of
         Nothing ->
-            let
-                layout =
-                    List.sortWith dateOrderLatest model.images
-                        |> List.filter (byTrip Summer2017)
-            in
-            div [ Html.Attributes.id "gallery" ] <|
-                displayImages layout model.viewportWidth model.partition []
+            Element.layout [] <|
+                Element.row [ Element.width Element.fill ]
+                    [ navigation
+                    , gallery model
+                    ]
 
+        -- displayImages layout model.viewportWidth model.partition []
         Just image ->
-            showImage image (floor model.viewportWidth)
+            Element.layout [] <| showImage image (floor model.viewportWidth)
+
+
+gallery : Model -> Element.Element Msg
+gallery model =
+    let
+        layout =
+            List.sortWith dateOrderLatest model.images
+                |> List.filter (byTrip Summer2017)
+    in
+    Element.row [ Region.mainContent, Element.width Element.fill ] <|
+        displayImages layout model.viewportWidth model.partition []
+
+
+navigation : Element.Element Msg
+navigation =
+    Element.row [ Region.navigation, Element.width Element.fill ]
+        [ Input.button []
+            { onPress = Just RePartition
+            , label = Element.text "Repartition"
+            }
+        ]
 
 
 weights : List Float -> List Int
@@ -160,7 +184,7 @@ optimalRowCount imageRatios viewportWidth sceneHeight =
     round (summedWidth / viewportWidth)
 
 
-displayImages : List Image -> Float -> KPartition Int -> List (Html Msg) -> List (Html Msg)
+displayImages : List Image -> Float -> KPartition Int -> List (Element.Element Msg) -> List (Element.Element Msg)
 displayImages images viewportWidth partition imageRows =
     case partition of
         one :: theRest ->
@@ -181,7 +205,7 @@ displayImages images viewportWidth partition imageRows =
             displayRowOfImages rowOfImages viewportWidth :: imageRows
 
 
-displayRowOfImages : List Image -> Float -> Html Msg
+displayRowOfImages : List Image -> Float -> Element.Element Msg
 displayRowOfImages images viewportWidth =
     let
         arSum =
@@ -193,22 +217,24 @@ displayRowOfImages images viewportWidth =
         h =
             floor (viewportWidth / arSum)
     in
-    div [] <| List.map2 (\img w -> displayImage img w h) images widths
+    Element.row [] <| List.map2 (\img w -> displayImage img w h) images widths
 
 
-displayImage : Image -> Float -> Int -> Html Msg
+displayImage : Image -> Float -> Int -> Element.Element Msg
 displayImage image w h =
     -- Note the - 8 here on the width is to take into account the two 4px margins in resets.css
     -- We alse send in a float as the width attribute to clean up the right edge
-    Html.img
-        [ src (thumbURL image)
-        , Html.Attributes.attribute "width" (String.fromFloat <| w - 8.0)
-        , height h
-        , onClick (ZoomImage <| Just image)
-        , onMouseEnter (PutLocale <| locale image)
-        , onMouseLeave PopLocale
+    Element.image
+        [ Element.width (Element.px (floor <| w - 8.0)) --TODO: This kills our Float px fix
+        , Element.height (Element.px h)
+        , Element.Events.onClick (ZoomImage <| Just image)
+        , Element.Events.onMouseEnter (PutLocale <| locale image)
+        , Element.Events.onMouseLeave PopLocale
+        , Element.spacing 4
         ]
-        []
+        { src = thumbURL image
+        , description = locale image
+        }
 
 
 getWidths : List Image -> Float -> Float -> List Float -> List Float
@@ -230,11 +256,12 @@ summedAspectRatios images =
     List.foldl (+) 0 (getRatios images)
 
 
-showImage : Image -> Int -> Html Msg
+showImage : Image -> Int -> Element.Element Msg
 showImage image viewportWidth =
-    Html.img
-        [ src (imageURL image)
-        , onClick (ZoomImage Nothing)
-        , width viewportWidth
+    Element.image
+        [ Element.Events.onClick (ZoomImage Nothing)
+        , Element.width (Element.px viewportWidth)
         ]
-        []
+        { src = imageURL image
+        , description = locale image
+        }
