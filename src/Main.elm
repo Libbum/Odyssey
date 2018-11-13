@@ -30,16 +30,32 @@ main =
 type alias Model =
     { partition : KPartition Int
     , images : List Image
+    , sort : SortOrder
+    , filter : Filter
     , viewportWidth : Float
     , locale : String
     , zoom : Maybe Image
     }
 
 
+type SortOrder
+    = DateNewest
+    | DateOldest
+
+
+type Filter
+    = All
+    | ByCountry Country
+    | ByLocation Location
+    | ByTrip Trip
+
+
 initialModel : Model
 initialModel =
     { partition = []
     , images = manifest
+    , sort = DateNewest
+    , filter = ByCountry Germany
     , viewportWidth = 0
     , locale = ""
     , zoom = Nothing
@@ -65,6 +81,8 @@ getRatios =
 type Msg
     = RePartition
     | Partition (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | ToggleOrder
+    | ToggleFilter
     | PutLocale String
     | PopLocale
     | ZoomImage (Maybe Image)
@@ -82,7 +100,7 @@ update msg model =
                 Ok vp ->
                     let
                         ratios =
-                            getRatios model.images
+                            getRatios <| filterImages model.filter model.images
 
                         rowsBest =
                             optimalRowCount ratios vp.viewport.width vp.viewport.height
@@ -96,6 +114,30 @@ update msg model =
 
                 Err _ ->
                     ( model, Cmd.none )
+
+        ToggleOrder ->
+            let
+                newOrder =
+                    case model.sort of
+                        DateNewest ->
+                            DateOldest
+
+                        DateOldest ->
+                            DateNewest
+            in
+            ( { model | sort = newOrder }, Cmd.none )
+
+        ToggleFilter ->
+            let
+                newFilter =
+                    case model.filter of
+                        All ->
+                            ByCountry Germany
+
+                        _ ->
+                            All
+            in
+            ( { model | filter = newFilter }, getPartition )
 
         -- VIEW CHANGES
         PutLocale locale ->
@@ -112,6 +154,32 @@ update msg model =
 getPartition : Cmd Msg
 getPartition =
     Task.attempt Partition getViewport
+
+
+filterImages : Filter -> List Image -> List Image
+filterImages filter images =
+    case filter of
+        All ->
+            images
+
+        ByCountry country ->
+            List.filter (byCountry country) images
+
+        ByLocation location ->
+            List.filter (byLocation location) images
+
+        ByTrip trip ->
+            List.filter (byTrip trip) images
+
+
+sortImages : SortOrder -> List Image -> List Image
+sortImages order =
+    case order of
+        DateNewest ->
+            List.sortWith dateOrderLatest
+
+        DateOldest ->
+            List.sortWith dateOrderOldest
 
 
 
@@ -133,11 +201,20 @@ view model =
         Nothing ->
             let
                 layout =
-                    List.sortWith dateOrderLatest model.images
-                        |> List.filter (byTrip Summer2017)
+                    model.images
+                        |> filterImages model.filter
+                        |> sortImages model.sort
             in
-            div [ Html.Attributes.id "gallery" ] <|
-                displayImages layout model.viewportWidth model.partition []
+            div []
+                [ div []
+                    [ Html.button [ onClick ToggleOrder ] [ Html.text "Toggle Order" ]
+                    , Html.button [ onClick ToggleFilter ] [ Html.text "Toggle Filter" ]
+                    ]
+                , div
+                    [ Html.Attributes.id "gallery" ]
+                  <|
+                    displayImages layout model.viewportWidth model.partition []
+                ]
 
         Just image ->
             showImage image (floor model.viewportWidth)
