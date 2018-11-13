@@ -7,7 +7,7 @@ import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Http
-import Json.Decode exposing (Decoder)
+import Manifest exposing (Image, imageURL, locale, manifest, thumbURL)
 import Partition exposing (KPartition, greedyK)
 import Task
 import Url.Builder
@@ -36,10 +36,10 @@ type alias Model =
     }
 
 
-emptyModel : Model
-emptyModel =
+initialModel : Model
+initialModel =
     { partition = []
-    , images = []
+    , images = manifest
     , viewportWidth = 0
     , locale = ""
     , zoom = Nothing
@@ -48,34 +48,9 @@ emptyModel =
 
 init : () -> ( Model, Cmd Msg )
 init flags =
-    ( emptyModel
-    , Http.send LoadManifest (Http.get manifest manifestDecoder)
+    ( initialModel
+    , getPartition
     )
-
-
-manifest : String
-manifest =
-    Url.Builder.relative [ "..", "manifest.json" ] []
-
-
-type alias Image =
-    { thumbnail : String
-    , full : String
-    , aspectRatio : Float
-    , description : String
-    , locale : String
-    }
-
-
-manifestDecoder : Decoder (List Image)
-manifestDecoder =
-    Json.Decode.list <|
-        Json.Decode.map5 Image
-            (Json.Decode.field "small" Json.Decode.string)
-            (Json.Decode.field "big" Json.Decode.string)
-            (Json.Decode.field "aspect_ratio" Json.Decode.float)
-            (Json.Decode.field "desc" Json.Decode.string)
-            (Json.Decode.field "locale" Json.Decode.string)
 
 
 getRatios : List Image -> List Float
@@ -88,8 +63,7 @@ getRatios =
 
 
 type Msg
-    = LoadManifest (Result Http.Error (List Image))
-    | RePartition
+    = RePartition
     | Partition (Result Browser.Dom.Error Browser.Dom.Viewport)
     | PutLocale String
     | PopLocale
@@ -100,16 +74,6 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         -- GALLERY
-        LoadManifest result ->
-            case result of
-                Ok imageList ->
-                    ( { model | images = imageList }
-                    , getPartition
-                    )
-
-                Err _ ->
-                    ( model, Cmd.none )
-
         RePartition ->
             ( model, getPartition )
 
@@ -232,11 +196,11 @@ displayImage image w h =
     -- Note the - 8 here on the width is to take into account the two 4px margins in resets.css
     -- We alse send in a float as the width attribute to clean up the right edge
     Html.img
-        [ src image.thumbnail
+        [ src (thumbURL image)
         , Html.Attributes.attribute "width" (String.fromFloat <| w - 8.0)
         , height h
         , onClick (ZoomImage <| Just image)
-        , onMouseEnter (PutLocale image.locale)
+        , onMouseEnter (PutLocale <| locale image)
         , onMouseLeave PopLocale
         ]
         []
@@ -264,7 +228,7 @@ summedAspectRatios images =
 showImage : Image -> Int -> Html Msg
 showImage image viewportWidth =
     Html.img
-        [ src image.full
+        [ src (imageURL image)
         , onClick (ZoomImage Nothing)
         , width viewportWidth
         ]
