@@ -6,11 +6,9 @@ import Browser.Events
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Http
 import Manifest exposing (Country(..), Image, Location(..), Trip(..), byCountry, byLocation, byTrip, dateOrderLatest, dateOrderOldest, imageURL, locale, manifest, thumbURL)
 import Partition exposing (KPartition, greedyK)
 import Task
-import Url.Builder
 
 
 main : Program () Model Msg
@@ -55,7 +53,7 @@ initialModel =
     { partition = []
     , images = manifest
     , sort = DateNewest
-    , filter = ByCountry Germany
+    , filter = All
     , viewportWidth = 0
     , locale = ""
     , zoom = Nothing
