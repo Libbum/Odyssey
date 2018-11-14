@@ -196,14 +196,14 @@ subscriptions _ =
 
 view : Model -> Html Msg
 view model =
+    let
+        layout =
+            model.images
+                |> filterImages model.filter
+                |> sortImages model.sort
+    in
     case model.zoom of
         Nothing ->
-            let
-                layout =
-                    model.images
-                        |> filterImages model.filter
-                        |> sortImages model.sort
-            in
             div []
                 [ div []
                     [ Html.button [ onClick ToggleOrder ] [ Html.text "Toggle Order" ]
@@ -216,6 +216,16 @@ view model =
                 ]
 
         Just image ->
+            let
+                c =
+                    Debug.log "previous" (zoomList image layout |> zprevious |> Zipper.current)
+
+                a =
+                    Debug.log "current" (zoomList image layout |> Zipper.current)
+
+                b =
+                    Debug.log "next" (zoomList image layout |> znext |> Zipper.current)
+            in
             showImage image (floor model.viewportWidth)
 
 
