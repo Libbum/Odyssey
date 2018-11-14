@@ -6,6 +6,7 @@ import Browser.Events
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import InfiniteList
 import Manifest exposing (Country(..), Image, Location(..), Trip(..), byCountry, byLocation, byTrip, dateOrderLatest, dateOrderOldest, imageURL, locale, manifest, thumbURL)
 import Partition exposing (KPartition, greedyK)
 import Task
@@ -27,6 +28,7 @@ main =
 
 type alias Model =
     { partition : KPartition Int
+    , infiniteList : InfiniteList.Model
     , images : List Image
     , sort : SortOrder
     , filter : Filter
@@ -51,6 +53,7 @@ type Filter
 initialModel : Model
 initialModel =
     { partition = []
+    , infiniteList = InfiniteList.init
     , images = manifest
     , sort = DateNewest
     , filter = All
@@ -79,6 +82,7 @@ getRatios =
 type Msg
     = RePartition
     | Partition (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | ChunkList InfiniteList.Model
     | ToggleOrder
     | ToggleFilter
     | PutLocale String
@@ -112,6 +116,9 @@ update msg model =
 
                 Err _ ->
                     ( model, Cmd.none )
+
+        ChunkList infiniteList ->
+            ( { model | infiniteList = infiniteList }, Cmd.none )
 
         ToggleOrder ->
             let
@@ -203,19 +210,45 @@ view model =
                         |> filterImages model.filter
                         |> sortImages model.sort
             in
-            div []
-                [ div []
-                    [ Html.button [ onClick ToggleOrder ] [ Html.text "Toggle Order" ]
-                    , Html.button [ onClick ToggleFilter ] [ Html.text "Toggle Filter" ]
-                    ]
-                , div
-                    [ Html.Attributes.id "gallery" ]
-                  <|
-                    displayImages layout model.viewportWidth model.partition []
+            div
+                [ Html.Attributes.id "gallery"
+                , Html.Attributes.style "width" "100%"
+                , Html.Attributes.style "height" "100%"
+                , Html.Attributes.style "overflow-x" "hidden"
+                , Html.Attributes.style "overflow-y" "auto"
+                , Html.Attributes.style "-webkit-overflow-scrolling" "touch"
+                , InfiniteList.onScroll ChunkList
                 ]
+                [ InfiniteList.view config model.infiniteList model.images ]
 
+        -- <|
+        --   displayImages layout model.viewportWidth model.partition []
         Just image ->
             showImage image (floor model.viewportWidth)
+
+
+config : InfiniteList.Config Image Msg
+config =
+    InfiniteList.config
+        { itemView = itemView
+        , itemHeight = InfiniteList.withConstantHeight 20
+        , containerHeight = 10000
+        }
+        |> InfiniteList.withOffset 300
+        |> InfiniteList.withClass "my-class"
+
+
+itemView : Int -> Int -> Image -> Html Msg
+itemView idx listIdx image =
+    div []
+        [ Html.img
+            [ src (imageURL image)
+            , onClick (ZoomImage <| Just image)
+            , width 300
+            , height 100
+            ]
+            []
+        ]
 
 
 weights : List Float -> List Int
