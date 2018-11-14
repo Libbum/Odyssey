@@ -6,6 +6,7 @@ import Browser.Events
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import List.Zipper as Zipper exposing (Zipper(..))
 import Manifest exposing (Country(..), Image, Location(..), Trip(..), byCountry, byLocation, byTrip, dateOrderLatest, dateOrderOldest, imageURL, locale, manifest, thumbURL)
 import Partition exposing (KPartition, greedyK)
 import Task
@@ -313,3 +314,34 @@ showImage image viewportWidth =
         , width viewportWidth
         ]
         []
+
+
+zoomList : Image -> List Image -> Zipper Image
+zoomList current images =
+    Zipper.fromList images
+        |> Maybe.andThen (Zipper.find (\img -> img == current))
+        |> Zipper.withDefault current
+
+
+{-| Move the focus to the element before the element the `Zipper` is currently focussed on (if there is such an element).
+-}
+zprevious : Zipper a -> Zipper a
+zprevious (Zipper ls x rs) =
+    case ls of
+        [] ->
+            Zipper ls x rs
+
+        y :: ys ->
+            Zipper ys y (x :: rs)
+
+
+{-| Move the focus to the element after the element the `Zipper` is currently focussed on (if there is such an element).
+-}
+znext : Zipper a -> Zipper a
+znext (Zipper ls x rs) =
+    case rs of
+        [] ->
+            Zipper ls x rs
+
+        y :: ys ->
+            Zipper (x :: ls) y ys
