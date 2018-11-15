@@ -1,9 +1,17 @@
 body {
-    overflow-y: scroll;
+    overflow-y: auto;
     overflow-x: hidden;
     margin: 0px
 }
 
 img {
     margin: 4px 4px 0px
+}
+
+.scrollbar-measure {
+    width: 100px;
+    height: 100px;
+    overflow: scroll;
+    position: absolute;
+    top: -9999px;
 }
