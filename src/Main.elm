@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Animation
 import Browser
 import Browser.Dom exposing (getViewport)
 import Browser.Events
@@ -9,6 +10,7 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), filterImages, imageURL, locale, manifest, sortImages, thumbURL)
 import Partition exposing (KPartition, greedyK)
 import Task
+import Time exposing (millisToPosix)
 
 
 main : Program () Model Msg
@@ -33,6 +35,7 @@ type alias Model =
     , viewportWidth : Float
     , locale : String
     , zoom : Maybe Image
+    , style : Animation.State
     }
 
 
@@ -45,6 +48,7 @@ initialModel =
     , viewportWidth = 0
     , locale = ""
     , zoom = Nothing
+    , style = Animation.style [ Animation.opacity 1 ]
     }
 
 
@@ -62,6 +66,7 @@ init flags =
 type Msg
     = RePartition
     | Partition (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | Animate Animation.Msg
     | ToggleOrder
     | ToggleFilter
     | PutLocale String
@@ -96,6 +101,9 @@ update msg model =
                 Err _ ->
                     ( model, Cmd.none )
 
+        Animate anim ->
+            ( { model | style = Animation.update anim model.style }, Cmd.none )
+
         ToggleOrder ->
             let
                 newOrder =
@@ -118,7 +126,12 @@ update msg model =
                         _ ->
                             All
             in
-            ( { model | filter = newFilter }, getPartition )
+            ( { model
+                | filter = newFilter
+                , style = Animation.interrupt [ Animation.set [ Animation.opacity 0 ], Animation.wait (millisToPosix 500), Animation.to [ Animation.opacity 1 ] ] model.style
+              }
+            , getPartition
+            )
 
         -- VIEW CHANGES
         PutLocale locale ->
@@ -142,8 +155,11 @@ getPartition =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Browser.Events.onResize (\w h -> RePartition)
+subscriptions model =
+    Sub.batch
+        [ Browser.Events.onResize (\w h -> RePartition)
+        , Animation.subscription Animate [ model.style ]
+        ]
 
 
 
@@ -166,7 +182,7 @@ view model =
                     , Html.button [ onClick ToggleFilter ] [ Html.text "Toggle Filter" ]
                     ]
                 , div
-                    [ Html.Attributes.id "gallery" ]
+                    (Animation.render model.style ++ [ Html.Attributes.id "gallery" ])
                   <|
                     displayImages layout model.viewportWidth model.partition []
                 ]
