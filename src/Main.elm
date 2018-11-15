@@ -1,7 +1,7 @@
 module Main exposing (main)
 
 import Browser
-import Browser.Dom exposing (getViewport)
+import Browser.Dom exposing (Viewport, getViewport)
 import Browser.Events
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
@@ -32,7 +32,7 @@ type alias Model =
     , images : List Image
     , sort : SortOrder
     , filter : Filter
-    , viewportWidth : Float
+    , frame : Viewport
     , locale : String
     , zoom : Maybe Image
     }
@@ -57,7 +57,7 @@ initialModel =
     , images = manifest
     , sort = DateNewest
     , filter = All
-    , viewportWidth = 0
+    , frame = { scene = { width = 0, height = 0 }, viewport = { x = 0, y = 0, width = 0, height = 0 } }
     , locale = ""
     , zoom = Nothing
     }
@@ -99,17 +99,17 @@ update msg model =
 
         Partition result ->
             case result of
-                Ok vp ->
+                Ok frame ->
                     let
                         ratios =
                             getRatios <| filterImages model.filter model.images
 
                         rowsBest =
-                            optimalRowCount ratios vp.viewport.width vp.viewport.height
+                            optimalRowCount ratios frame.viewport.width frame.viewport.height
                     in
                     ( { model
                         | partition = greedyK (weights ratios) rowsBest
-                        , viewportWidth = vp.viewport.width
+                        , frame = frame
                       }
                     , Cmd.none
                     )
@@ -212,43 +212,28 @@ view model =
             in
             div
                 [ Html.Attributes.id "gallery"
-                , Html.Attributes.style "width" "100%"
-                , Html.Attributes.style "height" "100%"
-                , Html.Attributes.style "overflow-x" "hidden"
-                , Html.Attributes.style "overflow-y" "auto"
-                , Html.Attributes.style "-webkit-overflow-scrolling" "touch"
+                , Html.Attributes.style "height" (String.fromFloat model.frame.viewport.height ++ "px")
                 , InfiniteList.onScroll ChunkList
                 ]
-                [ InfiniteList.view config model.infiniteList model.images ]
+                [ InfiniteList.view (config <| ceiling model.frame.viewport.height) model.infiniteList (displayImages layout model.frame.viewport.width model.partition []) ]
 
-        -- <|
-        --   displayImages layout model.viewportWidth model.partition []
         Just image ->
-            showImage image (floor model.viewportWidth)
+            showImage image (floor model.frame.viewport.width)
 
 
-config : InfiniteList.Config Image Msg
-config =
+config : Int -> InfiniteList.Config (Html Msg) Msg
+config height =
     InfiniteList.config
         { itemView = itemView
-        , itemHeight = InfiniteList.withConstantHeight 20
-        , containerHeight = 10000
+        , itemHeight = InfiniteList.withConstantHeight 241 --(height // 4)
+        , containerHeight = 5 * height
         }
-        |> InfiniteList.withOffset 300
-        |> InfiniteList.withClass "my-class"
+        |> InfiniteList.withOffset (height // 2)
 
 
-itemView : Int -> Int -> Image -> Html Msg
-itemView idx listIdx image =
-    div []
-        [ Html.img
-            [ src (imageURL image)
-            , onClick (ZoomImage <| Just image)
-            , width 300
-            , height 100
-            ]
-            []
-        ]
+itemView : Int -> Int -> Html Msg -> Html Msg
+itemView idx listIdx imageRow =
+    imageRow
 
 
 weights : List Float -> List Int
@@ -308,9 +293,10 @@ displayImage : Image -> Float -> Int -> Html Msg
 displayImage image w h =
     -- Note the - 8 here on the width is to take into account the two 4px margins in resets.css
     -- We alse send in a float as the width attribute to clean up the right edge
+    -- TODO: Infinite scroll is somehow borking this. 16 doesn't oveflow, but kills our edge completely.
     Html.img
         [ src (thumbURL image)
-        , Html.Attributes.attribute "width" (String.fromFloat <| w - 8.0)
+        , Html.Attributes.attribute "width" (String.fromFloat <| w - 16.0)
         , height h
         , onClick (ZoomImage <| Just image)
         , onMouseEnter (PutLocale <| locale image)
