@@ -1,4 +1,4 @@
-module Manifest exposing (Country(..), Image, Location(..), Trip(..), byCountry, byLocation, byTrip, dateOrderLatest, dateOrderOldest, imageURL, locale, manifest, thumbURL)
+module Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), filterImages, imageURL, locale, manifest, sortImages, thumbURL)
 
 import List.Extra exposing (unconsLast)
 import Ordering exposing (Ordering)
@@ -1364,6 +1364,21 @@ type alias Date =
 -- ORDERING
 
 
+type SortOrder
+    = DateNewest
+    | DateOldest
+
+
+sortImages : SortOrder -> List Image -> List Image
+sortImages order =
+    case order of
+        DateNewest ->
+            List.sortWith dateOrderLatest
+
+        DateOldest ->
+            List.sortWith dateOrderOldest
+
+
 dateOrderLatest : Ordering Image
 dateOrderLatest =
     Ordering.byFieldWith yearOrdering (.date >> .year)
@@ -1388,6 +1403,29 @@ monthOrdering =
 
 
 -- FILTERING
+
+
+type Filter
+    = All
+    | ByCountry Country
+    | ByLocation Location
+    | ByTrip Trip
+
+
+filterImages : Filter -> List Image -> List Image
+filterImages filter images =
+    case filter of
+        All ->
+            images
+
+        ByCountry country ->
+            List.filter (byCountry country) images
+
+        ByLocation location ->
+            List.filter (byLocation location) images
+
+        ByTrip trip ->
+            List.filter (byTrip trip) images
 
 
 byCountry : Country -> Image -> Bool

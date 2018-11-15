@@ -6,7 +6,7 @@ import Browser.Events
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Manifest exposing (Country(..), Image, Location(..), Trip(..), byCountry, byLocation, byTrip, dateOrderLatest, dateOrderOldest, imageURL, locale, manifest, thumbURL)
+import Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), filterImages, imageURL, locale, manifest, sortImages, thumbURL)
 import Partition exposing (KPartition, greedyK)
 import Task
 
@@ -36,18 +36,6 @@ type alias Model =
     }
 
 
-type SortOrder
-    = DateNewest
-    | DateOldest
-
-
-type Filter
-    = All
-    | ByCountry Country
-    | ByLocation Location
-    | ByTrip Trip
-
-
 initialModel : Model
 initialModel =
     { partition = []
@@ -65,11 +53,6 @@ init flags =
     ( initialModel
     , getPartition
     )
-
-
-getRatios : List Image -> List Float
-getRatios =
-    List.map .aspectRatio
 
 
 
@@ -154,32 +137,6 @@ getPartition =
     Task.attempt Partition getViewport
 
 
-filterImages : Filter -> List Image -> List Image
-filterImages filter images =
-    case filter of
-        All ->
-            images
-
-        ByCountry country ->
-            List.filter (byCountry country) images
-
-        ByLocation location ->
-            List.filter (byLocation location) images
-
-        ByTrip trip ->
-            List.filter (byTrip trip) images
-
-
-sortImages : SortOrder -> List Image -> List Image
-sortImages order =
-    case order of
-        DateNewest ->
-            List.sortWith dateOrderLatest
-
-        DateOldest ->
-            List.sortWith dateOrderOldest
-
-
 
 --- Subscriptions
 
@@ -216,23 +173,6 @@ view model =
 
         Just image ->
             showImage image (floor model.viewportWidth)
-
-
-weights : List Float -> List Int
-weights =
-    List.map (\p -> floor (p * 100))
-
-
-optimalRowCount : List Float -> Float -> Float -> Int
-optimalRowCount imageRatios viewportWidth sceneHeight =
-    let
-        idealHeight =
-            sceneHeight / 4.0
-
-        summedWidth =
-            imageRatios |> List.map (\r -> r * idealHeight) |> List.foldl (+) 0
-    in
-    round (summedWidth / viewportWidth)
 
 
 displayImages : List Image -> Float -> KPartition Int -> List (Html Msg) -> List (Html Msg)
@@ -286,6 +226,47 @@ displayImage image w h =
         []
 
 
+showImage : Image -> Int -> Html Msg
+showImage image viewportWidth =
+    Html.img
+        [ src (imageURL image)
+        , onClick (ZoomImage Nothing)
+        , width viewportWidth
+        ]
+        []
+
+
+
+-- Helpers
+
+
+getRatios : List Image -> List Float
+getRatios =
+    List.map .aspectRatio
+
+
+summedAspectRatios : List Image -> Float
+summedAspectRatios images =
+    List.foldl (+) 0 (getRatios images)
+
+
+weights : List Float -> List Int
+weights =
+    List.map (\p -> floor (p * 100))
+
+
+optimalRowCount : List Float -> Float -> Float -> Int
+optimalRowCount imageRatios viewportWidth sceneHeight =
+    let
+        idealHeight =
+            sceneHeight / 4.0
+
+        summedWidth =
+            imageRatios |> List.map (\r -> r * idealHeight) |> List.foldl (+) 0
+    in
+    round (summedWidth / viewportWidth)
+
+
 getWidths : List Image -> Float -> Float -> List Float -> List Float
 getWidths images viewportWidth arSum widths =
     case images of
@@ -298,18 +279,3 @@ getWidths images viewportWidth arSum widths =
 
         one ->
             viewportWidth - List.sum widths :: widths
-
-
-summedAspectRatios : List Image -> Float
-summedAspectRatios images =
-    List.foldl (+) 0 (getRatios images)
-
-
-showImage : Image -> Int -> Html Msg
-showImage image viewportWidth =
-    Html.img
-        [ src (imageURL image)
-        , onClick (ZoomImage Nothing)
-        , width viewportWidth
-        ]
-        []
