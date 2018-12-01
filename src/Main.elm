@@ -160,7 +160,7 @@ view model =
                         |> filterImages model.filter
                         |> sortImages model.sort
             in
-            div []
+            div [ Html.Attributes.class "content" ]
                 [ div []
                     [ Html.button [ onClick ToggleOrder ] [ Html.text "Toggle Order" ]
                     , Html.button [ onClick ToggleFilter ] [ Html.text "Toggle Filter" ]
@@ -172,7 +172,7 @@ view model =
                 ]
 
         Just image ->
-            showImage image (floor model.viewportWidth)
+            zoomImage image
 
 
 displayImages : List Image -> Float -> KPartition Int -> List (Html Msg) -> List (Html Msg)
@@ -226,14 +226,16 @@ displayImage image w h =
         []
 
 
-showImage : Image -> Int -> Html Msg
-showImage image viewportWidth =
-    Html.img
-        [ src (imageURL image)
-        , onClick (ZoomImage Nothing)
-        , width viewportWidth
+zoomImage : Image -> Html Msg
+zoomImage image =
+    div [ Html.Attributes.class "zoombox" ]
+        [ Html.img
+            [ src (imageURL image)
+            , onClick (ZoomImage Nothing)
+            , Html.Attributes.class "zoom"
+            ]
+            []
         ]
-        []
 
 
 
