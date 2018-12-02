@@ -1,4 +1,4 @@
-module Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), filterImages, imageURL, locale, manifest, sortImages, thumbURL)
+module Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), blurURL, filterImages, imageURL, locale, manifest, sortImages, thumbURL)
 
 import List.Extra exposing (unconsLast)
 import Ordering exposing (Ordering)
@@ -15,6 +15,11 @@ type alias Image =
     , aspectRatio : Float
     , description : String
     }
+
+
+type Alternate
+    = Thumb
+    | Blur
 
 
 {-| TODO: There is an assumption here that `image.location.name` has the same value in
@@ -47,11 +52,16 @@ imageURL image =
 
 thumbURL : Image -> String
 thumbURL image =
-    String.join "/" [ imagePath image, thumbnailFromFile image.file ]
+    String.join "/" [ imagePath image, alternateFile Thumb image.file ]
 
 
-thumbnailFromFile : String -> String
-thumbnailFromFile file =
+blurURL : Image -> String
+blurURL image =
+    String.join "/" [ imagePath image, alternateFile Blur image.file ]
+
+
+alternateFile : Alternate -> String -> String
+alternateFile alt file =
     let
         -- We split here and then join the name later to catch `file.name.jpg` conventions (if they are used)
         splitFile =
@@ -63,7 +73,12 @@ thumbnailFromFile file =
                 name =
                     String.join "." splitName
             in
-            String.join "_small." [ name, ext ]
+            case alt of
+                Thumb ->
+                    String.join "_small." [ name, ext ]
+
+                Blur ->
+                    String.join "_blur." [ name, ext ]
 
         Nothing ->
             -- Unsure if it's best to return the image or fail here. It'll look nicer with the image, but use more bandwidth

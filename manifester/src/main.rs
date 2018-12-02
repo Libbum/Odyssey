@@ -242,10 +242,10 @@ impl FromStr for Location {
 }
 
 fn main() -> Result<(), Error> {
-    // Ignore the thumbnails at this point. We will check for them later.
+    // Ignore the thumbnails and blurs at this point. We will check for them later.
     let walker = globwalk::GlobWalkerBuilder::from_patterns(
         "../gallery/",
-        &["*.{png,jpg,jpeg,PNG,JPG,JPEG}", "!*_small*"],
+        &["*.{png,jpg,jpeg,PNG,JPG,JPEG}", "!*_small*", "!*_blur*"],
     )
     .follow_links(true)
     .build()?
@@ -255,7 +255,7 @@ fn main() -> Result<(), Error> {
     // This is a little annoying, we can't size_hint this iterator, so we must count it.
     let progcount = globwalk::GlobWalkerBuilder::from_patterns(
         "../gallery/",
-        &["*.{png,jpg,jpeg,PNG,JPG,JPEG}", "!*_small*"],
+        &["*.{png,jpg,jpeg,PNG,JPG,JPEG}", "!*_small*", "!*_blur*"],
     )
     .follow_links(true)
     .build()?
@@ -273,7 +273,7 @@ fn main() -> Result<(), Error> {
         let (width, height) = img.dimensions();
         let ratio = width as f64 / height as f64;
 
-        // Generate a thumbnail if one doesn't already exist.
+        // Generate a thumbnail and blur if they doesn't already exist.
         let stem = file
             .path()
             .file_stem()
@@ -285,11 +285,18 @@ fn main() -> Result<(), Error> {
             .and_then(|p| p.to_str())
             .ok_or_else(|| failure::err_msg("Extension unwrap issue."))?;
         let thumbnail = format!("{}_small.{}", stem, ext);
-        if !file.path().with_file_name(&thumbnail).exists() {
-            let thumb_width = if ratio < 3.0 { 500 } else { 900 };
-
+        let blur = format!("{}_blur.{}", stem, ext);
+        let thumb_width = if ratio < 3.0 { 500 } else { 900 };
+        if !file.path().with_file_name(&thumbnail).exists() && !file.path().with_file_name(&blur).exists()  {
+            let thumb = img.resize(thumb_width, 500, Lanczos3);
+            thumb.save(file.path().with_file_name(thumbnail))?;
+            thumb.blur(30.0).save(file.path().with_file_name(blur))?;
+        } else if !file.path().with_file_name(&thumbnail).exists() {
             img.resize(thumb_width, 500, Lanczos3)
                 .save(file.path().with_file_name(thumbnail))?;
+        } else {
+            img.resize(thumb_width, 500, Lanczos3).blur(30.0)
+                .save(file.path().with_file_name(blur))?;
         }
 
         // Get image decription if it exists.

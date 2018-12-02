@@ -6,7 +6,7 @@ import Browser.Events
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), filterImages, imageURL, locale, manifest, sortImages, thumbURL)
+import Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), blurURL, filterImages, imageURL, locale, manifest, sortImages, thumbURL)
 import Partition exposing (KPartition, greedyK)
 import Task
 
@@ -229,10 +229,15 @@ displayImage image w h =
 zoomImage : Image -> Html Msg
 zoomImage image =
     div [ Html.Attributes.class "zoombox" ]
-        [ Html.img
+        [ Html.img [ Html.Attributes.class "blur", src (blurURL image) ] []
+        , Html.img
             [ src (imageURL image)
-            , onClick (ZoomImage Nothing)
             , Html.Attributes.class "zoom"
+            ]
+            []
+        , div
+            [ Html.Attributes.class "control"
+            , onClick (ZoomImage Nothing)
             ]
             []
         ]
