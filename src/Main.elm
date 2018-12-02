@@ -1,7 +1,7 @@
 module Main exposing (main)
 
 import Browser
-import Browser.Dom exposing (getViewport)
+import Browser.Dom exposing (getViewport, setViewport)
 import Browser.Events
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
@@ -31,6 +31,7 @@ type alias Model =
     , sort : SortOrder
     , filter : Filter
     , viewportWidth : Float
+    , viewportOffset : Float
     , scrollWidth : Float
     , locale : String
     , zoom : Maybe Image
@@ -44,6 +45,7 @@ initialModel scrollWidth =
     , sort = DateNewest
     , filter = All
     , viewportWidth = 0
+    , viewportOffset = 0
     , scrollWidth = toFloat scrollWidth
     , locale = ""
     , zoom = Nothing
@@ -69,6 +71,8 @@ type Msg
     | PutLocale String
     | PopLocale
     | ZoomImage (Maybe Image)
+    | SetZoom (Maybe Image) (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | NoOp
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -91,7 +95,7 @@ update msg model =
                     ( { model
                         | partition = greedyK (weights ratios) rowsBest
                         , viewportWidth = vp.viewport.width - model.scrollWidth
-                        , scrollWidth = 0.0 -- Scrollwidth is only needed on-load, and can be ignored thereafter
+                        , scrollWidth = 0 -- Scrollwidth is only needed on-load, and can be ignored thereafter
                       }
                     , Cmd.none
                     )
@@ -132,7 +136,23 @@ update msg model =
 
         -- IMAGE VIEWER
         ZoomImage image ->
-            ( { model | zoom = image }, Cmd.none )
+            ( model, Task.attempt (SetZoom image) getViewport )
+
+        SetZoom image result ->
+            case result of
+                Ok vp ->
+                    ( { model
+                        | zoom = image
+                        , viewportOffset = vp.viewport.y
+                      }
+                    , Task.perform (\_ -> NoOp) (setViewport 0 model.viewportOffset)
+                    )
+
+                Err _ ->
+                    ( { model | zoom = image }, Cmd.none )
+
+        NoOp ->
+            ( model, Cmd.none )
 
 
 getPartition : Cmd Msg
@@ -216,8 +236,8 @@ displayRowOfImages images viewportWidth =
 
 displayImage : Image -> Float -> Int -> Html Msg
 displayImage image w h =
-    -- Note the - 8 here on the width is to take into account the two 4px margins in resets.css
-    -- We alse send in a float as the width attribute to clean up the right edge
+    -- Note the - 8 here on the width is to take into account the two 4px margins in the css
+    -- We also send in a float as the width attribute to clean up the right edge
     Html.img
         [ src (thumbURL image)
         , Html.Attributes.attribute "width" (String.fromFloat <| w - 8.0)
