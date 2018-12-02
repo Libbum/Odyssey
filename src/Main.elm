@@ -31,6 +31,7 @@ type alias Model =
     , sort : SortOrder
     , filter : Filter
     , viewportWidth : Float
+    , scrollWidth : Float
     , locale : String
     , zoom : Maybe Image
     }
@@ -41,8 +42,9 @@ initialModel scrollWidth =
     { partition = []
     , images = manifest
     , sort = DateNewest
-    , filter = ByLocation Melbourne
-    , viewportWidth = toFloat scrollWidth
+    , filter = All
+    , viewportWidth = 0
+    , scrollWidth = toFloat scrollWidth
     , locale = ""
     , zoom = Nothing
     }
@@ -84,11 +86,12 @@ update msg model =
                             getRatios <| filterImages model.filter model.images
 
                         rowsBest =
-                            optimalRowCount ratios (vp.viewport.width - model.viewportWidth) vp.viewport.height
+                            optimalRowCount ratios (vp.viewport.width - model.scrollWidth) vp.viewport.height
                     in
                     ( { model
                         | partition = greedyK (weights ratios) rowsBest
-                        , viewportWidth = vp.viewport.width - model.viewportWidth
+                        , viewportWidth = vp.viewport.width - model.scrollWidth
+                        , scrollWidth = 0.0 -- Scrollwidth is only needed on-load, and can be ignored thereafter
                       }
                     , Cmd.none
                     )
