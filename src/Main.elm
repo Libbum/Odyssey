@@ -11,7 +11,7 @@ import Partition exposing (KPartition, greedyK)
 import Task
 
 
-main : Program () Model Msg
+main : Program Int Model Msg
 main =
     Browser.element
         { init = init
@@ -31,26 +31,28 @@ type alias Model =
     , sort : SortOrder
     , filter : Filter
     , viewportWidth : Float
+    , scrollWidth : Float
     , locale : String
     , zoom : Maybe Image
     }
 
 
-initialModel : Model
-initialModel =
+initialModel : Int -> Model
+initialModel scrollWidth =
     { partition = []
     , images = manifest
     , sort = DateNewest
     , filter = All
     , viewportWidth = 0
+    , scrollWidth = toFloat scrollWidth
     , locale = ""
     , zoom = Nothing
     }
 
 
-init : () -> ( Model, Cmd Msg )
-init flags =
-    ( initialModel
+init : Int -> ( Model, Cmd Msg )
+init scrollWidth =
+    ( initialModel scrollWidth
     , getPartition
     )
 
@@ -84,11 +86,12 @@ update msg model =
                             getRatios <| filterImages model.filter model.images
 
                         rowsBest =
-                            optimalRowCount ratios vp.viewport.width vp.viewport.height
+                            optimalRowCount ratios (vp.viewport.width - model.scrollWidth) vp.viewport.height
                     in
                     ( { model
                         | partition = greedyK (weights ratios) rowsBest
-                        , viewportWidth = vp.viewport.width
+                        , viewportWidth = vp.viewport.width - model.scrollWidth
+                        , scrollWidth = 0.0 -- Scrollwidth is only needed on-load, and can be ignored thereafter
                       }
                     , Cmd.none
                     )
