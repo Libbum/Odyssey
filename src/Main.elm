@@ -1,7 +1,7 @@
 module Main exposing (main)
 
 import Browser
-import Browser.Dom exposing (getViewport, setViewport)
+import Browser.Dom exposing (getViewport, getViewportOf, setViewport)
 import Browser.Events
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
@@ -30,7 +30,9 @@ type alias Model =
     , images : List Image
     , sort : SortOrder
     , filter : Filter
-    , viewportWidth : Float
+    , resizedAfterLoad : Bool
+    , window : Viewport
+    , gallery : Viewport
     , viewportOffset : Float
     , scrollWidth : Float
     , locale : String
@@ -44,7 +46,9 @@ initialModel scrollWidth =
     , images = manifest
     , sort = DateNewest
     , filter = All
-    , viewportWidth = 0
+    , resizedAfterLoad = False
+    , window = emptyViewport --TODO: Drop this to viewport.height if we don't need anything else from this later
+    , gallery = emptyViewport
     , viewportOffset = 0
     , scrollWidth = toFloat scrollWidth
     , locale = ""
@@ -52,11 +56,34 @@ initialModel scrollWidth =
     }
 
 
+type alias Viewport =
+    { x : Float
+    , y : Float
+    , width : Float
+    , height : Float
+    }
+
+
+emptyViewport : Viewport
+emptyViewport =
+    { x = 0
+    , y = 0
+    , width = 0
+    , height = 0
+    }
+
+
 init : Int -> ( Model, Cmd Msg )
 init scrollWidth =
     ( initialModel scrollWidth
-    , getPartition
+    , getWindow Init
     )
+
+
+type Event
+    = Resize
+    | Filter
+    | Init
 
 
 
@@ -65,7 +92,8 @@ init scrollWidth =
 
 type Msg
     = RePartition
-    | Partition (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | Partition Event (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | SetWindow Event (Result Browser.Dom.Error Browser.Dom.Viewport)
     | ToggleOrder
     | ToggleFilter
     | PutLocale String
@@ -78,24 +106,70 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        -- VIEWPORT
+        SetWindow event result ->
+            case result of
+                Ok vp ->
+                    ( { model | window = vp.viewport }, Task.attempt (Partition event) (getViewportOf "gallery") )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
         -- GALLERY
         RePartition ->
-            ( model, getPartition )
+            ( model, getWindow Resize )
 
-        Partition result ->
+        Partition event result ->
             case result of
                 Ok vp ->
                     let
+                        oldViewport =
+                            vp.viewport
+
                         ratios =
                             getRatios <| filterImages model.filter model.images
 
+                        rowsGuess =
+                            -- So we have the old veiwport, and we need to figure out if our new
+                            -- viewport will require a scrollbar or not. Take a guess at the new div height
+                            -- TODO: The 370 offset here is hardcoded for the aside div, but it will hide
+                            -- at some stage, thus will need to be dynamic in the future
+                            optimalRowCount ratios (oldViewport.width - 370) model.window.height
+
+                        toggleResize =
+                            case event of
+                                Init ->
+                                    True
+
+                                _ ->
+                                    model.resizedAfterLoad
+
+                        newWidth =
+                            case event of
+                                Filter ->
+                                    case ( oldViewport.height > model.window.height, rowsGuess <= 4, model.resizedAfterLoad ) of
+                                        ( True, True, _ ) ->
+                                            oldViewport.width + model.scrollWidth
+
+                                        ( False, False, True ) ->
+                                            oldViewport.width - model.scrollWidth
+
+                                        _ ->
+                                            oldViewport.width
+
+                                Init ->
+                                    oldViewport.width - model.scrollWidth
+
+                                Resize ->
+                                    oldViewport.width
+
                         rowsBest =
-                            optimalRowCount ratios (vp.viewport.width - model.scrollWidth) vp.viewport.height
+                            optimalRowCount ratios (newWidth - 370) model.window.height
                     in
                     ( { model
                         | partition = greedyK (weights ratios) rowsBest
-                        , viewportWidth = vp.viewport.width - model.scrollWidth
-                        , scrollWidth = 0 -- Scrollwidth is only needed on-load, and can be ignored thereafter
+                        , resizedAfterLoad = toggleResize
+                        , gallery = { oldViewport | width = newWidth - 370 }
                       }
                     , Cmd.none
                     )
@@ -120,12 +194,12 @@ update msg model =
                 newFilter =
                     case model.filter of
                         All ->
-                            ByCountry Germany
+                            ByLocation Melbourne
 
                         _ ->
                             All
             in
-            ( { model | filter = newFilter }, getPartition )
+            ( { model | filter = newFilter }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
 
         -- VIEW CHANGES
         PutLocale locale ->
@@ -145,7 +219,7 @@ update msg model =
                         | zoom = image
                         , viewportOffset = vp.viewport.y
                       }
-                    , Task.perform (\_ -> NoOp) (setViewport 0 model.viewportOffset)
+                    , Task.attempt (\_ -> NoOp) (setViewport 0 model.viewportOffset)
                     )
 
                 Err _ ->
@@ -155,9 +229,9 @@ update msg model =
             ( model, Cmd.none )
 
 
-getPartition : Cmd Msg
-getPartition =
-    Task.attempt Partition getViewport
+getWindow : Event -> Cmd Msg
+getWindow event =
+    Task.attempt (SetWindow event) getViewport
 
 
 
@@ -184,14 +258,16 @@ view model =
                         |> sortImages model.sort
             in
             div [ Html.Attributes.class "content" ]
-                [ div []
-                    [ Html.button [ onClick ToggleOrder ] [ Html.text "Toggle Order" ]
-                    , Html.button [ onClick ToggleFilter ] [ Html.text "Toggle Filter" ]
+                [ Html.section [ Html.Attributes.id "aside" ]
+                    [ div []
+                        [ Html.button [ onClick ToggleOrder ] [ Html.text "Toggle Order" ]
+                        , Html.button [ onClick ToggleFilter ] [ Html.text "Toggle Filter" ]
+                        ]
                     ]
-                , div
+                , Html.section
                     [ Html.Attributes.id "gallery" ]
                   <|
-                    displayImages layout model.viewportWidth model.partition []
+                    displayImages layout model.gallery.width model.partition []
                 ]
 
         Just image ->
@@ -231,7 +307,7 @@ displayRowOfImages images viewportWidth =
         h =
             floor (viewportWidth / arSum)
     in
-    div [] <| List.map2 (\img w -> displayImage img w h) images widths
+    div [ Html.Attributes.class "flex" ] <| List.map2 (\img w -> displayImage img w h) images widths
 
 
 displayImage : Image -> Float -> Int -> Html Msg

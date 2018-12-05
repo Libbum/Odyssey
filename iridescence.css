@@ -6,6 +6,21 @@ img {
     margin: 4px 4px 0px;
 }
 
+#aside {
+    background: #343642;
+    color: #cce1e6;
+    height: 100%;
+    position: fixed;
+    text-align: center;
+    top: 0;
+    width: 370px;
+    right: 0;
+}
+
+.flex {
+    display: flex;
+}
+
 .zoombox {
     display: grid;
     height: 100vh;
