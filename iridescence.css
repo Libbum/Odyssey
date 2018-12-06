@@ -7,8 +7,8 @@ img {
 }
 
 #aside {
-    background: #343642;
-    color: #cce1e6;
+    background: #222629;
+    color: #fff;
     height: 100%;
     position: fixed;
     text-align: center;
@@ -17,8 +17,67 @@ img {
     right: 0;
 }
 
+#aside > footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    padding-bottom: 2em;
+    padding-left: 0.5em;
+}
+
+button {
+    border: none;
+    background: none;
+    outline: none;
+    cursor: pointer;
+}
+
+.icons {
+    margin: 0px;
+}
+
+ul.icons {
+    cursor: default;
+    list-style: none;
+    padding-left: 0px;
+}
+
+ul.icons li {
+    display: inline-block;
+    padding: 0 1em 0 0;
+}
+
 .flex {
     display: flex;
+}
+
+.icon {
+  width: 35px;
+  height: 35px;
+  stroke: #86c232;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  display: inline-block;
+  vertical-align: middle;
+  -webkit-transform: perspective(1px) translateZ(0);
+  transform: perspective(1px) translateZ(0);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0);
+  -webkit-transition-duration: 0.3s;
+  transition-duration: 0.3s;
+  -webkit-transition-property: transform;
+  transition-property: transform;
+}
+.icon:hover, .icon:focus, .icon:active {
+  -webkit-transform: scale(1.1);
+  transform: scale(1.1);
+}
+
+.icon:active {
+    stroke: #61892f;
 }
 
 .zoombox {

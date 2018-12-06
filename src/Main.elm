@@ -6,6 +6,7 @@ import Browser.Events
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Icons
 import Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), blurURL, filterImages, imageURL, locale, manifest, sortImages, thumbURL)
 import Partition exposing (KPartition, greedyK)
 import Task
@@ -100,6 +101,7 @@ type Msg
     | PopLocale
     | ZoomImage (Maybe Image)
     | SetZoom (Maybe Image) (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | ToggleModal
     | NoOp
 
 
@@ -225,6 +227,9 @@ update msg model =
                 Err _ ->
                     ( { model | zoom = image }, Cmd.none )
 
+        ToggleModal ->
+            ( model, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
 
@@ -256,12 +261,32 @@ view model =
                     model.images
                         |> filterImages model.filter
                         |> sortImages model.sort
+
+                orderIcon =
+                    case model.sort of
+                        DateNewest ->
+                            Icons.chevronDown
+
+                        DateOldest ->
+                            Icons.chevronUp
             in
             div [ Html.Attributes.class "content" ]
                 [ Html.section [ Html.Attributes.id "aside" ]
                     [ div []
-                        [ Html.button [ onClick ToggleOrder ] [ Html.text "Toggle Order" ]
-                        , Html.button [ onClick ToggleFilter ] [ Html.text "Toggle Filter" ]
+                        [ Html.h1 [] [ Html.text "Odyssey" ]
+                        , Html.text "The world is a book and those who do not travel read only one page.\n— Aurelius Augustinus Hipponensis"
+                        ]
+                    , div []
+                        [ Html.button [ onClick ToggleOrder ] [ orderIcon ]
+                        , Html.button [ onClick ToggleFilter ] [ Icons.filter ]
+                        ]
+                    , Html.text model.locale
+                    , Html.footer []
+                        [ Html.ul [ Html.Attributes.class "icons" ]
+                            [ Html.li [] [ Html.a [ Html.Attributes.href "https://www.github.com/Libbum/Odyssey" ] [ Icons.github ] ]
+                            , Html.li [] [ Html.button [ onClick ToggleModal ] [ Icons.mail ] ]
+                            , Html.li [] [ Html.a [ Html.Attributes.href "https://telegram.me/Libbum" ] [ Icons.telegram ] ]
+                            ]
                         ]
                     ]
                 , Html.section
