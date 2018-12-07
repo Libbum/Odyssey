@@ -1,23 +1,37 @@
 body {
     margin: 0px;
+    font-family: Lato,sans-serif;
+    font-size: 16pt;
+    font-weight: 400;
+    line-height: 1.75em;
 }
 
 img {
     margin: 4px 4px 0px;
 }
 
+h1 {
+    font-size: 1.75em;
+    color: #348899;
+}
+
 #aside {
-    background: #222629;
-    color: #fff;
+    background: #343642;
+    color: #cce1e6;
     height: 100%;
     position: fixed;
     text-align: center;
     top: 0;
-    width: 370px;
+    width: 495px;
     right: 0;
 }
 
-#aside > footer {
+header {
+    padding: 3em;
+    padding-top: 0em;
+}
+
+footer {
     position: absolute;
     bottom: 0;
     left: 0;
@@ -54,9 +68,9 @@ ul.icons li {
 }
 
 .icon {
-  width: 35px;
-  height: 35px;
-  stroke: #86c232;
+  width: 30px;
+  height: 30px;
+  stroke: #93D8E5;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -74,10 +88,27 @@ ul.icons li {
 .icon:hover, .icon:focus, .icon:active {
   -webkit-transform: scale(1.1);
   transform: scale(1.1);
+  stroke: #348899;
+}
+
+.icon:hover {
+    transition: stroke .15s ease-in;
 }
 
 .icon:active {
-    stroke: #61892f;
+    stroke: #235B66;
+}
+
+.right {
+    text-align: right;
+    margin-right: -6em;
+}
+
+#map {
+    max-width: 20em;
+    padding: 0;
+    padding-top: 1em;
+    margin: 0 auto;
 }
 
 .zoombox {

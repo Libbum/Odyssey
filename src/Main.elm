@@ -9,6 +9,8 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Icons
 import Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), blurURL, filterImages, imageURL, locale, manifest, sortImages, thumbURL)
 import Partition exposing (KPartition, greedyK)
+import Svg
+import Svg.Attributes
 import Task
 
 
@@ -134,9 +136,9 @@ update msg model =
                         rowsGuess =
                             -- So we have the old veiwport, and we need to figure out if our new
                             -- viewport will require a scrollbar or not. Take a guess at the new div height
-                            -- TODO: The 370 offset here is hardcoded for the aside div, but it will hide
+                            -- TODO: The 495 offset here is hardcoded for the aside div, but it will hide
                             -- at some stage, thus will need to be dynamic in the future
-                            optimalRowCount ratios (oldViewport.width - 370) model.window.height
+                            optimalRowCount ratios (oldViewport.width - 495) model.window.height
 
                         toggleResize =
                             case event of
@@ -166,12 +168,12 @@ update msg model =
                                     oldViewport.width
 
                         rowsBest =
-                            optimalRowCount ratios (newWidth - 370) model.window.height
+                            optimalRowCount ratios (newWidth - 495) model.window.height
                     in
                     ( { model
                         | partition = greedyK (weights ratios) rowsBest
                         , resizedAfterLoad = toggleResize
-                        , gallery = { oldViewport | width = newWidth - 370 }
+                        , gallery = { oldViewport | width = newWidth - 495 }
                       }
                     , Cmd.none
                     )
@@ -272,9 +274,13 @@ view model =
             in
             div [ Html.Attributes.class "content" ]
                 [ Html.section [ Html.Attributes.id "aside" ]
-                    [ div []
+                    [ div [ Html.Attributes.id "map" ] [ drawGlobe ]
+                    , Html.header []
                         [ Html.h1 [] [ Html.text "Odyssey" ]
-                        , Html.text "The world is a book and those who do not travel read only one page.\n— Aurelius Augustinus Hipponensis"
+                        , Html.i []
+                            [ Html.text "The world is a book and those who do not travel read only one page."
+                            , Html.span [ Html.Attributes.class "right" ] [ Html.text "— Aurelius Augustinus Hipponensis" ]
+                            ]
                         ]
                     , div []
                         [ Html.button [ onClick ToggleOrder ] [ orderIcon ]
@@ -368,7 +374,7 @@ zoomImage image =
 
 
 
--- Helpers
+-- Partition Helpers
 
 
 getRatios : List Image -> List Float
@@ -410,3 +416,23 @@ getWidths images viewportWidth arSum widths =
 
         one ->
             viewportWidth - List.sum widths :: widths
+
+
+
+-- Map Helpers
+
+
+drawGlobe : Html Msg
+drawGlobe =
+    Svg.svg
+        [ Svg.Attributes.width "400"
+        , Svg.Attributes.height "400"
+        , Svg.Attributes.viewBox "0 0 400 400"
+        ]
+        [ Svg.circle
+            [ Svg.Attributes.cx "200"
+            , Svg.Attributes.cy "200"
+            , Svg.Attributes.r "190"
+            ]
+            []
+        ]
