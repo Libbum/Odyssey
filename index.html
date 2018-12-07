@@ -21,6 +21,12 @@
                 node: document.getElementById('iridescence'),
                 flags: scrollbarWidth
             });
+
+            window.onscroll = function(ev) {
+                if ((window.innerHeight + window.pageYOffset + 500) >= document.body.offsetHeight) {
+                    app.ports.nearBottom.send(true);
+                }
+            };
         </script>
     </body>
 </html>
