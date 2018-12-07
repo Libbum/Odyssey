@@ -216,8 +216,16 @@ update msg model =
 
                         _ ->
                             All
+
+                rows =
+                    model.rows
             in
-            ( { model | filter = newFilter }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
+            ( { model
+                | filter = newFilter
+                , rows = { rows | visible = 10 }
+              }
+            , Task.attempt (Partition Filter) (getViewportOf "gallery")
+            )
 
         LazyLoad ->
             let
