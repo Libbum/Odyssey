@@ -9,6 +9,7 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Icons
 import Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), blurURL, filterImages, imageURL, locale, manifest, sortImages, thumbURL)
 import Partition exposing (KPartition, greedyK)
+import Ports exposing (nearBottom)
 import Svg
 import Svg.Attributes
 import Task
@@ -34,6 +35,7 @@ type alias Model =
     , sort : SortOrder
     , filter : Filter
     , resizedAfterLoad : Bool
+    , rows : Rows
     , window : Viewport
     , gallery : Viewport
     , viewportOffset : Float
@@ -50,6 +52,7 @@ initialModel scrollWidth =
     , sort = DateNewest
     , filter = All
     , resizedAfterLoad = False
+    , rows = { total = 0, visible = 10 }
     , window = emptyViewport --TODO: Drop this to viewport.height if we don't need anything else from this later
     , gallery = emptyViewport
     , viewportOffset = 0
@@ -64,6 +67,12 @@ type alias Viewport =
     , y : Float
     , width : Float
     , height : Float
+    }
+
+
+type alias Rows =
+    { total : Int
+    , visible : Int
     }
 
 
@@ -99,6 +108,7 @@ type Msg
     | SetWindow Event (Result Browser.Dom.Error Browser.Dom.Viewport)
     | ToggleOrder
     | ToggleFilter
+    | LazyLoad
     | PutLocale String
     | PopLocale
     | ZoomImage (Maybe Image)
@@ -169,11 +179,15 @@ update msg model =
 
                         rowsBest =
                             optimalRowCount ratios (newWidth - 495) model.window.height
+
+                        rows =
+                            model.rows
                     in
                     ( { model
                         | partition = greedyK (weights ratios) rowsBest
                         , resizedAfterLoad = toggleResize
                         , gallery = { oldViewport | width = newWidth - 495 }
+                        , rows = { rows | total = rowsBest }
                       }
                     , Cmd.none
                     )
@@ -204,6 +218,23 @@ update msg model =
                             All
             in
             ( { model | filter = newFilter }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
+
+        LazyLoad ->
+            let
+                rows =
+                    model.rows
+
+                newRows =
+                    model.rows.visible + 5
+
+                visibleRows =
+                    if newRows > model.rows.total then
+                        model.rows.total
+
+                    else
+                        newRows
+            in
+            ( { model | rows = { rows | visible = newRows } }, Cmd.none )
 
         -- VIEW CHANGES
         PutLocale locale ->
@@ -247,7 +278,10 @@ getWindow event =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Browser.Events.onResize (\w h -> RePartition)
+    Sub.batch
+        [ Browser.Events.onResize (\w h -> RePartition)
+        , nearBottom (\_ -> LazyLoad)
+        ]
 
 
 
@@ -298,7 +332,8 @@ view model =
                 , Html.section
                     [ Html.Attributes.id "gallery" ]
                   <|
-                    displayImages layout model.gallery.width model.partition []
+                    List.take model.rows.visible <|
+                        displayImages layout model.gallery.width model.partition []
                 ]
 
         Just image ->
