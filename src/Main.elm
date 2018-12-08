@@ -7,7 +7,7 @@ import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Icons
-import Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), blurURL, filterImages, imageURL, locale, manifest, sortImages, thumbURL)
+import Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), blurURL, countryNames, filterImages, imageURL, locale, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripNames)
 import Partition exposing (KPartition, greedyK)
 import Ports exposing (nearBottom)
 import Svg
@@ -34,6 +34,7 @@ type alias Model =
     , images : List Image
     , sort : SortOrder
     , filter : Filter
+    , filterSelected : ( Radio, String )
     , resizedAfterLoad : Bool
     , rows : Rows
     , window : Viewport
@@ -51,6 +52,7 @@ initialModel scrollWidth =
     , images = manifest
     , sort = DateNewest
     , filter = All
+    , filterSelected = ( RadioAll, "" )
     , resizedAfterLoad = False
     , rows = { total = 0, visible = 10 }
     , window = emptyViewport --TODO: Drop this to viewport.height if we don't need anything else from this later
@@ -98,6 +100,13 @@ type Event
     | Init
 
 
+type Radio
+    = RadioAll
+    | RadioCountry
+    | RadioLocation
+    | RadioTrip
+
+
 
 --- Update
 
@@ -107,13 +116,15 @@ type Msg
     | Partition Event (Result Browser.Dom.Error Browser.Dom.Viewport)
     | SetWindow Event (Result Browser.Dom.Error Browser.Dom.Viewport)
     | ToggleOrder
-    | ToggleFilter
+    | ToggleRadio Radio
+    | ApplyFilter
     | LazyLoad
     | PutLocale String
     | PopLocale
     | ZoomImage (Maybe Image)
     | SetZoom (Maybe Image) (Result Browser.Dom.Error Browser.Dom.Viewport)
     | ToggleModal
+    | SetSelection String
     | NoOp
 
 
@@ -204,28 +215,40 @@ update msg model =
 
                         DateOldest ->
                             DateNewest
-            in
-            ( { model | sort = newOrder }, Cmd.none )
-
-        ToggleFilter ->
-            let
-                newFilter =
-                    case model.filter of
-                        All ->
-                            ByLocation Melbourne
-
-                        _ ->
-                            All
 
                 rows =
                     model.rows
             in
-            ( { model
-                | filter = newFilter
-                , rows = { rows | visible = 10 }
-              }
-            , Task.attempt (Partition Filter) (getViewportOf "gallery")
-            )
+            ( { model | sort = newOrder, rows = { rows | visible = 10 } }, Cmd.none )
+
+        ToggleRadio selected ->
+            let
+                initial =
+                    Maybe.withDefault "" <|
+                        case selected of
+                            RadioAll ->
+                                Just ""
+
+                            RadioCountry ->
+                                List.head countryNames
+
+                            RadioLocation ->
+                                List.head locationNames
+
+                            RadioTrip ->
+                                List.head tripNames
+            in
+            ( { model | filterSelected = ( selected, initial ) }, Cmd.none )
+
+        ApplyFilter ->
+            let
+                rows =
+                    model.rows
+
+                filter =
+                    newFilter model.filterSelected model.filter
+            in
+            ( { model | rows = { rows | visible = 10 }, filter = filter }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
 
         LazyLoad ->
             let
@@ -271,6 +294,13 @@ update msg model =
         ToggleModal ->
             ( model, Cmd.none )
 
+        SetSelection selection ->
+            let
+                ( radio, _ ) =
+                    model.filterSelected
+            in
+            ( { model | filterSelected = ( radio, selection ) }, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
 
@@ -313,6 +343,9 @@ view model =
 
                         DateOldest ->
                             Icons.chevronUp
+
+                ( selected, _ ) =
+                    model.filterSelected
             in
             div [ Html.Attributes.class "content" ]
                 [ Html.section [ Html.Attributes.id "aside" ]
@@ -324,11 +357,22 @@ view model =
                             , Html.span [ Html.Attributes.class "right" ] [ Html.text "— Aurelius Augustinus Hipponensis" ]
                             ]
                         ]
-                    , div []
-                        [ Html.button [ onClick ToggleOrder ] [ orderIcon ]
-                        , Html.button [ onClick ToggleFilter ] [ Icons.filter ]
+                    , div [ Html.Attributes.class "locale" ] [ Html.text model.locale ]
+                    , Html.nav []
+                        [ div [ Html.Attributes.class "cleft" ]
+                            [ radioView RadioAll selected
+                            , radioView RadioCountry selected
+                            ]
+                        , div [ Html.Attributes.class "ccenter" ]
+                            [ radioView RadioLocation selected
+                            , radioView RadioTrip selected
+                            ]
+                        , div [ Html.Attributes.class "cright" ]
+                            [ Html.button [ onClick ToggleOrder ] [ orderIcon ]
+                            , Html.button [ onClick ApplyFilter ] [ Icons.filter ]
+                            ]
+                        , filterMenu selected
                         ]
-                    , Html.text model.locale
                     , Html.footer []
                         [ Html.ul [ Html.Attributes.class "icons" ]
                             [ Html.li [] [ Html.a [ Html.Attributes.href "https://www.github.com/Libbum/Odyssey" ] [ Icons.github ] ]
@@ -459,6 +503,107 @@ getWidths images viewportWidth arSum widths =
 
         one ->
             viewportWidth - List.sum widths :: widths
+
+
+
+-- Veiw Helpers
+
+
+radioView : Radio -> Radio -> Html Msg
+radioView filter current =
+    let
+        isChecked =
+            filter == current
+
+        icon =
+            if isChecked then
+                Icons.checkCircle
+
+            else
+                Icons.circle
+
+        label =
+            case filter of
+                RadioAll ->
+                    " All"
+
+                RadioLocation ->
+                    " By Location"
+
+                RadioCountry ->
+                    " By Country"
+
+                RadioTrip ->
+                    " By Trip"
+    in
+    Html.label []
+        [ Html.input
+            [ Html.Attributes.type_ "radio"
+            , Html.Attributes.name "filtering"
+            , Html.Events.onClick (ToggleRadio filter)
+            , Html.Attributes.checked isChecked
+            ]
+            []
+        , icon
+        , Html.text label
+        ]
+
+
+filterMenu : Radio -> Html Msg
+filterMenu current =
+    let
+        ( visible, list ) =
+            case current of
+                RadioAll ->
+                    ( "hidden", [] )
+
+                RadioLocation ->
+                    ( "visible", locationNames )
+
+                RadioCountry ->
+                    ( "visible", countryNames )
+
+                RadioTrip ->
+                    ( "visible", tripNames )
+    in
+    Html.select [ Html.Events.onInput SetSelection, Html.Attributes.class visible ] <|
+        List.map
+            (\label ->
+                Html.option []
+                    [ Html.text label ]
+            )
+            list
+
+
+newFilter : ( Radio, String ) -> Filter -> Filter
+newFilter ( radio, selected ) current =
+    case radio of
+        RadioAll ->
+            All
+
+        RadioCountry ->
+            case stringToCountry selected of
+                Just country ->
+                    ByCountry country
+
+                Nothing ->
+                    current
+
+        RadioLocation ->
+            case stringToLocation selected of
+                Just location ->
+                    ByLocation location
+
+                Nothing ->
+                    current
+
+        RadioTrip ->
+            case stringToTrip selected of
+                Just trip ->
+                    ByTrip trip
+
+                Nothing ->
+                    current
 
 
 

@@ -1,4 +1,4 @@
-module Icons exposing (checkCircle, chevronDown, chevronUp, chevronsLeft, chevronsRight, circle, filter, github, mail, menu, telegram)
+module Icons exposing (checkCircle, chevronDown, chevronUp, chevronsLeft, chevronsRight, circle, filter, github, mail, menu, telegram, x)
 
 import Html exposing (Html)
 import Svg exposing (Svg, svg)
@@ -93,4 +93,12 @@ telegram : Html msg
 telegram =
     svgIcon "telegram"
         [ Svg.path [ d "M23.932 3.769l-3.622 17.08c-.273 1.205-.986 1.505-1.999.937l-5.518-4.066-2.663 2.561c-.294.294-.541.541-1.109.541l.397-5.62L19.646 5.96c.444-.397-.097-.616-.692-.22L6.31 13.702.867 11.998c-1.184-.37-1.205-1.184.247-1.752l21.291-8.203c.985-.369 1.848.22 1.527 1.726z" ] []
+        ]
+
+
+x : Html msg
+x =
+    svgIcon "x"
+        [ Svg.line [ x1 "18", y1 "6", x2 "6", y2 "18" ] []
+        , Svg.line [ x1 "6", y1 "6", x2 "18", y2 "18" ] []
         ]

@@ -1,4 +1,4 @@
-module Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), blurURL, filterImages, imageURL, locale, manifest, sortImages, thumbURL)
+module Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), blurURL, countryNames, filterImages, imageURL, locale, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripNames)
 
 import List.Extra exposing (unconsLast)
 import Ordering exposing (Ordering)
@@ -120,6 +120,47 @@ type Country
     | Vietnam
 
 
+{-| This is a little annoying, but Elm doesn't enumerate custom types.
+TODO: This should be generated in the manifester later on to avoid forgetting to update it
+-}
+countryList : List Country
+countryList =
+    [ Armenia
+    , Australia
+    , Austria
+    , CzechRepublic
+    , Germany
+    , Denmark
+    , Estonia
+    , Finland
+    , France
+    , FaeroeIslands
+    , UnitedKingdom
+    , Greece
+    , HongKong
+    , Hungary
+    , Iceland
+    , Japan
+    , Latvia
+    , Netherlands
+    , Norway
+    , Poland
+    , Qatar
+    , Russia
+    , Singapore
+    , Slovakia
+    , Sweden
+    , Thailand
+    , Ukraine
+    , Vietnam
+    ]
+
+
+countryNames : List String
+countryNames =
+    List.map countryName countryList
+
+
 countryName : Country -> String
 countryName country =
     case country of
@@ -151,7 +192,7 @@ countryName country =
             "France"
 
         FaeroeIslands ->
-            "Faroe Islands"
+            "Faeroe Islands"
 
         UnitedKingdom ->
             "United Kingdom"
@@ -206,6 +247,97 @@ countryName country =
 
         Vietnam ->
             "Vietnam"
+
+
+stringToCountry : String -> Maybe Country
+stringToCountry country =
+    case country of
+        "Armenia" ->
+            Just Armenia
+
+        "Australia" ->
+            Just Australia
+
+        "Austria" ->
+            Just Austria
+
+        "CzechRepublic" ->
+            Just CzechRepublic
+
+        "Germany" ->
+            Just Germany
+
+        "Denmark" ->
+            Just Denmark
+
+        "Estonia" ->
+            Just Estonia
+
+        "Finland" ->
+            Just Finland
+
+        "France" ->
+            Just France
+
+        "FaeroeIslands" ->
+            Just FaeroeIslands
+
+        "UnitedKingdom" ->
+            Just UnitedKingdom
+
+        "Greece" ->
+            Just Greece
+
+        "HongKong" ->
+            Just HongKong
+
+        "Hungary" ->
+            Just Hungary
+
+        "Iceland" ->
+            Just Iceland
+
+        "Japan" ->
+            Just Japan
+
+        "Latvia" ->
+            Just Latvia
+
+        "Netherlands" ->
+            Just Netherlands
+
+        "Norway" ->
+            Just Norway
+
+        "Poland" ->
+            Just Poland
+
+        "Qatar" ->
+            Just Qatar
+
+        "Russia" ->
+            Just Russia
+
+        "Singapore" ->
+            Just Singapore
+
+        "Slovakia" ->
+            Just Slovakia
+
+        "Sweden" ->
+            Just Sweden
+
+        "Thailand" ->
+            Just Thailand
+
+        "Ukraine" ->
+            Just Ukraine
+
+        "Vietnam" ->
+            Just Vietnam
+
+        _ ->
+            Nothing
 
 
 {-| TODO: Historically we pull this out of world data. We can probably do that again.
@@ -471,6 +603,379 @@ type Location
     | Vik
     | Warsaw
     | Yerevan
+
+
+locationList : List Location
+locationList =
+    [ Amsterdam
+    , Are
+    , Athens
+    , Auschwitz
+    , Ayutthaya
+    , Balestrand
+    , Bangkok
+    , Bergen
+    , Berlin
+    , Bodo
+    , Bordoy
+    , Bratislava
+    , Budapest
+    , Chernobyl
+    , Copenhagen
+    , Crete
+    , Doha
+    , Dronningmolle
+    , Exeter
+    , Eysturoy
+    , Fjaerland
+    , Flam
+    , Frankfurt
+    , Freiburg
+    , Geysir
+    , Gothenburg
+    , HaLongBay
+    , Hanoi
+    , Heidelberg
+    , Helsingborg
+    , Helsingor
+    , Helsinki
+    , Hestur
+    , Himeji
+    , Hiroshima
+    , HoChiMinhCity
+    , HongKongCity
+    , Jokulsarlon
+    , Kanchanaburi
+    , Karlsruhe
+    , Katowice
+    , Kiev
+    , Kinnekulle
+    , KoSamui
+    , KoTao
+    , Koyasan
+    , Krakow
+    , Kristiansund
+    , Kyoto
+    , London
+    , Lund
+    , Melbourne
+    , Munich
+    , Osaka
+    , Oslo
+    , Ostersund
+    , Paris
+    , Petergof
+    , Prague
+    , Pripyat
+    , Pushkin
+    , Revsund
+    , Reykjavik
+    , Riga
+    , Rorvik
+    , Roskilde
+    , SaintPetersburg
+    , SingaporeCity
+    , Skaftafell
+    , Skogarfoss
+    , Stockholm
+    , Streymoy
+    , Svolvaer
+    , Sydney
+    , Tallinn
+    , Thingvellir
+    , Tokyo
+    , Torshavn
+    , Trollhattan
+    , Tromso
+    , Trondheim
+    , Trysil
+    , Umea
+    , Vagar
+    , Vidoy
+    , Vienna
+    , Vik
+    , Warsaw
+    , Yerevan
+    ]
+
+
+locationNames : List String
+locationNames =
+    List.map (\location -> locationInformation location |> .name) locationList
+
+
+stringToLocation : String -> Maybe Location
+stringToLocation location =
+    case location of
+        "Amsterdam" ->
+            Just Amsterdam
+
+        "Are" ->
+            Just Are
+
+        "Athens" ->
+            Just Athens
+
+        "Auschwitz" ->
+            Just Auschwitz
+
+        "Ayutthaya" ->
+            Just Ayutthaya
+
+        "Balestrand" ->
+            Just Balestrand
+
+        "Bangkok" ->
+            Just Bangkok
+
+        "Bergen" ->
+            Just Bergen
+
+        "Berlin" ->
+            Just Berlin
+
+        "Bodo" ->
+            Just Bodo
+
+        "Bordoy" ->
+            Just Bordoy
+
+        "Bratislava" ->
+            Just Bratislava
+
+        "Budapest" ->
+            Just Budapest
+
+        "Chernobyl" ->
+            Just Chernobyl
+
+        "Copenhagen" ->
+            Just Copenhagen
+
+        "Crete" ->
+            Just Crete
+
+        "Doha" ->
+            Just Doha
+
+        "Dronningmolle" ->
+            Just Dronningmolle
+
+        "Exeter" ->
+            Just Exeter
+
+        "Eysturoy" ->
+            Just Eysturoy
+
+        "Fjaerland" ->
+            Just Fjaerland
+
+        "Flam" ->
+            Just Flam
+
+        "Frankfurt" ->
+            Just Frankfurt
+
+        "Freiburg" ->
+            Just Freiburg
+
+        "Geysir" ->
+            Just Geysir
+
+        "Gothenburg" ->
+            Just Gothenburg
+
+        "Ha Long Bay" ->
+            Just HaLongBay
+
+        "Hanoi" ->
+            Just Hanoi
+
+        "Heidelberg" ->
+            Just Heidelberg
+
+        "Helsingborg" ->
+            Just Helsingborg
+
+        "Helsingor" ->
+            Just Helsingor
+
+        "Helsinki" ->
+            Just Helsinki
+
+        "Hestur" ->
+            Just Hestur
+
+        "Himeji" ->
+            Just Himeji
+
+        "Hiroshima" ->
+            Just Hiroshima
+
+        "Ho Chi Minh City" ->
+            Just HoChiMinhCity
+
+        "Hong Kong" ->
+            Just HongKongCity
+
+        "Jokulsarlon" ->
+            Just Jokulsarlon
+
+        "Kanchanaburi" ->
+            Just Kanchanaburi
+
+        "Karlsruhe" ->
+            Just Karlsruhe
+
+        "Katowice" ->
+            Just Katowice
+
+        "Kiev" ->
+            Just Kiev
+
+        "Kinnekulle" ->
+            Just Kinnekulle
+
+        "Ko Samui" ->
+            Just KoSamui
+
+        "Ko Tao" ->
+            Just KoTao
+
+        "Koyasan" ->
+            Just Koyasan
+
+        "Krakow" ->
+            Just Krakow
+
+        "Kristiansund" ->
+            Just Kristiansund
+
+        "Kyoto" ->
+            Just Kyoto
+
+        "London" ->
+            Just London
+
+        "Lund" ->
+            Just Lund
+
+        "Melbourne" ->
+            Just Melbourne
+
+        "Munich" ->
+            Just Munich
+
+        "Osaka" ->
+            Just Osaka
+
+        "Oslo" ->
+            Just Oslo
+
+        "Ostersund" ->
+            Just Ostersund
+
+        "Paris" ->
+            Just Paris
+
+        "Petergof" ->
+            Just Petergof
+
+        "Prague" ->
+            Just Prague
+
+        "Pripyat" ->
+            Just Pripyat
+
+        "Pushkin" ->
+            Just Pushkin
+
+        "Revsund" ->
+            Just Revsund
+
+        "Reykjavik" ->
+            Just Reykjavik
+
+        "Riga" ->
+            Just Riga
+
+        "Rorvik" ->
+            Just Rorvik
+
+        "Roskilde" ->
+            Just Roskilde
+
+        "Saint Petersburg" ->
+            Just SaintPetersburg
+
+        "Singapore" ->
+            Just SingaporeCity
+
+        "Skaftafell" ->
+            Just Skaftafell
+
+        "Skogarfoss" ->
+            Just Skogarfoss
+
+        "Stockholm" ->
+            Just Stockholm
+
+        "Streymoy" ->
+            Just Streymoy
+
+        "Svolvaer" ->
+            Just Svolvaer
+
+        "Sydney" ->
+            Just Sydney
+
+        "Tallinn" ->
+            Just Tallinn
+
+        "Thingvellir" ->
+            Just Thingvellir
+
+        "Tokyo" ->
+            Just Tokyo
+
+        "Torshavn" ->
+            Just Torshavn
+
+        "Trollhattan" ->
+            Just Trollhattan
+
+        "Tromso" ->
+            Just Tromso
+
+        "Trondheim" ->
+            Just Trondheim
+
+        "Trysil" ->
+            Just Trysil
+
+        "Umea" ->
+            Just Umea
+
+        "Vagar" ->
+            Just Vagar
+
+        "Vidoy" ->
+            Just Vidoy
+
+        "Vienna" ->
+            Just Vienna
+
+        "Vik" ->
+            Just Vik
+
+        "Warsaw" ->
+            Just Warsaw
+
+        "Yerevan" ->
+            Just Yerevan
+
+        _ ->
+            Nothing
 
 
 type alias LocationInformation =
@@ -1229,6 +1734,56 @@ type Trip
     | Summer2018
 
 
+tripList : List Trip
+tripList =
+    [ SingaporeJapan2007
+    , Europe2012
+    , EuropeRussia2014
+    , VietnamThailand2015
+    , Summer2016
+    , Summer2017
+    , Winter20172018
+    , Summer2018
+    ]
+
+
+tripNames : List String
+tripNames =
+    List.map (\trip -> tripInformation trip |> .description) tripList
+        |> List.reverse
+
+
+stringToTrip : String -> Maybe Trip
+stringToTrip trip =
+    case trip of
+        "Singapore/Japan 2007" ->
+            Just SingaporeJapan2007
+
+        "Europe 2012" ->
+            Just Europe2012
+
+        "Europe/Russia 2014" ->
+            Just EuropeRussia2014
+
+        "Vietnam/Thailand 2015" ->
+            Just VietnamThailand2015
+
+        "Summer 2016" ->
+            Just Summer2016
+
+        "Summer 2017" ->
+            Just Summer2017
+
+        "Winter 2017/2018" ->
+            Just Winter20172018
+
+        "Summer 2018" ->
+            Just Summer2018
+
+        _ ->
+            Nothing
+
+
 type alias TripInformation =
     { name : String
     , description : String
@@ -1263,7 +1818,7 @@ tripInformation trip =
 
         VietnamThailand2015 ->
             { name = "A15"
-            , description = "Vietnam/Thailand  2015"
+            , description = "Vietnam/Thailand 2015"
             , locations = [ Melbourne, SingaporeCity, HoChiMinhCity, Hanoi, HaLongBay, Hanoi, Bangkok, Kanchanaburi, Bangkok, Ayutthaya, Bangkok, KoSamui, KoTao, KoSamui, Bangkok, Melbourne ]
             , dates = [ Date 2015 Jul ]
             }

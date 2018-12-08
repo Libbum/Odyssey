@@ -1,5 +1,8 @@
 body {
     margin: 0px;
+}
+
+body, select {
     font-family: Lato,sans-serif;
     font-size: 16pt;
     font-weight: 400;
@@ -29,6 +32,7 @@ h1 {
 header {
     padding: 3em;
     padding-top: 0em;
+    padding-bottom: 1em;
 }
 
 footer {
@@ -41,11 +45,43 @@ footer {
     padding-left: 0.5em;
 }
 
+fieldset {
+    border: none;
+}
+
+input[type="radio"] {
+    display: none;
+}
+
+select {
+    border-radius: 5px;
+    border: 2px solid #e4e4e4;
+    display: block;
+    outline: 0;
+    padding: 0 1em;
+    text-decoration: none;
+    width: 90%;
+    margin: 1em auto;
+    height: 2.75em;
+}
+
 button {
     border: none;
     background: none;
     outline: none;
     cursor: pointer;
+}
+
+.visible {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 1s linear;
+}
+
+.hidden {
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0s 1s, opacity 1s linear;
 }
 
 .icons {
@@ -85,6 +121,7 @@ ul.icons li {
   -webkit-transition-property: transform;
   transition-property: transform;
 }
+
 .icon:hover, .icon:focus, .icon:active {
   -webkit-transform: scale(1.1);
   transform: scale(1.1);
@@ -102,6 +139,45 @@ ul.icons li {
 .right {
     text-align: right;
     margin-right: -6em;
+}
+
+.locale {
+    height: 100px;
+    margin: 0 auto;
+    text-align: center;
+    width: 90%;
+}
+
+.cleft {
+    float: left;
+    width: 40%;
+}
+
+.ccenter {
+    display: inline-block;
+    width: 40%;
+}
+
+.cright {
+    float: right;
+    width: 20%;
+}
+
+
+nav {
+    width: 90%;
+    margin: 0 auto;
+}
+
+.cright > button {
+    display: block;
+    padding-bottom: 20px;
+}
+
+label {
+    display: block;
+    text-align: left;
+    line-height: 2em;
 }
 
 #map {
