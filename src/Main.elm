@@ -371,7 +371,7 @@ view model =
                             [ Html.button [ onClick ToggleOrder ] [ orderIcon ]
                             , Html.button [ onClick ApplyFilter ] [ Icons.filter ]
                             ]
-                        , filterMenu selected
+                        , filterMenu model.filterSelected
                         ]
                     , Html.footer []
                         [ Html.ul [ Html.Attributes.class "icons" ]
@@ -549,8 +549,8 @@ radioView filter current =
         ]
 
 
-filterMenu : Radio -> Html Msg
-filterMenu current =
+filterMenu : ( Radio, String ) -> Html Msg
+filterMenu ( current, selected ) =
     let
         ( visible, list ) =
             case current of
@@ -569,7 +569,7 @@ filterMenu current =
     Html.select [ Html.Events.onInput SetSelection, Html.Attributes.class visible ] <|
         List.map
             (\label ->
-                Html.option []
+                Html.option [ Html.Attributes.selected (label == selected) ]
                     [ Html.text label ]
             )
             list
