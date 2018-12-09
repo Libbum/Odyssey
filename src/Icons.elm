@@ -1,4 +1,4 @@
-module Icons exposing (checkCircle, chevronDown, chevronUp, chevronsLeft, chevronsRight, circle, filter, github, mail, menu, telegram, x)
+module Icons exposing (checkCircle, chevronDown, chevronLeft, chevronRight, chevronUp, circle, filter, github, mail, menu, telegram, x)
 
 import Html exposing (Html)
 import Svg exposing (Svg, svg)
@@ -35,19 +35,17 @@ chevronUp =
         ]
 
 
-chevronsLeft : Html msg
-chevronsLeft =
-    svgIcon "chevrons-left"
-        [ Svg.polyline [ points "11 17 6 12 11 7" ] []
-        , Svg.polyline [ points "18 17 13 12 18 7" ] []
+chevronLeft : Html msg
+chevronLeft =
+    svgIcon "chevron-left"
+        [ Svg.polyline [ points "15 18 9 12 15 6" ] []
         ]
 
 
-chevronsRight : Html msg
-chevronsRight =
-    svgIcon "chevrons-right"
-        [ Svg.polyline [ points "13 17 18 12 13 7" ] []
-        , Svg.polyline [ points "6 17 11 12 6 7" ] []
+chevronRight : Html msg
+chevronRight =
+    svgIcon "chevron-right"
+        [ Svg.polyline [ points "9 18 15 12 9 6" ] []
         ]
 
 

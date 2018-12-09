@@ -354,8 +354,51 @@ label {
   }
 }
 
-.modal .close {
+.close {
     position: fixed;
     top: 5px;
     right: 0;
+}
+
+.description {
+    position: fixed;
+    left: 50px;
+    bottom: 40px;
+    color: #fff;
+    font-size: 20pt;
+    -webkit-text-stroke: 1px #555;
+    text-stroke: 1px #555;
+    text-shadow: 0px 5px 5px #555;
+    max-width: 60%;
+    line-height: 1.2em;
+    font-weight: 600;
+}
+
+.description-button {
+    position: fixed;
+    bottom: 5px;
+    left: 50%;
+}
+
+.next, .previous {
+    position: fixed;
+    top: 50%;
+}
+
+.next {
+    right: 0;
+}
+
+.previous {
+    left: 0;
+}
+
+.next > .icon {
+    width: 60px;
+    height: 60px;
+}
+
+.previous > .icon {
+    width: 60px;
+    height: 60px;
 }

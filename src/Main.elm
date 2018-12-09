@@ -44,6 +44,8 @@ type alias Model =
     , locale : String
     , zoom : Maybe Image
     , showModal : Bool
+    , showDescription : Bool
+    , showControls : Bool
     }
 
 
@@ -63,6 +65,8 @@ initialModel scrollWidth =
     , locale = ""
     , zoom = Nothing
     , showModal = False
+    , showDescription = False
+    , showControls = False
     }
 
 
@@ -126,6 +130,8 @@ type Msg
     | ZoomImage (Maybe Image)
     | SetZoom (Maybe Image) (Result Browser.Dom.Error Browser.Dom.Viewport)
     | ToggleModal
+    | ToggleDescription
+    | ToggleControls Bool
     | SetSelection String
     | NoOp
 
@@ -301,6 +307,12 @@ update msg model =
         ToggleModal ->
             ( { model | showModal = not model.showModal }, Cmd.none )
 
+        ToggleDescription ->
+            ( { model | showDescription = not model.showDescription }, Cmd.none )
+
+        ToggleControls setting ->
+            ( { model | showControls = setting }, Cmd.none )
+
         SetSelection selection ->
             let
                 ( radio, _ ) =
@@ -398,7 +410,7 @@ view model =
                 ]
 
         Just image ->
-            zoomImage image
+            zoomImage image model.showControls model.showDescription
 
 
 displayImages : List Image -> Float -> KPartition Int -> List (Html Msg) -> List (Html Msg)
@@ -481,8 +493,25 @@ displayImage image w h =
         []
 
 
-zoomImage : Image -> Html Msg
-zoomImage image =
+zoomImage : Image -> Bool -> Bool -> Html Msg
+zoomImage image showControls showDescription =
+    let
+        ( description, descriptionIcon ) =
+            case showDescription of
+                True ->
+                    ( div [ Html.Attributes.class "description" ] [ Html.text image.description ], Icons.chevronDown )
+
+                _ ->
+                    ( Html.text "", Icons.chevronUp )
+
+        controlVisible =
+            case showControls of
+                True ->
+                    Html.Attributes.class "visible"
+
+                _ ->
+                    Html.Attributes.class "hidden"
+    in
     div [ Html.Attributes.class "zoombox" ]
         [ Html.img [ Html.Attributes.class "blur", src (blurURL image) ] []
         , Html.img
@@ -491,10 +520,13 @@ zoomImage image =
             ]
             []
         , div
-            [ Html.Attributes.class "control"
-            , onClick (ZoomImage Nothing)
+            [ Html.Attributes.class "control", onMouseEnter (ToggleControls True), onMouseLeave (ToggleControls False) ]
+            [ Html.button [ Html.Attributes.class "previous", controlVisible ] [ Icons.chevronLeft ]
+            , Html.button [ Html.Attributes.class "next", controlVisible ] [ Icons.chevronRight ]
+            , Html.button [ Html.Attributes.class "description-button", controlVisible, onClick ToggleDescription ] [ descriptionIcon ]
+            , Html.button [ Html.Attributes.class "close", controlVisible, onClick (ZoomImage Nothing) ] [ Icons.x ]
+            , description
             ]
-            []
         ]
 
 
