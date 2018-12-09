@@ -2,7 +2,7 @@ body {
     margin: 0px;
 }
 
-body, select {
+body, select, input, textarea {
     font-family: Lato,sans-serif;
     font-size: 16pt;
     font-weight: 400;
@@ -51,6 +51,78 @@ fieldset {
 
 input[type="radio"] {
     display: none;
+}
+
+input[type="email"], input[type="text"], textarea {
+    -webkit-appearance: none;
+    display: block;
+    width: 90%;
+    border-radius: 5px;
+    border-width: 2px;
+    border-style: solid;
+    border-color: rgb(228, 228, 228);
+    border-image: initial;
+    outline: 0px;
+    padding: 0px 1em;
+    text-decoration: none;
+    margin: 1em auto;
+}
+
+input[type="email"], input[type="text"] {
+    height: 2.75em;
+}
+
+input[type="submit"] {
+    -webkit-appearance: none;
+    background-color: rgb(52, 136, 153);
+    cursor: pointer;
+    display: inline-block;
+    font-weight: 700;
+    line-height: 2.75em;
+    text-align: center;
+    color: rgb(255, 255, 255) !important;
+    transition: background-color 0.2s ease-in-out 0s, color 0.2s ease-in-out 0s;
+    border-radius: 5px;
+    border-width: 0px;
+    border-style: initial;
+    border-color: initial;
+    border-image: initial;
+    padding: 0px 1.5em;
+    text-decoration: none;
+}
+
+input[type="submit"]:hover {
+    background-color: rgb(165, 165, 165);
+    color: rgb(255, 255, 255) !important;
+}
+
+input[type="submit"]:active {
+    background-color: rgb(157, 197, 205);
+}
+
+.center {
+    text-align: center;
+}
+
+textarea {
+    padding: 0.75em 1em;
+    resize: none;
+}
+
+form {
+    padding-top: 0.3em;
+}
+
+#verify {
+    display: inline-block;
+    width: 200px;
+    float: right;
+    margin-top: 0;
+}
+
+.img-verify {
+    padding: 1.2em;
+    padding-top: 0.5em;
 }
 
 select {
@@ -192,7 +264,7 @@ label {
     margin: 0 auto;
 }
 
-.zoombox {
+.zoombox, .modal-cover {
     display: grid;
     height: 100vh;
     background-image: url(static/grain.png);
@@ -228,4 +300,62 @@ label {
     overflow: scroll;
     position: absolute;
     top: -9999px;
+}
+
+.modal-cover {
+    z-index: 99;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+}
+
+.modal-cover.none {
+    display: none;
+}
+
+.modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 400px;
+    height: 550px;
+    margin-top: -200px; /* Half the height */
+    margin-left: -275px; /* Half the width */
+    max-width: 100%;
+    max-height: 100%;
+    z-index: 100;
+    background: white;
+    border: 1px solid #ccc;
+    transition: 0.5s ease-out;
+    box-shadow: -2rem 2rem 2rem rgba(52, 136, 153, 0.4);
+    -webkit-transform: scale(1);
+    transform: scale(1);
+    opacity: 1;
+    visibility: visible;
+    padding: 15px 30px;
+    border-radius: 8px;
+}
+
+.modal.off {
+  opacity: 0;
+  visibility: hidden;
+  -webkit-filter: blur(8px);
+          filter: blur(8px);
+  -webkit-transform: scale(0.33);
+          transform: scale(0.33);
+  box-shadow: 1rem 0 0 rgba(52, 136, 153, 0.4);
+}
+
+@media (prefers-reduced-motion) {
+  .modal {
+    offset-path: none;
+  }
+}
+
+.modal .close {
+    position: fixed;
+    top: 5px;
+    right: 0;
 }

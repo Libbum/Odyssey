@@ -43,6 +43,7 @@ type alias Model =
     , scrollWidth : Float
     , locale : String
     , zoom : Maybe Image
+    , showModal : Bool
     }
 
 
@@ -61,6 +62,7 @@ initialModel scrollWidth =
     , scrollWidth = toFloat scrollWidth
     , locale = ""
     , zoom = Nothing
+    , showModal = False
     }
 
 
@@ -297,7 +299,7 @@ update msg model =
                     ( { model | zoom = image }, Cmd.none )
 
         ToggleModal ->
-            ( model, Cmd.none )
+            ( { model | showModal = not model.showModal }, Cmd.none )
 
         SetSelection selection ->
             let
@@ -391,6 +393,8 @@ view model =
                   <|
                     List.take model.rows.visible <|
                         displayImages layout model.gallery.width model.partition []
+                , coverView model.showModal
+                , modalView model.showModal
                 ]
 
         Just image ->
@@ -638,6 +642,47 @@ newFilter ( radio, selected ) current =
 
                 Nothing ->
                     current
+
+
+coverView : Bool -> Html Msg
+coverView show =
+    let
+        cover =
+            case show of
+                True ->
+                    [ Html.Attributes.class "modal-cover" ]
+
+                _ ->
+                    [ Html.Attributes.class "modal-cover", Html.Attributes.class "none" ]
+    in
+    div cover []
+
+
+modalView : Bool -> Html Msg
+modalView show =
+    let
+        modal =
+            case show of
+                True ->
+                    [ Html.Attributes.class "modal" ]
+
+                _ ->
+                    [ Html.Attributes.class "modal", Html.Attributes.class "off" ]
+    in
+    div modal
+        [ Html.button [ Html.Attributes.class "close", onClick ToggleModal ] [ Icons.x ]
+        , Html.form [ Html.Attributes.id "contactModal", Html.Attributes.method "post", Html.Attributes.action "process.php" ]
+            [ Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Name", Html.Attributes.type_ "text", Html.Attributes.name "name" ] []
+            , Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Email", Html.Attributes.type_ "email", Html.Attributes.name "email" ] []
+            , Html.textarea [ Html.Attributes.required True, Html.Attributes.placeholder "Message", Html.Attributes.spellcheck True, Html.Attributes.rows 4, Html.Attributes.name "message" ] []
+            , Html.img [ Html.Attributes.class "img-verify", Html.Attributes.src "image.php", Html.Attributes.width 80, Html.Attributes.height 30 ] []
+            , Html.input [ Html.Attributes.id "verify", Html.Attributes.required True, Html.Attributes.placeholder "Copy the code", Html.Attributes.type_ "text", Html.Attributes.name "verify", Html.Attributes.title "This confirms you are a human user or strong AI and not a spam-bot." ] []
+            , div [ Html.Attributes.class "center" ]
+                [ Html.input [ Html.Attributes.type_ "submit", Html.Attributes.value "Send Message" ] []
+                , div [ Html.Attributes.id "response" ] []
+                ]
+            ]
+        ]
 
 
 
