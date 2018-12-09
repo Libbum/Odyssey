@@ -7,6 +7,7 @@ import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Icons
+import List.Zipper as Zipper exposing (Zipper)
 import Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), blurURL, countryNames, filterImages, imageURL, locale, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripNames)
 import Partition exposing (KPartition, greedyK)
 import Ports exposing (nearBottom)
@@ -32,6 +33,7 @@ main =
 type alias Model =
     { partition : KPartition Int
     , images : List Image
+    , zip : Maybe (Zipper Image)
     , sort : SortOrder
     , filter : Filter
     , filterSelected : ( Radio, String )
@@ -53,6 +55,7 @@ initialModel : Int -> Model
 initialModel scrollWidth =
     { partition = []
     , images = manifest
+    , zip = Nothing
     , sort = DateNewest
     , filter = All
     , filterSelected = ( RadioAll, "" )
@@ -129,6 +132,7 @@ type Msg
     | PopLocale
     | ZoomImage (Maybe Image)
     | SetZoom (Maybe Image) (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | NextZoom
     | ToggleModal
     | ToggleDescription
     | ToggleControls Bool
@@ -260,8 +264,11 @@ update msg model =
 
                 filter =
                     newFilter model.filterSelected model.filter
+
+                zip =
+                    Zipper.fromList model.images
             in
-            ( { model | rows = { rows | visible = 10 }, filter = filter }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
+            ( { model | rows = { rows | visible = 10 }, filter = filter, zip = zip }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
 
         LazyLoad ->
             let
@@ -294,15 +301,45 @@ update msg model =
         SetZoom image result ->
             case result of
                 Ok vp ->
+                    let
+                        zip =
+                            case model.zip of
+                                Just good ->
+                                    Zipper.find (\i -> Just i == image) good
+
+                                Nothing ->
+                                    model.zip
+                    in
                     ( { model
                         | zoom = image
                         , viewportOffset = vp.viewport.y
+                        , zip = zip
                       }
                     , Task.attempt (\_ -> NoOp) (setViewport 0 model.viewportOffset)
                     )
 
                 Err _ ->
                     ( { model | zoom = image }, Cmd.none )
+
+        NextZoom ->
+            let
+                zip =
+                    case model.zip of
+                        Just good ->
+                            Zipper.next good
+
+                        Nothing ->
+                            model.zip
+
+                image =
+                    case zip of
+                        Just unwrapped ->
+                            Just <| Zipper.current unwrapped
+
+                        Nothing ->
+                            model.zoom
+            in
+            ( { model | zoom = image, zip = zip }, Cmd.none )
 
         ToggleModal ->
             ( { model | showModal = not model.showModal }, Cmd.none )
@@ -522,7 +559,7 @@ zoomImage image showControls showDescription =
         , div
             [ Html.Attributes.class "control", onMouseEnter (ToggleControls True), onMouseLeave (ToggleControls False) ]
             [ Html.button [ Html.Attributes.class "previous", controlVisible ] [ Icons.chevronLeft ]
-            , Html.button [ Html.Attributes.class "next", controlVisible ] [ Icons.chevronRight ]
+            , Html.button [ Html.Attributes.class "next", controlVisible, onClick NextZoom ] [ Icons.chevronRight ]
             , Html.button [ Html.Attributes.class "description-button", controlVisible, onClick ToggleDescription ] [ descriptionIcon ]
             , Html.button [ Html.Attributes.class "close", controlVisible, onClick (ZoomImage Nothing) ] [ Icons.x ]
             , description
