@@ -200,7 +200,12 @@ update msg model =
                         , gallery = { oldViewport | width = newWidth - 495 }
                         , rows = { rows | total = rowsBest }
                       }
-                    , Cmd.none
+                    , case event of
+                        Filter ->
+                            Task.attempt (\_ -> NoOp) (setViewport 0 0)
+
+                        _ ->
+                            Cmd.none
                     )
 
                 Err _ ->
@@ -219,7 +224,7 @@ update msg model =
                 rows =
                     model.rows
             in
-            ( { model | sort = newOrder, rows = { rows | visible = 10 } }, Cmd.none )
+            ( { model | sort = newOrder, rows = { rows | visible = 10 } }, Task.attempt (\_ -> NoOp) (setViewport 0 0) )
 
         ToggleRadio selected ->
             let
