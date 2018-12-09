@@ -408,24 +408,53 @@ displayImages images viewportWidth partition imageRows =
         one ->
             let
                 rowOfImages =
-                    List.take (List.length one) images
+                    if List.length images /= 1 then
+                        List.take (List.length one) images
+
+                    else
+                        images
             in
             displayRowOfImages rowOfImages viewportWidth :: imageRows
 
 
 displayRowOfImages : List Image -> Float -> Html Msg
 displayRowOfImages images viewportWidth =
-    let
-        arSum =
-            summedAspectRatios images
+    if List.length images /= 1 then
+        let
+            arSum =
+                summedAspectRatios images
 
-        widths =
-            List.reverse <| getWidths images viewportWidth arSum []
+            widths =
+                List.reverse <| getWidths images viewportWidth arSum []
 
-        h =
-            floor (viewportWidth / arSum)
-    in
-    div [ Html.Attributes.class "flex" ] <| List.map2 (\img w -> displayImage img w h) images widths
+            h =
+                floor (viewportWidth / arSum)
+        in
+        div [ Html.Attributes.class "flex" ] <| List.map2 (\img w -> displayImage img w h) images widths
+
+    else
+        List.map
+            (\img ->
+                let
+                    width =
+                        if img.aspectRatio < 1 then
+                            300
+
+                        else
+                            300 * img.aspectRatio
+
+                    height =
+                        if img.aspectRatio >= 1 then
+                            300
+
+                        else
+                            floor (300 * img.aspectRatio)
+                in
+                displayImage img width height
+            )
+            images
+            |> List.head
+            |> Maybe.withDefault (Html.text "")
 
 
 displayImage : Image -> Float -> Int -> Html Msg

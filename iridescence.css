@@ -61,7 +61,7 @@ select {
     padding: 0 1em;
     text-decoration: none;
     width: 90%;
-    margin: 1em auto;
+    margin: 1em 0;
     height: 2.75em;
 }
 
@@ -167,6 +167,7 @@ ul.icons li {
 nav {
     width: 90%;
     margin: 0 auto;
+    padding-left: 10%;
 }
 
 .cright > button {
@@ -178,6 +179,10 @@ label {
     display: block;
     text-align: left;
     line-height: 2em;
+}
+
+#gallery {
+    padding-bottom: 4px;
 }
 
 #map {
