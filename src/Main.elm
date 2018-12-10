@@ -33,7 +33,7 @@ main =
 type alias Model =
     { partition : KPartition Int
     , images : List Image
-    , zip : Maybe (Zipper Image)
+    , layout : Maybe (Zipper Image)
     , sort : SortOrder
     , filter : Filter
     , filterSelected : ( Radio, String )
@@ -55,7 +55,7 @@ initialModel : Int -> Model
 initialModel scrollWidth =
     { partition = []
     , images = manifest
-    , zip = Nothing
+    , layout = Nothing
     , sort = DateNewest
     , filter = All
     , filterSelected = ( RadioAll, "" )
@@ -133,6 +133,7 @@ type Msg
     | ZoomImage (Maybe Image)
     | SetZoom (Maybe Image) (Result Browser.Dom.Error Browser.Dom.Viewport)
     | NextZoom
+    | PreviousZoom
     | ToggleModal
     | ToggleDescription
     | ToggleControls Bool
@@ -184,7 +185,7 @@ update msg model =
                         newWidth =
                             case event of
                                 Filter ->
-                                    case ( oldViewport.height > model.window.height, rowsGuess <= 4, model.resizedAfterLoad ) of
+                                    case ( oldViewport.height > model.window.height, rowsGuess < 4, model.resizedAfterLoad ) of
                                         ( True, True, _ ) ->
                                             oldViewport.width + model.scrollWidth
 
@@ -205,12 +206,16 @@ update msg model =
 
                         rows =
                             model.rows
+
+                        layout =
+                            buildLayout model.images model.filter model.sort
                     in
                     ( { model
                         | partition = greedyK (weights ratios) rowsBest
                         , resizedAfterLoad = toggleResize
                         , gallery = { oldViewport | width = newWidth - 495 }
                         , rows = { rows | total = rowsBest }
+                        , layout = layout
                       }
                     , case event of
                         Filter ->
@@ -235,8 +240,11 @@ update msg model =
 
                 rows =
                     model.rows
+
+                layout =
+                    buildLayout model.images model.filter newOrder
             in
-            ( { model | sort = newOrder, rows = { rows | visible = 10 } }, Task.attempt (\_ -> NoOp) (setViewport 0 0) )
+            ( { model | sort = newOrder, rows = { rows | visible = 10 }, layout = layout }, Task.attempt (\_ -> NoOp) (setViewport 0 0) )
 
         ToggleRadio selected ->
             let
@@ -264,11 +272,8 @@ update msg model =
 
                 filter =
                     newFilter model.filterSelected model.filter
-
-                zip =
-                    Zipper.fromList model.images
             in
-            ( { model | rows = { rows | visible = 10 }, filter = filter, zip = zip }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
+            ( { model | rows = { rows | visible = 10 }, filter = filter }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
 
         LazyLoad ->
             let
@@ -302,18 +307,18 @@ update msg model =
             case result of
                 Ok vp ->
                     let
-                        zip =
-                            case model.zip of
-                                Just good ->
-                                    Zipper.find (\i -> Just i == image) good
+                        layout =
+                            case ( model.layout, image ) of
+                                ( Just zip, Just _ ) ->
+                                    Zipper.findFirst (\i -> Just i == image) zip
 
-                                Nothing ->
-                                    model.zip
+                                _ ->
+                                    model.layout
                     in
                     ( { model
                         | zoom = image
                         , viewportOffset = vp.viewport.y
-                        , zip = zip
+                        , layout = layout
                       }
                     , Task.attempt (\_ -> NoOp) (setViewport 0 model.viewportOffset)
                     )
@@ -323,23 +328,43 @@ update msg model =
 
         NextZoom ->
             let
-                zip =
-                    case model.zip of
-                        Just good ->
-                            Zipper.next good
+                layout =
+                    case model.layout of
+                        Just zip ->
+                            Zipper.previous zip
 
                         Nothing ->
-                            model.zip
+                            model.layout
 
                 image =
-                    case zip of
-                        Just unwrapped ->
-                            Just <| Zipper.current unwrapped
+                    case layout of
+                        Just zip ->
+                            Just <| Zipper.current zip
 
                         Nothing ->
-                            model.zoom
+                            Nothing
             in
-            ( { model | zoom = image, zip = zip }, Cmd.none )
+            ( { model | zoom = image, layout = layout }, Cmd.none )
+
+        PreviousZoom ->
+            let
+                layout =
+                    case model.layout of
+                        Just zip ->
+                            Zipper.next zip
+
+                        Nothing ->
+                            model.layout
+
+                image =
+                    case layout of
+                        Just zip ->
+                            Just <| Zipper.current zip
+
+                        Nothing ->
+                            Nothing
+            in
+            ( { model | zoom = image, layout = layout }, Cmd.none )
 
         ToggleModal ->
             ( { model | showModal = not model.showModal }, Cmd.none )
@@ -387,11 +412,6 @@ view model =
     case model.zoom of
         Nothing ->
             let
-                layout =
-                    model.images
-                        |> filterImages model.filter
-                        |> sortImages model.sort
-
                 orderIcon =
                     case model.sort of
                         DateNewest ->
@@ -402,6 +422,14 @@ view model =
 
                 ( selected, _ ) =
                     model.filterSelected
+
+                layout =
+                    case model.layout of
+                        Just images ->
+                            images |> Zipper.toList
+
+                        Nothing ->
+                            []
             in
             div [ Html.Attributes.class "content" ]
                 [ Html.section [ Html.Attributes.id "aside" ]
@@ -447,7 +475,27 @@ view model =
                 ]
 
         Just image ->
-            zoomImage image model.showControls model.showDescription
+            let
+                ( nextVisible, previousVisible ) =
+                    case model.layout of
+                        Just zip ->
+                            case ( Zipper.previous zip, Zipper.next zip ) of
+                                ( Just _, Just _ ) ->
+                                    ( True, True )
+
+                                ( Just _, Nothing ) ->
+                                    ( True, False )
+
+                                ( Nothing, Just _ ) ->
+                                    ( False, True )
+
+                                ( Nothing, Nothing ) ->
+                                    ( False, False )
+
+                        Nothing ->
+                            ( False, False )
+            in
+            zoomImage image model.showControls previousVisible nextVisible model.showDescription
 
 
 displayImages : List Image -> Float -> KPartition Int -> List (Html Msg) -> List (Html Msg)
@@ -479,16 +527,19 @@ displayRowOfImages : List Image -> Float -> Html Msg
 displayRowOfImages images viewportWidth =
     if List.length images /= 1 then
         let
+            revImages =
+                List.reverse images
+
             arSum =
                 summedAspectRatios images
 
             widths =
-                List.reverse <| getWidths images viewportWidth arSum []
+                List.reverse <| getWidths revImages viewportWidth arSum []
 
             h =
                 floor (viewportWidth / arSum)
         in
-        div [ Html.Attributes.class "flex" ] <| List.map2 (\img w -> displayImage img w h) images widths
+        div [ Html.Attributes.class "flex" ] <| List.map2 (\img w -> displayImage img w h) revImages widths
 
     else
         List.map
@@ -530,8 +581,8 @@ displayImage image w h =
         []
 
 
-zoomImage : Image -> Bool -> Bool -> Html Msg
-zoomImage image showControls showDescription =
+zoomImage : Image -> Bool -> Bool -> Bool -> Bool -> Html Msg
+zoomImage image showControls showPrevious showNext showDescription =
     let
         ( description, descriptionIcon ) =
             case showDescription of
@@ -548,6 +599,22 @@ zoomImage image showControls showDescription =
 
                 _ ->
                     Html.Attributes.class "hidden"
+
+        previous =
+            case showPrevious of
+                True ->
+                    Html.button [ Html.Attributes.class "previous", controlVisible, onClick PreviousZoom ] [ Icons.chevronLeft ]
+
+                _ ->
+                    Html.text ""
+
+        next =
+            case showNext of
+                True ->
+                    Html.button [ Html.Attributes.class "next", controlVisible, onClick NextZoom ] [ Icons.chevronRight ]
+
+                _ ->
+                    Html.text ""
     in
     div [ Html.Attributes.class "zoombox" ]
         [ Html.img [ Html.Attributes.class "blur", src (blurURL image) ] []
@@ -558,8 +625,8 @@ zoomImage image showControls showDescription =
             []
         , div
             [ Html.Attributes.class "control", onMouseEnter (ToggleControls True), onMouseLeave (ToggleControls False) ]
-            [ Html.button [ Html.Attributes.class "previous", controlVisible ] [ Icons.chevronLeft ]
-            , Html.button [ Html.Attributes.class "next", controlVisible, onClick NextZoom ] [ Icons.chevronRight ]
+            [ previous
+            , next
             , Html.button [ Html.Attributes.class "description-button", controlVisible, onClick ToggleDescription ] [ descriptionIcon ]
             , Html.button [ Html.Attributes.class "close", controlVisible, onClick (ZoomImage Nothing) ] [ Icons.x ]
             , description
@@ -569,6 +636,14 @@ zoomImage image showControls showDescription =
 
 
 -- Partition Helpers
+
+
+buildLayout : List Image -> Filter -> SortOrder -> Maybe (Zipper Image)
+buildLayout images filter sort =
+    images
+        |> filterImages filter
+        |> sortImages sort
+        |> Zipper.fromList
 
 
 getRatios : List Image -> List Float
