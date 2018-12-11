@@ -214,27 +214,16 @@ ul.icons li {
 }
 
 .locale {
-    height: 100px;
+    height: 80px;
     margin: 0 auto;
-    text-align: center;
     width: 90%;
+    text-align: center;
 }
 
-.cleft {
-    float: left;
+.middle {
     width: 40%;
+    margin: 0 auto;
 }
-
-.ccenter {
-    display: inline-block;
-    width: 40%;
-}
-
-.cright {
-    float: right;
-    width: 20%;
-}
-
 
 nav {
     width: 90%;
@@ -251,6 +240,10 @@ label {
     display: block;
     text-align: left;
     line-height: 2em;
+}
+
+label > .icon {
+    padding-right: 10px;
 }
 
 #gallery {

@@ -8,7 +8,7 @@ import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Icons
 import List.Zipper as Zipper exposing (Zipper)
-import Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), blurURL, countryNames, filterImages, imageURL, locale, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripNames)
+import Manifest exposing (Country(..), Filter(..), Image, Location(..), Trip(..), blurURL, countryNames, filterImages, imageURL, locale, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripNames)
 import Partition exposing (KPartition, greedyK)
 import Ports exposing (nearBottom)
 import Svg
@@ -34,7 +34,6 @@ type alias Model =
     { partition : KPartition Int
     , images : List Image
     , layout : Maybe (Zipper Image)
-    , sort : SortOrder
     , filter : Filter
     , filterSelected : ( Radio, String )
     , resizedAfterLoad : Bool
@@ -56,7 +55,6 @@ initialModel scrollWidth =
     { partition = []
     , images = manifest
     , layout = Nothing
-    , sort = DateNewest
     , filter = All
     , filterSelected = ( RadioAll, "" )
     , resizedAfterLoad = False
@@ -124,9 +122,7 @@ type Msg
     = RePartition
     | Partition Event (Result Browser.Dom.Error Browser.Dom.Viewport)
     | SetWindow Event (Result Browser.Dom.Error Browser.Dom.Viewport)
-    | ToggleOrder
     | ToggleRadio Radio
-    | ApplyFilter
     | LazyLoad
     | PutLocale String
     | PopLocale
@@ -208,7 +204,7 @@ update msg model =
                             model.rows
 
                         layout =
-                            buildLayout model.images model.filter model.sort
+                            buildLayout model.images model.filter
                     in
                     ( { model
                         | partition = greedyK (weights ratios) rowsBest
@@ -228,52 +224,24 @@ update msg model =
                 Err _ ->
                     ( model, Cmd.none )
 
-        ToggleOrder ->
-            let
-                newOrder =
-                    case model.sort of
-                        DateNewest ->
-                            DateOldest
-
-                        DateOldest ->
-                            DateNewest
-
-                rows =
-                    model.rows
-
-                layout =
-                    buildLayout model.images model.filter newOrder
-            in
-            ( { model | sort = newOrder, rows = { rows | visible = 10 }, layout = layout }, Task.attempt (\_ -> NoOp) (setViewport 0 0) )
-
         ToggleRadio selected ->
             let
-                initial =
-                    Maybe.withDefault "" <|
-                        case selected of
-                            RadioAll ->
-                                Just ""
+                ( newModel, runCmd ) =
+                    case selected of
+                        RadioAll ->
+                            let
+                                rows =
+                                    model.rows
 
-                            RadioCountry ->
-                                List.head countryNames
+                                filter =
+                                    newFilter ( selected, "" ) model.filter
+                            in
+                            ( { model | rows = { rows | visible = 10 }, filterSelected = ( selected, "" ), filter = filter }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
 
-                            RadioLocation ->
-                                List.head locationNames
-
-                            RadioTrip ->
-                                List.head tripNames
+                        _ ->
+                            ( { model | filterSelected = ( selected, "" ) }, Cmd.none )
             in
-            ( { model | filterSelected = ( selected, initial ) }, Cmd.none )
-
-        ApplyFilter ->
-            let
-                rows =
-                    model.rows
-
-                filter =
-                    newFilter model.filterSelected model.filter
-            in
-            ( { model | rows = { rows | visible = 10 }, filter = filter }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
+            ( newModel, runCmd )
 
         LazyLoad ->
             let
@@ -377,10 +345,16 @@ update msg model =
 
         SetSelection selection ->
             let
+                rows =
+                    model.rows
+
                 ( radio, _ ) =
                     model.filterSelected
+
+                filter =
+                    newFilter ( radio, selection ) model.filter
             in
-            ( { model | filterSelected = ( radio, selection ) }, Cmd.none )
+            ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ) }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
 
         NoOp ->
             ( model, Cmd.none )
@@ -412,14 +386,6 @@ view model =
     case model.zoom of
         Nothing ->
             let
-                orderIcon =
-                    case model.sort of
-                        DateNewest ->
-                            Icons.chevronDown
-
-                        DateOldest ->
-                            Icons.chevronUp
-
                 ( selected, _ ) =
                     model.filterSelected
 
@@ -443,17 +409,11 @@ view model =
                         ]
                     , div [ Html.Attributes.class "locale" ] [ Html.text model.locale ]
                     , Html.nav []
-                        [ div [ Html.Attributes.class "cleft" ]
+                        [ div [ Html.Attributes.class "middle" ]
                             [ radioView RadioAll selected
                             , radioView RadioCountry selected
-                            ]
-                        , div [ Html.Attributes.class "ccenter" ]
-                            [ radioView RadioLocation selected
+                            , radioView RadioLocation selected
                             , radioView RadioTrip selected
-                            ]
-                        , div [ Html.Attributes.class "cright" ]
-                            [ Html.button [ onClick ToggleOrder ] [ orderIcon ]
-                            , Html.button [ onClick ApplyFilter ] [ Icons.filter ]
                             ]
                         , filterMenu model.filterSelected
                         ]
@@ -638,11 +598,11 @@ zoomImage image showControls showPrevious showNext showDescription =
 -- Partition Helpers
 
 
-buildLayout : List Image -> Filter -> SortOrder -> Maybe (Zipper Image)
-buildLayout images filter sort =
+buildLayout : List Image -> Filter -> Maybe (Zipper Image)
+buildLayout images filter =
     images
         |> filterImages filter
-        |> sortImages sort
+        |> sortImages
         |> Zipper.fromList
 
 
@@ -707,16 +667,16 @@ radioView filter current =
         label =
             case filter of
                 RadioAll ->
-                    " All"
+                    "All"
 
                 RadioLocation ->
-                    " By Location"
+                    "By Location"
 
                 RadioCountry ->
-                    " By Country"
+                    "By Country"
 
                 RadioTrip ->
-                    " By Trip"
+                    "By Trip"
     in
     Html.label []
         [ Html.input
@@ -732,29 +692,30 @@ radioView filter current =
 
 
 filterMenu : ( Radio, String ) -> Html Msg
-filterMenu ( current, selected ) =
+filterMenu ( radio, selected ) =
     let
-        ( visible, list ) =
-            case current of
+        ( visible, list, name ) =
+            case radio of
                 RadioAll ->
-                    ( "hidden", [] )
+                    ( "hidden", [], "" )
 
                 RadioLocation ->
-                    ( "visible", locationNames )
+                    ( "visible", locationNames, "Location" )
 
                 RadioCountry ->
-                    ( "visible", countryNames )
+                    ( "visible", countryNames, "Country" )
 
                 RadioTrip ->
-                    ( "visible", tripNames )
+                    ( "visible", tripNames, "Trip" )
     in
     Html.select [ Html.Events.onInput SetSelection, Html.Attributes.class visible ] <|
-        List.map
-            (\label ->
-                Html.option [ Html.Attributes.selected (label == selected) ]
-                    [ Html.text label ]
-            )
-            list
+        Html.option [ Html.Attributes.hidden True, Html.Attributes.selected (selected == "") ] [ Html.text ("— Select a " ++ name ++ " —") ]
+            :: List.map
+                (\label ->
+                    Html.option [ Html.Attributes.selected (label == selected) ]
+                        [ Html.text label ]
+                )
+                list
 
 
 newFilter : ( Radio, String ) -> Filter -> Filter

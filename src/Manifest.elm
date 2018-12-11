@@ -1,4 +1,4 @@
-module Manifest exposing (Country(..), Filter(..), Image, Location(..), SortOrder(..), Trip(..), blurURL, countryNames, filterImages, imageURL, locale, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripNames)
+module Manifest exposing (Country(..), Filter(..), Image, Location(..), Trip(..), blurURL, countryNames, filterImages, imageURL, locale, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripNames)
 
 import List.Extra exposing (unconsLast)
 import Ordering exposing (Ordering)
@@ -261,7 +261,7 @@ stringToCountry country =
         "Austria" ->
             Just Austria
 
-        "CzechRepublic" ->
+        "Czech Republic" ->
             Just CzechRepublic
 
         "Germany" ->
@@ -279,10 +279,10 @@ stringToCountry country =
         "France" ->
             Just France
 
-        "FaeroeIslands" ->
+        "Faeroe Islands" ->
             Just FaeroeIslands
 
-        "UnitedKingdom" ->
+        "United Kingdom" ->
             Just UnitedKingdom
 
         "Greece" ->
@@ -1934,19 +1934,9 @@ type alias Date =
 -- ORDERING
 
 
-type SortOrder
-    = DateNewest
-    | DateOldest
-
-
-sortImages : SortOrder -> List Image -> List Image
-sortImages order =
-    case order of
-        DateNewest ->
-            List.sortWith dateOrderLatest
-
-        DateOldest ->
-            List.sortWith dateOrderOldest
+sortImages : List Image -> List Image
+sortImages =
+    List.sortWith dateOrderLatest
 
 
 dateOrderLatest : Ordering Image
@@ -1954,11 +1944,6 @@ dateOrderLatest =
     Ordering.byFieldWith yearOrdering (.date >> .year)
         |> Ordering.breakTiesWith (Ordering.byFieldWith monthOrdering (.date >> .month))
         |> Ordering.breakTiesWith (Ordering.byField .file)
-
-
-dateOrderOldest : Ordering Image
-dateOrderOldest =
-    Ordering.reverse dateOrderLatest
 
 
 yearOrdering : Ordering Year
