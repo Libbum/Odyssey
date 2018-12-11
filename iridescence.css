@@ -18,6 +18,40 @@ h1 {
     color: #348899;
 }
 
+/* Phone only */
+@media (max-width: 599px) {
+    #aside {
+        display: none;
+    }
+}
+/* Tablet portrait up */
+@media (min-width: 600px) {
+    #aside {
+        display: none;
+    }
+}
+/* Tablet landscape up */
+@media (min-width: 900px) {
+    #aside {
+        width: 290px;
+        display: inherit;
+    }
+}
+/* Desktop up */
+@media (min-width: 1200px) {
+    #aside {
+        width: 370px;
+        display: inherit;
+    }
+}
+/* Big Desktop up */
+@media (min-width: 1800px) {
+    #aside {
+        width: 495px;
+        display: inherit;
+    }
+}
+
 #aside {
     background: #343642;
     color: #cce1e6;
@@ -25,7 +59,6 @@ h1 {
     position: fixed;
     text-align: center;
     top: 0;
-    width: 495px;
     right: 0;
 }
 
@@ -395,3 +428,4 @@ label > .icon {
     width: 60px;
     height: 60px;
 }
+

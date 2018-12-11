@@ -160,15 +160,26 @@ update msg model =
                         oldViewport =
                             vp.viewport
 
+                        asideWidth =
+                            if oldViewport.width >= 1800 then
+                                495
+
+                            else if oldViewport.width >= 1200 then
+                                370
+
+                            else if oldViewport.width >= 900 then
+                                290
+
+                            else
+                                0
+
                         ratios =
                             getRatios <| filterImages model.filter model.images
 
                         rowsGuess =
                             -- So we have the old veiwport, and we need to figure out if our new
                             -- viewport will require a scrollbar or not. Take a guess at the new div height
-                            -- TODO: The 495 offset here is hardcoded for the aside div, but it will hide
-                            -- at some stage, thus will need to be dynamic in the future
-                            optimalRowCount ratios (oldViewport.width - 495) model.window.height
+                            optimalRowCount ratios (oldViewport.width - asideWidth) model.window.height
 
                         toggleResize =
                             case event of
@@ -198,7 +209,7 @@ update msg model =
                                     oldViewport.width
 
                         rowsBest =
-                            optimalRowCount ratios (newWidth - 495) model.window.height
+                            optimalRowCount ratios (newWidth - asideWidth) model.window.height
 
                         rows =
                             model.rows
@@ -209,7 +220,7 @@ update msg model =
                     ( { model
                         | partition = greedyK (weights ratios) rowsBest
                         , resizedAfterLoad = toggleResize
-                        , gallery = { oldViewport | width = newWidth - 495 }
+                        , gallery = { oldViewport | width = newWidth - asideWidth }
                         , rows = { rows | total = rowsBest }
                         , layout = layout
                       }

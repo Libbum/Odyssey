@@ -1,4 +1,4 @@
-module Icons exposing (checkCircle, chevronDown, chevronLeft, chevronRight, chevronUp, circle, filter, github, mail, menu, telegram, x)
+module Icons exposing (checkCircle, chevronDown, chevronLeft, chevronRight, chevronUp, circle, github, mail, menu, telegram, x)
 
 import Html exposing (Html)
 import Svg exposing (Svg, svg)
@@ -53,13 +53,6 @@ circle : Html msg
 circle =
     svgIcon "circle"
         [ Svg.circle [ cx "12", cy "12", r "10" ] []
-        ]
-
-
-filter : Html msg
-filter =
-    svgIcon "filter"
-        [ Svg.polygon [ points "22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" ] []
         ]
 
 
