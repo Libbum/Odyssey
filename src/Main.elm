@@ -309,41 +309,15 @@ update msg model =
 
         NextZoom ->
             let
-                layout =
-                    case model.layout of
-                        Just zip ->
-                            Zipper.previous zip
-
-                        Nothing ->
-                            model.layout
-
-                image =
-                    case layout of
-                        Just zip ->
-                            Just <| Zipper.current zip
-
-                        Nothing ->
-                            Nothing
+                ( layout, image ) =
+                    getNextZoom model
             in
             ( { model | zoom = image, layout = layout }, Cmd.none )
 
         PreviousZoom ->
             let
-                layout =
-                    case model.layout of
-                        Just zip ->
-                            Zipper.next zip
-
-                        Nothing ->
-                            model.layout
-
-                image =
-                    case layout of
-                        Just zip ->
-                            Just <| Zipper.current zip
-
-                        Nothing ->
-                            Nothing
+                ( layout, image ) =
+                    getPreviousZoom model
             in
             ( { model | zoom = image, layout = layout }, Cmd.none )
 
@@ -376,7 +350,11 @@ update msg model =
                         Just zip ->
                             case Zipper.next zip of
                                 Just _ ->
-                                    update PreviousZoom model
+                                    let
+                                        ( layout, image ) =
+                                            getPreviousZoom model
+                                    in
+                                    ( { model | zoom = image, layout = layout }, Cmd.none )
 
                                 Nothing ->
                                     ( model, Cmd.none )
@@ -389,7 +367,11 @@ update msg model =
                         Just zip ->
                             case Zipper.previous zip of
                                 Just _ ->
-                                    update NextZoom model
+                                    let
+                                        ( layout, image ) =
+                                            getNextZoom model
+                                    in
+                                    ( { model | zoom = image, layout = layout }, Cmd.none )
 
                                 Nothing ->
                                     ( model, Cmd.none )
@@ -398,7 +380,7 @@ update msg model =
                             ( model, Cmd.none )
 
                 ( Escape, Just _ ) ->
-                    update (ZoomImage Nothing) model
+                    ( model, Task.attempt (SetZoom Nothing) getViewport )
 
                 _ ->
                     ( model, Cmd.none )
@@ -725,6 +707,50 @@ getWidths images viewportWidth arSum widths =
 
 
 -- Veiw Helpers
+
+
+getNextZoom : Model -> ( Maybe (Zipper Image), Maybe Image )
+getNextZoom model =
+    let
+        layout =
+            case model.layout of
+                Just zip ->
+                    Zipper.previous zip
+
+                Nothing ->
+                    model.layout
+
+        image =
+            case layout of
+                Just zip ->
+                    Just <| Zipper.current zip
+
+                Nothing ->
+                    Nothing
+    in
+    ( layout, image )
+
+
+getPreviousZoom : Model -> ( Maybe (Zipper Image), Maybe Image )
+getPreviousZoom model =
+    let
+        layout =
+            case model.layout of
+                Just zip ->
+                    Zipper.next zip
+
+                Nothing ->
+                    model.layout
+
+        image =
+            case layout of
+                Just zip ->
+                    Just <| Zipper.current zip
+
+                Nothing ->
+                    Nothing
+    in
+    ( layout, image )
 
 
 radioView : Radio -> Radio -> Html Msg
