@@ -312,6 +312,21 @@ label > .icon {
     z-index: 2;
 }
 
+.control .icon {
+    stroke: rgba(255,255,255,0.7);
+    -webkit-filter: drop-shadow( 5px 5px 5px #000 );
+    filter: drop-shadow( 5px 5px 5px #000 );
+}
+
+.control .icon:hover, .control .icon:focus, .control .icon:active {
+    stroke: rgba(255,255,255,0.9);
+}
+
+
+.desc-off .icon, .control .icon:active {
+    stroke: rgba(100,100,100,0.9);
+}
+
 .blur {
     position: absolute;
     z-index: -5;
@@ -402,8 +417,13 @@ label > .icon {
 
 .description-button {
     position: fixed;
-    bottom: 5px;
-    left: 50%;
+    top: 10px;
+    right: 40px;
+}
+
+.description-button .icon {
+    width: 20px;
+    height: 20px;
 }
 
 .next, .previous {

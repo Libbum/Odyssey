@@ -1,4 +1,4 @@
-module Icons exposing (checkCircle, chevronDown, chevronLeft, chevronRight, chevronUp, circle, github, mail, menu, telegram, x)
+module Icons exposing (checkCircle, chevronDown, chevronLeft, chevronRight, chevronUp, circle, github, info, mail, menu, telegram, x)
 
 import Html exposing (Html)
 import Svg exposing (Svg, svg)
@@ -53,6 +53,15 @@ circle : Html msg
 circle =
     svgIcon "circle"
         [ Svg.circle [ cx "12", cy "12", r "10" ] []
+        ]
+
+
+info : Html msg
+info =
+    svgIcon "info"
+        [ Svg.circle [ cx "12", cy "12", r "10" ] []
+        , Svg.line [ x1 "12", y1 "16", x2 "12", y2 "12" ] []
+        , Svg.line [ x1 "12", y1 "8", x2 "12", y2 "8" ] []
         ]
 
 

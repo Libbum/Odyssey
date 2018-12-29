@@ -7,6 +7,7 @@ import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Icons
+import Json.Decode as Decode exposing (Decoder)
 import List.Zipper as Zipper exposing (Zipper)
 import Manifest exposing (Country(..), Filter(..), Image, Location(..), Trip(..), blurURL, countryNames, filterImages, imageURL, locale, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripNames)
 import Partition exposing (KPartition, greedyK)
@@ -66,7 +67,7 @@ initialModel scrollWidth =
     , locale = ""
     , zoom = Nothing
     , showModal = False
-    , showDescription = False
+    , showDescription = True
     , showControls = False
     }
 
@@ -134,6 +135,7 @@ type Msg
     | ToggleDescription
     | ToggleControls Bool
     | SetSelection String
+    | KeyPress Keyboard
     | NoOp
 
 
@@ -367,6 +369,40 @@ update msg model =
             in
             ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ) }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
 
+        KeyPress key ->
+            case ( key, model.zoom ) of
+                ( Left, Just _ ) ->
+                    case model.layout of
+                        Just zip ->
+                            case Zipper.next zip of
+                                Just _ ->
+                                    update PreviousZoom model
+
+                                Nothing ->
+                                    ( model, Cmd.none )
+
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                ( Right, Just _ ) ->
+                    case model.layout of
+                        Just zip ->
+                            case Zipper.previous zip of
+                                Just _ ->
+                                    update NextZoom model
+
+                                Nothing ->
+                                    ( model, Cmd.none )
+
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                ( Escape, Just _ ) ->
+                    update (ZoomImage Nothing) model
+
+                _ ->
+                    ( model, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
 
@@ -384,8 +420,37 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
         [ Browser.Events.onResize (\w h -> RePartition)
+        , Browser.Events.onKeyDown (Decode.map KeyPress keyDecoder)
         , nearBottom (\_ -> LazyLoad)
         ]
+
+
+type Keyboard
+    = Left
+    | Right
+    | Escape
+    | Other
+
+
+keyDecoder : Decoder Keyboard
+keyDecoder =
+    Decode.map toKeyboard (Decode.field "key" Decode.string)
+
+
+toKeyboard : String -> Keyboard
+toKeyboard key =
+    case key of
+        "ArrowLeft" ->
+            Left
+
+        "ArrowRight" ->
+            Right
+
+        "Escape" ->
+            Escape
+
+        _ ->
+            Other
 
 
 
@@ -558,10 +623,10 @@ zoomImage image showControls showPrevious showNext showDescription =
         ( description, descriptionIcon ) =
             case showDescription of
                 True ->
-                    ( div [ Html.Attributes.class "description" ] [ Html.text image.description ], Icons.chevronDown )
+                    ( div [ Html.Attributes.class "description" ] [ Html.text image.description ], Html.Attributes.class "" )
 
                 _ ->
-                    ( Html.text "", Icons.chevronUp )
+                    ( Html.text "", Html.Attributes.class "desc-off" )
 
         controlVisible =
             case showControls of
@@ -598,8 +663,8 @@ zoomImage image showControls showPrevious showNext showDescription =
             [ Html.Attributes.class "control", onMouseEnter (ToggleControls True), onMouseLeave (ToggleControls False) ]
             [ previous
             , next
-            , Html.button [ Html.Attributes.class "description-button", controlVisible, onClick ToggleDescription ] [ descriptionIcon ]
-            , Html.button [ Html.Attributes.class "close", controlVisible, onClick (ZoomImage Nothing) ] [ Icons.x ]
+            , Html.button [ Html.Attributes.class "description-button", descriptionIcon, controlVisible, onClick ToggleDescription ] [ Icons.info ]
+            , Html.button [ Html.Attributes.class "close", controlVisible, onClick (ZoomImage Nothing), Html.Attributes.autofocus True ] [ Icons.x ]
             , description
             ]
         ]
