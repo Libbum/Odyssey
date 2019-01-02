@@ -547,6 +547,10 @@ view model =
 
 displayImages : List Image -> Float -> KPartition Int -> List (Html Msg) -> List (Html Msg)
 displayImages images viewportWidth partition imageRows =
+    let
+        gallerySingleImage =
+            List.length images == 1
+    in
     case partition of
         one :: theRest ->
             let
@@ -554,7 +558,7 @@ displayImages images viewportWidth partition imageRows =
                     List.length one
 
                 newImageRows =
-                    displayRowOfImages (List.take rowWidth images) viewportWidth :: imageRows
+                    displayRowOfImages (List.take rowWidth images) viewportWidth gallerySingleImage :: imageRows
             in
             displayImages (List.drop rowWidth images) viewportWidth theRest newImageRows
 
@@ -563,11 +567,11 @@ displayImages images viewportWidth partition imageRows =
                 rowOfImages =
                     List.take (List.length one) images
             in
-            displayRowOfImages rowOfImages viewportWidth :: imageRows
+            displayRowOfImages rowOfImages viewportWidth gallerySingleImage :: imageRows
 
 
-displayRowOfImages : List Image -> Float -> Html Msg
-displayRowOfImages images viewportWidth =
+displayRowOfImages : List Image -> Float -> Bool -> Html Msg
+displayRowOfImages images viewportWidth gallerySingleImage =
     let
         revImages =
             List.reverse images
@@ -575,11 +579,13 @@ displayRowOfImages images viewportWidth =
         arSum =
             summedAspectRatios images
 
-        widths =
-            List.reverse <| getWidths revImages viewportWidth arSum []
+        ( widths, h ) =
+            case gallerySingleImage of
+                False ->
+                    ( List.reverse <| getWidths revImages viewportWidth arSum [], floor (viewportWidth / arSum) )
 
-        h =
-            floor (viewportWidth / arSum)
+                True ->
+                    singleImageSize images
     in
     div [ Html.Attributes.class "flex" ] <| List.map2 (\img w -> displayImage img w h) revImages widths
 
@@ -650,6 +656,32 @@ zoomImage image showControls showPrevious showNext showDescription =
             , description
             ]
         ]
+
+
+singleImageSize : List Image -> ( List Float, Int )
+singleImageSize images =
+    List.map
+        (\img ->
+            let
+                width =
+                    if img.aspectRatio < 1 then
+                        300
+
+                    else
+                        300 * img.aspectRatio
+
+                height =
+                    if img.aspectRatio >= 1 then
+                        300
+
+                    else
+                        floor (300 * img.aspectRatio)
+            in
+            ( [ width ], height )
+        )
+        images
+        |> List.head
+        |> Maybe.withDefault ( [ 300 ], 300 )
 
 
 

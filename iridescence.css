@@ -27,7 +27,7 @@ h1 {
         visibility: hidden;
         opacity: 0;
         width: 500px;
-        transition: display 0s 0.7s, opacity 0.7s linear;
+        transition: display 0s 0.5s, opacity 0.5s linear;
     }
     #title {
         display: block;
