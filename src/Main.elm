@@ -561,56 +561,27 @@ displayImages images viewportWidth partition imageRows =
         one ->
             let
                 rowOfImages =
-                    if List.length images /= 1 then
-                        List.take (List.length one) images
-
-                    else
-                        images
+                    List.take (List.length one) images
             in
             displayRowOfImages rowOfImages viewportWidth :: imageRows
 
 
 displayRowOfImages : List Image -> Float -> Html Msg
 displayRowOfImages images viewportWidth =
-    if List.length images /= 1 then
-        let
-            revImages =
-                List.reverse images
+    let
+        revImages =
+            List.reverse images
 
-            arSum =
-                summedAspectRatios images
+        arSum =
+            summedAspectRatios images
 
-            widths =
-                List.reverse <| getWidths revImages viewportWidth arSum []
+        widths =
+            List.reverse <| getWidths revImages viewportWidth arSum []
 
-            h =
-                floor (viewportWidth / arSum)
-        in
-        div [ Html.Attributes.class "flex" ] <| List.map2 (\img w -> displayImage img w h) revImages widths
-
-    else
-        List.map
-            (\img ->
-                let
-                    width =
-                        if img.aspectRatio < 1 then
-                            300
-
-                        else
-                            300 * img.aspectRatio
-
-                    height =
-                        if img.aspectRatio >= 1 then
-                            300
-
-                        else
-                            floor (300 * img.aspectRatio)
-                in
-                displayImage img width height
-            )
-            images
-            |> List.head
-            |> Maybe.withDefault (Html.text "")
+        h =
+            floor (viewportWidth / arSum)
+    in
+    div [ Html.Attributes.class "flex" ] <| List.map2 (\img w -> displayImage img w h) revImages widths
 
 
 displayImage : Image -> Float -> Int -> Html Msg
