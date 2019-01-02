@@ -389,6 +389,8 @@ label > .icon {
     color: #cce1e6;
     padding: 0em;
     padding-left: 1em;
+    -webkit-filter: drop-shadow( 5px 5px 5px #000 );
+    filter: drop-shadow( 5px 5px 5px #000 );
 }
 
 .burger {
