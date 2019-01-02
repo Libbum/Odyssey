@@ -48,6 +48,7 @@ type alias Model =
     , showModal : Bool
     , showDescription : Bool
     , showControls : Bool
+    , showMenu : Bool
     }
 
 
@@ -69,6 +70,7 @@ initialModel scrollWidth =
     , showModal = False
     , showDescription = True
     , showControls = False
+    , showMenu = False
     }
 
 
@@ -134,6 +136,7 @@ type Msg
     | ToggleModal
     | ToggleDescription
     | ToggleControls Bool
+    | ToggleMenu
     | SetSelection String
     | KeyPress Keyboard
     | NoOp
@@ -249,7 +252,7 @@ update msg model =
                                 filter =
                                     newFilter ( selected, "" ) model.filter
                             in
-                            ( { model | rows = { rows | visible = 10 }, filterSelected = ( selected, "" ), filter = filter }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
+                            ( { model | rows = { rows | visible = 10 }, filterSelected = ( selected, "" ), filter = filter, showMenu = False }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
 
                         _ ->
                             ( { model | filterSelected = ( selected, "" ) }, Cmd.none )
@@ -330,6 +333,9 @@ update msg model =
         ToggleControls setting ->
             ( { model | showControls = setting }, Cmd.none )
 
+        ToggleMenu ->
+            ( { model | showMenu = not model.showMenu }, Cmd.none )
+
         SetSelection selection ->
             let
                 rows =
@@ -341,7 +347,7 @@ update msg model =
                 filter =
                     newFilter ( radio, selection ) model.filter
             in
-            ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ) }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
+            ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ), showMenu = False }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
 
         KeyPress key ->
             case ( key, model.zoom ) of
@@ -454,15 +460,38 @@ view model =
 
                         Nothing ->
                             []
+
+                asideView =
+                    case model.showMenu of
+                        True ->
+                            Html.Attributes.class "show-aside"
+
+                        False ->
+                            Html.Attributes.class ""
             in
             div [ Html.Attributes.class "content" ]
-                [ Html.section [ Html.Attributes.id "aside" ]
+                [ Html.header [ Html.Attributes.id "title" ]
+                    [ Html.text "Iridessence"
+                    , Html.span [ Html.Attributes.class "burger" ]
+                        [ Html.label []
+                            [ Html.input
+                                [ Html.Attributes.type_ "checkbox"
+                                , Html.Attributes.name "menu-toggle"
+                                , Html.Events.onClick ToggleMenu
+                                , Html.Attributes.checked model.showMenu
+                                ]
+                                []
+                            , Icons.menu
+                            ]
+                        ]
+                    ]
+                , Html.section [ Html.Attributes.id "aside", asideView ]
                     [ div [ Html.Attributes.id "map" ] [ drawGlobe ]
                     , Html.header []
                         [ Html.h1 [] [ Html.text "Odyssey" ]
-                        , Html.i []
+                        , Html.i [ Html.Attributes.class "quote" ]
                             [ Html.text "The world is a book and those who do not travel read only one page."
-                            , Html.span [ Html.Attributes.class "right" ] [ Html.text "— Aurelius Augustinus Hipponensis" ]
+                            , Html.div [ Html.Attributes.class "right" ] [ Html.text "— Aurelius Augustinus Hipponensis" ]
                             ]
                         ]
                     , div [ Html.Attributes.class "locale" ] [ Html.text model.locale ]
@@ -483,7 +512,7 @@ view model =
                             ]
                         ]
                     ]
-                , Html.section
+                , Html.main_
                     [ Html.Attributes.id "gallery" ]
                   <|
                     List.take model.rows.visible <|
@@ -899,9 +928,7 @@ modalView show =
 drawGlobe : Html Msg
 drawGlobe =
     Svg.svg
-        [ Svg.Attributes.width "400"
-        , Svg.Attributes.height "400"
-        , Svg.Attributes.viewBox "0 0 400 400"
+        [ Svg.Attributes.viewBox "0 0 400 400"
         ]
         [ Svg.circle
             [ Svg.Attributes.cx "200"
