@@ -33,7 +33,7 @@ h1 {
         display: block;
     }
     #gallery {
-        margin-top: 44px;
+        margin-top: 50px;
     }
 }
 /* Tablet landscape up */
@@ -366,6 +366,11 @@ label > .icon {
     padding-right: 10px;
 }
 
+.burger .icon {
+    -webkit-transform: scale(1.0);
+￼   transform: scale(1.0);
+}
+
 #gallery {
     padding-bottom: 4px;
 }
@@ -391,6 +396,16 @@ label > .icon {
     padding-left: 1em;
     -webkit-filter: drop-shadow( 5px 5px 5px #000 );
     filter: drop-shadow( 5px 5px 5px #000 );
+}
+
+.title {
+    font-size: 14pt;
+    line-hight: 1.25em;
+    color: #cce1e6;
+}
+
+.title:hover {
+    color: #348899;
 }
 
 .burger {

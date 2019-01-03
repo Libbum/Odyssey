@@ -138,6 +138,7 @@ type Msg
     | ToggleControls Bool
     | ToggleMenu
     | SetSelection String
+    | GoToTop
     | KeyPress Keyboard
     | NoOp
 
@@ -349,6 +350,9 @@ update msg model =
             in
             ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ), showMenu = False }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
 
+        GoToTop ->
+            ( model, Task.attempt (\_ -> NoOp) (setViewport 0 0) )
+
         KeyPress key ->
             case ( key, model.zoom ) of
                 ( Left, Just _ ) ->
@@ -471,7 +475,7 @@ view model =
             in
             div [ Html.Attributes.class "content" ]
                 [ Html.header [ Html.Attributes.id "title" ]
-                    [ Html.text "Iridessence"
+                    [ Html.button [ Html.Attributes.class "title", onClick GoToTop ] [ Html.text "Iridessence" ]
                     , Html.span [ Html.Attributes.class "burger" ]
                         [ Html.label []
                             [ Html.input
