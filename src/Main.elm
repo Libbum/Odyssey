@@ -9,7 +9,7 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Icons
 import Json.Decode as Decode exposing (Decoder)
 import List.Zipper as Zipper exposing (Zipper)
-import Manifest exposing (Country(..), Filter(..), Image, Location(..), Trip(..), blurURL, countryNames, filterImages, imageURL, locale, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripNames)
+import Manifest exposing (Country(..), Filter(..), Image, Location(..), Trip(..), blurURL, countryNames, filterImages, imageURL, locale, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripId, tripNames)
 import Partition exposing (KPartition, greedyK)
 import Ports exposing (nearBottom)
 import Svg
@@ -348,7 +348,12 @@ update msg model =
                 filter =
                     newFilter ( radio, selection ) model.filter
             in
-            ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ), showMenu = False }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
+            ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ), showMenu = False }
+            , Cmd.batch
+                [ Task.attempt (Partition Filter) (getViewportOf "gallery")
+                , updateMap radio selection
+                ]
+            )
 
         GoToTop ->
             ( model, Task.attempt (\_ -> NoOp) (setViewport 0 0) )
@@ -490,7 +495,7 @@ view model =
                         ]
                     ]
                 , Html.section [ Html.Attributes.id "aside", asideView ]
-                    [ div [ Html.Attributes.id "map" ] [ drawGlobe ]
+                    [ div [ Html.Attributes.id "map" ] []
                     , Html.header []
                         [ Html.h1 [] [ Html.text "Odyssey" ]
                         , Html.i [ Html.Attributes.class "quote" ]
@@ -930,6 +935,21 @@ modalView show =
 
 
 -- Map Helpers
+
+
+updateMap : Radio -> String -> Cmd msg
+updateMap radio selected =
+    case radio of
+        RadioTrip ->
+            case stringToTrip selected of
+                Just trip ->
+                    Ports.viewTrip (tripId trip)
+
+                _ ->
+                    Cmd.none
+
+        _ ->
+            Cmd.none
 
 
 drawGlobe : Html Msg

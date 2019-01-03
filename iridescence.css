@@ -376,9 +376,9 @@ label > .icon {
 }
 
 #map {
-    max-width: 20em;
-    padding: 0;
+    padding: 20px;
     padding-top: 1em;
+    padding-bottom: 0;
     margin: 0 auto;
 }
 
@@ -578,3 +578,53 @@ label > .icon {
     height: 60px;
 }
 
+.iglobe-foreground {
+    fill: none;
+    stroke: #000;
+    stroke-width: 1px;
+    pointer-events: all;
+    cursor: -webkit-grab;
+    cursor: -moz-grab;
+}
+
+.iglobe-foreground.zooming {
+    cursor: -webkit-grabbing;
+    cursor: -moz-grabbing;
+}
+
+.iglobe-graticule {
+    fill: none;
+    stroke: #979c9c;
+    stroke-width: .5px;
+    stroke-dasharray: 2,2;
+}
+
+.iglobe-countries {
+    fill: #343642;
+    stroke: #979c9c;
+    stroke-width: .5px;
+}
+
+.iglobe-cities {
+    fill: #348899;
+}
+
+.iglobe-route {
+    fill: none;
+    stroke: #962d3e;
+    stroke-width: 1.5px;
+}
+
+.iglobe-ocean {
+    fill: #f2ebc7;
+}
+
+.iglobe-point {
+    fill: #962d3e;
+}
+
+.iglobe-highlight {
+    fill: #962d3e;
+    stroke: #979c9c;
+    stroke-width: .5px;
+}

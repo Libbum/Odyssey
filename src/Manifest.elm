@@ -1,4 +1,4 @@
-module Manifest exposing (Country(..), Filter(..), Image, Location(..), Trip(..), blurURL, countryNames, filterImages, imageURL, locale, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripNames)
+module Manifest exposing (Country(..), Filter(..), Image, Location(..), Trip(..), blurURL, countryNames, filterImages, imageURL, locale, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripId, tripNames)
 
 import List.Extra exposing (unconsLast)
 import Ordering exposing (Ordering)
@@ -1751,6 +1751,11 @@ tripNames : List String
 tripNames =
     List.map (\trip -> tripInformation trip |> .description) tripList
         |> List.reverse
+
+
+tripId : Trip -> String
+tripId trip =
+    tripInformation trip |> .name
 
 
 stringToTrip : String -> Maybe Trip
