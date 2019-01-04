@@ -1,4 +1,4 @@
-JSTARGETS := dist/assets/js/iridescence.js dist/assets/js/iridescence.min.js
+JSTARGETS := dist/assets/js/iridescence.js dist/assets/js/iridescence.min.js dist/assets/js/init.js
 
 .PHONY: clean build rebuild deploy
 
@@ -7,6 +7,9 @@ dist/assets/js/iridescence.js:
 
 dist/assets/js/iridescence.min.js: dist/assets/js/iridescence.js
 	uglifyjs dist/assets/js/iridescence.js --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --output=dist/assets/js/iridescence.min.js
+
+dist/assets/js/init.js: src/init.js
+	cp src/init.js dist/assets/js/init.js
 
 prodindex: dist/index.html
 	sed -i 's/iridescence.js/iridescence.min.js/' dist/index.html
@@ -22,10 +25,10 @@ rebuild: clean build
 manifest:
 	cd manifester; cargo run --release; cd ..
 
-serve: prodindex
-	elm-live src/Main.elm -d dist --open -- --output=dist/assets/js/iridescence.js --optimize
+serve: dist/assets/js/init.js prodindex
+	elm-live src/Main.elm -d dist --open -- --output=dist/assets/js/iridescence.min.js --optimize
 
-debug: debugindex
+debug: dist/assets/js/init.js debugindex
 	elm-live src/Main.elm -d dist --open -- --output=dist/assets/js/iridescence.js --debug
 
 clean:
