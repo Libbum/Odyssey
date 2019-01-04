@@ -962,7 +962,7 @@ modalView show =
             , Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Email", Html.Attributes.type_ "email", Html.Attributes.name "email" ] []
             , Html.textarea [ Html.Attributes.required True, Html.Attributes.placeholder "Message", Html.Attributes.spellcheck True, Html.Attributes.rows 4, Html.Attributes.name "message" ] []
             , Html.img [ Html.Attributes.class "img-verify", Html.Attributes.src "image.php", Html.Attributes.width 80, Html.Attributes.height 30 ] []
-            , Html.input [ Html.Attributes.id "verify", Html.Attributes.required True, Html.Attributes.placeholder "Copy the code", Html.Attributes.type_ "text", Html.Attributes.name "verify", Html.Attributes.title "This confirms you are a human user or strong AI and not a spam-bot." ] []
+            , Html.input [ Html.Attributes.id "verify", Html.Attributes.autocomplete False, Html.Attributes.required True, Html.Attributes.placeholder "Copy the code", Html.Attributes.type_ "text", Html.Attributes.name "verify", Html.Attributes.title "This confirms you are a human user or strong AI and not a spam-bot." ] []
             , div [ Html.Attributes.class "center" ]
                 [ Html.input [ Html.Attributes.type_ "submit", Html.Attributes.value "Send Message" ] []
                 , div [ Html.Attributes.id "response" ] []

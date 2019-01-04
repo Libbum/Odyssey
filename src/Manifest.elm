@@ -22,14 +22,6 @@ type Alternate
     | Blur
 
 
-{-| TODO: There is an assumption here that `image.location.name` has the same value in
-the directory structure apart from an undescore replacing whitespace. Country cannot do that
-if we keep the d3-geo structure, since the names don't match.
-
-However, this may not actually be the case if we hard code values like we have here.
-So ultimately we could simplify the `countryToDirectory` to just `countryName` in the future perhaps.
-
--}
 imagePath : Image -> String
 imagePath image =
     let
@@ -40,7 +32,7 @@ imagePath image =
         [ "gallery"
         , String.fromInt image.date.year
         , monthToDirectory image.date.month
-        , countryToDirectory info.country
+        , countryName info.country |> String.replace " " "_"
         , String.replace " " "_" info.name
         ]
 
@@ -190,7 +182,7 @@ countryId country =
             "FRO"
 
         UnitedKingdom ->
-            "GB1"
+            "GBR"
 
         Greece ->
             "GRC"
@@ -376,7 +368,7 @@ stringToCountry country =
         "Greece" ->
             Just Greece
 
-        "HongKong" ->
+        "Hong Kong" ->
             Just HongKong
 
         "Hungary" ->
@@ -507,94 +499,6 @@ countryLocalName country =
 
         _ ->
             Nothing
-
-
-countryToDirectory : Country -> String
-countryToDirectory country =
-    case country of
-        Armenia ->
-            "Armenia"
-
-        Australia ->
-            "Australia"
-
-        Austria ->
-            "Austria"
-
-        CzechRepublic ->
-            "Czech_Rep"
-
-        Germany ->
-            "Germany"
-
-        Denmark ->
-            "Denmark"
-
-        Estonia ->
-            "Estonia"
-
-        Finland ->
-            "Finland"
-
-        France ->
-            "France"
-
-        FaeroeIslands ->
-            "Faeroe_Is"
-
-        UnitedKingdom ->
-            "United_Kingdom"
-
-        Greece ->
-            "Greece"
-
-        HongKong ->
-            "Hong_Kong"
-
-        Hungary ->
-            "Hungary"
-
-        Iceland ->
-            "Iceland"
-
-        Japan ->
-            "Japan"
-
-        Latvia ->
-            "Latvia"
-
-        Netherlands ->
-            "Netherlands"
-
-        Norway ->
-            "Norway"
-
-        Poland ->
-            "Poland"
-
-        Qatar ->
-            "Qatar"
-
-        Russia ->
-            "Russia"
-
-        Singapore ->
-            "Singapore"
-
-        Slovakia ->
-            "Slovakia"
-
-        Sweden ->
-            "Sweden"
-
-        Thailand ->
-            "Thailand"
-
-        Ukraine ->
-            "Ukraine"
-
-        Vietnam ->
-            "Vietnam"
 
 
 
