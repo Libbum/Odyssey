@@ -9,7 +9,7 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Icons
 import Json.Decode as Decode exposing (Decoder)
 import List.Zipper as Zipper exposing (Zipper)
-import Manifest exposing (Country(..), Filter(..), Image, Location(..), Trip(..), blurURL, countryNames, filterImages, imageURL, locale, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripId, tripNames)
+import Manifest exposing (Country(..), Filter(..), Image, Location(..), Trip(..), blurURL, countryId, countryNames, filterImages, imageURL, locale, locationCoordinates, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripId, tripNames)
 import Partition exposing (KPartition, greedyK)
 import Ports exposing (nearBottom)
 import Svg
@@ -948,7 +948,27 @@ updateMap radio selected =
                 _ ->
                     Cmd.none
 
-        _ ->
+        RadioLocation ->
+            case stringToLocation selected of
+                Just location ->
+                    let
+                        coordinates =
+                            locationCoordinates location
+                    in
+                    Ports.viewLocation ( String.replace " " "_" selected, [ negate <| Tuple.first coordinates, negate <| Tuple.second coordinates ] )
+
+                Nothing ->
+                    Cmd.none
+
+        RadioCountry ->
+            case stringToCountry selected of
+                Just country ->
+                    Ports.viewCountry (countryId country)
+
+                Nothing ->
+                    Cmd.none
+
+        RadioAll ->
             Cmd.none
 
 

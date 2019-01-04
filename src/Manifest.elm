@@ -1,4 +1,4 @@
-module Manifest exposing (Country(..), Filter(..), Image, Location(..), Trip(..), blurURL, countryNames, filterImages, imageURL, locale, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripId, tripNames)
+module Manifest exposing (Country(..), Filter(..), Image, Location(..), Trip(..), blurURL, countryId, countryNames, filterImages, imageURL, locale, locationCoordinates, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripId, tripNames)
 
 import List.Extra exposing (unconsLast)
 import Ordering exposing (Ordering)
@@ -154,6 +154,94 @@ countryList =
     , Ukraine
     , Vietnam
     ]
+
+
+countryId : Country -> String
+countryId country =
+    case country of
+        Armenia ->
+            "ARM"
+
+        Australia ->
+            "AUS"
+
+        Austria ->
+            "AUT"
+
+        CzechRepublic ->
+            "CZE"
+
+        Germany ->
+            "DEU"
+
+        Denmark ->
+            "DNK"
+
+        Estonia ->
+            "EST"
+
+        Finland ->
+            "FIN"
+
+        France ->
+            "FRA"
+
+        FaeroeIslands ->
+            "FRO"
+
+        UnitedKingdom ->
+            "GB1"
+
+        Greece ->
+            "GRC"
+
+        HongKong ->
+            "HKG"
+
+        Hungary ->
+            "HUN"
+
+        Iceland ->
+            "ISL"
+
+        Japan ->
+            "JPN"
+
+        Latvia ->
+            "LVA"
+
+        Netherlands ->
+            "NLD"
+
+        Norway ->
+            "NOR"
+
+        Poland ->
+            "POL"
+
+        Qatar ->
+            "QAT"
+
+        Russia ->
+            "RUS"
+
+        Singapore ->
+            "SGP"
+
+        Slovakia ->
+            "SVK"
+
+        Sweden ->
+            "SWE"
+
+        Thailand ->
+            "THA"
+
+        Ukraine ->
+            "UKR"
+
+        Vietnam ->
+            "VNM"
 
 
 countryNames : List String
@@ -702,6 +790,11 @@ locationList =
 locationNames : List String
 locationNames =
     List.map (\location -> locationInformation location |> .name) locationList
+
+
+locationCoordinates : Location -> ( Float, Float )
+locationCoordinates location =
+    locationInformation location |> .coordinates
 
 
 stringToLocation : String -> Maybe Location

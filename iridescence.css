@@ -628,3 +628,7 @@ label > .icon {
     stroke: #979c9c;
     stroke-width: .5px;
 }
+
+.iglobe-selected {
+    fill: #962d3e;
+}

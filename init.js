@@ -20,13 +20,66 @@ window.onscroll = function(ev) {
 
 // Ports and fuctions for map control
 
+app.ports.viewCountry.subscribe(function(countryId) {
+    countryView(countryId);
+    return null;
+});
+
+app.ports.viewLocation.subscribe(function(data) {
+    locationView(data[0], data[1]);
+    return null;
+});
+
 app.ports.viewTrip.subscribe(function(tripName) {
     tripView(tripName);
     return null;
 });
 
+
+function countryView(selected) {
+    var coords;
+    flushTrips();
+    flushLocations();
+    for (var i = 0; i < countries.length; i++) {
+        if (countries[i].id == selected) {
+            var cent;
+            if (countries[i].properties.name == "Russia") {
+                cent = [77, 60]; //Override Russia
+            } else {
+                var centroid = d3.geo.path().projection(function(d) { return d; }).centroid;
+                cent = centroid(countries[i]);
+            }
+            coords = cent.map(v => v !== 0 ? -v : v );
+            break;
+        }
+    }
+    d3.selectAll(".iglobe-countries").each(function(d, i) {
+        if (d.id == selected) {
+            d3.select(this).classed("iglobe-selected", true);
+        } else {
+            d3.select(this).classed("iglobe-selected", false);
+        }
+    });
+    gotoView(coords);
+}
+
+function locationView(loc, coords) {
+    flushCountries();
+    flushTrips();
+    d3.selectAll(".iglobe-cities").each(function(d, i) {
+        if (d.properties.name == loc) {
+            d3.select(this).classed("iglobe-highlight", true);
+        } else {
+            d3.select(this).classed("iglobe-highlight", false);
+        }
+    });
+    gotoView(coords);
+}
+
 function tripView(selected) {
     var coords;
+    flushCountries();
+    flushLocations();
     d3.selectAll(".iglobe-route").each(function(d, i) {
         if (d.properties.name == selected) {
             d3.select(this).attr("visibility", "visible");
@@ -36,6 +89,24 @@ function tripView(selected) {
         }
     });
     gotoView(coords);
+}
+
+function flushCountries() {
+    d3.selectAll(".iglobe-countries").each(function() {
+        d3.select(this).classed("iglobe-selected", false);
+    });
+}
+
+function flushLocations() {
+    d3.selectAll(".iglobe-cities").each(function(d, i) {
+        d3.select(this).classed("iglobe-highlight", false);
+    });
+}
+
+function flushTrips() {
+    d3.selectAll(".iglobe-route").each(function() {
+        d3.select(this).attr("visibility", "hidden");
+    });
 }
 
 function getRotation(coords) {
