@@ -427,7 +427,7 @@ function drawMap() {
         });
     });
 
-    d3.json("dist/assets/world.json", function(t, n) {
+    d3.json("assets/world.json", function(t, n) {
         var svg = d3.selectAll("svg");
         svg.insert("path", ".iglobe-graticule").datum({ type: "Sphere"}).attr("class", "iglobe-ocean");
         countries = topojson.feature(n, n.objects.countries).features;

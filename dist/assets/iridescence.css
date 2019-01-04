@@ -422,7 +422,7 @@ label > .icon {
 .zoombox, .modal-cover {
     display: grid;
     height: 100vh;
-    background-image: url(static/grain.png);
+    background-image: url(grain.png);
     background-size: auto, 100% 100%;
 }
 
