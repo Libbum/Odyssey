@@ -1,7 +1,10 @@
-port module Ports exposing (nearBottom, viewCountry, viewLocation, viewTrip)
+port module Ports exposing (nearBottom, viewAll, viewCountry, viewLocation, viewTrip)
 
 
 port nearBottom : (Bool -> msg) -> Sub msg
+
+
+port viewAll : () -> Cmd msg
 
 
 port viewCountry : String -> Cmd msg

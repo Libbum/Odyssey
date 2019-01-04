@@ -20,6 +20,11 @@ window.onscroll = function(ev) {
 
 // Ports and fuctions for map control
 
+app.ports.viewAll.subscribe(function() {
+    allView();
+    return null;
+});
+
 app.ports.viewCountry.subscribe(function(countryId) {
     countryView(countryId);
     return null;
@@ -35,6 +40,12 @@ app.ports.viewTrip.subscribe(function(tripName) {
     return null;
 });
 
+function allView() {
+    flushCountries();
+    flushLocations();
+    flushTrips();
+    gotoView([-30, -40]);
+}
 
 function countryView(selected) {
     var coords;

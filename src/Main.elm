@@ -253,7 +253,12 @@ update msg model =
                                 filter =
                                     newFilter ( selected, "" ) model.filter
                             in
-                            ( { model | rows = { rows | visible = 10 }, filterSelected = ( selected, "" ), filter = filter, showMenu = False }, Task.attempt (Partition Filter) (getViewportOf "gallery") )
+                            ( { model | rows = { rows | visible = 10 }, filterSelected = ( selected, "" ), filter = filter, showMenu = False }
+                            , Cmd.batch
+                                [ Task.attempt (Partition Filter) (getViewportOf "gallery")
+                                , updateMap selected ""
+                                ]
+                            )
 
                         _ ->
                             ( { model | filterSelected = ( selected, "" ) }, Cmd.none )
@@ -969,7 +974,7 @@ updateMap radio selected =
                     Cmd.none
 
         RadioAll ->
-            Cmd.none
+            Ports.viewAll ()
 
 
 drawGlobe : Html Msg
