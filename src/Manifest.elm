@@ -1785,7 +1785,7 @@ locationInformation location =
             }
 
 
-locale : Image -> String
+locale : Image -> ( String, String )
 locale image =
     let
         info =
@@ -1798,18 +1798,18 @@ locale image =
         Just localCountry ->
             case locationLocalName image.location of
                 Just localLocation ->
-                    localLocation ++ ", " ++ localCountry ++ " (" ++ info.name ++ ", " ++ countryString ++ ")"
+                    ( localLocation ++ ", " ++ localCountry ++ " (" ++ info.name ++ ", " ++ countryString ++ ")", info.name )
 
                 Nothing ->
-                    info.name ++ ", " ++ countryString ++ " (" ++ localCountry ++ ")"
+                    ( info.name ++ ", " ++ countryString ++ " (" ++ localCountry ++ ")", info.name )
 
         Nothing ->
             case locationLocalName image.location of
                 Just localLocation ->
-                    localLocation ++ " (" ++ info.name ++ "), " ++ countryString
+                    ( localLocation ++ " (" ++ info.name ++ "), " ++ countryString, info.name )
 
                 Nothing ->
-                    info.name ++ ", " ++ countryString
+                    ( info.name ++ ", " ++ countryString, info.name )
 
 
 

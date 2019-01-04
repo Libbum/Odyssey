@@ -41,6 +41,11 @@ app.ports.viewLocation.subscribe(function(data) {
     return null;
 });
 
+app.ports.showLocation.subscribe(function(data) {
+    locationShow(data[0], data[1]);
+    return null;
+});
+
 app.ports.viewTrip.subscribe(function(tripName) {
     tripView(tripName);
     return null;
@@ -80,17 +85,28 @@ function countryView(selected) {
     gotoView(coords);
 }
 
+d3.selection.prototype.moveUp = function() {
+    return this.each(function() {
+        this.parentNode.appendChild(this);
+    });
+};
+
 function locationView(loc, coords) {
     flushCountries();
     flushTrips();
-    d3.selectAll(".iglobe-cities").each(function(d, i) {
-        if (d.properties.name == loc) {
-            d3.select(this).classed("iglobe-highlight", true);
-        } else {
-            d3.select(this).classed("iglobe-highlight", false);
-        }
-    });
-    gotoView(coords);
+    locationShow(loc, coords);
+}
+
+function locationShow(loc, coords) {
+    flushLocations();
+    if (loc.length > 0) {
+        d3.selectAll("#"+loc).classed("iglobe-highlight", true);
+        d3.selectAll("#"+loc).moveUp();
+    }
+    if (coords.length == 2) {
+        gotoView(coords);
+    }
+    return false;
 }
 
 function tripView(selected) {
@@ -115,6 +131,7 @@ function flushCountries() {
 }
 
 function flushLocations() {
+    d3.selectAll("#cities").selectAll("use").remove();
     d3.selectAll(".iglobe-cities").each(function(d, i) {
         d3.select(this).classed("iglobe-highlight", false);
     });

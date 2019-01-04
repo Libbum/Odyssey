@@ -130,7 +130,7 @@ type Msg
     | SetWindow Event (Result Browser.Dom.Error Browser.Dom.Viewport)
     | ToggleRadio Radio
     | LazyLoad
-    | PutLocale String
+    | PutLocale ( String, String )
     | PopLocale
     | ZoomImage (Maybe Image)
     | SetZoom (Maybe Image) (Result Browser.Dom.Error Browser.Dom.Viewport)
@@ -259,7 +259,7 @@ update msg model =
                             ( { model | rows = { rows | visible = 10 }, filterSelected = ( selected, "" ), filter = filter, showMenu = False }
                             , Cmd.batch
                                 [ Task.attempt (Partition Filter) (getViewportOf "gallery")
-                                , updateMap selected ""
+                                , updateMap selected "" True
                                 ]
                             )
 
@@ -287,10 +287,31 @@ update msg model =
 
         -- VIEW CHANGES
         PutLocale locale ->
-            ( { model | locale = locale }, Cmd.none )
+            let
+                ( newLocale, name ) =
+                    locale
+
+                map =
+                    case model.filterSelected of
+                        ( RadioLocation, _ ) ->
+                            Cmd.none
+
+                        _ ->
+                            updateMap RadioLocation name False
+            in
+            ( { model | locale = newLocale }, map )
 
         PopLocale ->
-            ( { model | locale = "" }, Cmd.none )
+            let
+                map =
+                    case model.filterSelected of
+                        ( RadioLocation, _ ) ->
+                            Cmd.none
+
+                        _ ->
+                            updateMap RadioLocation "" False
+            in
+            ( { model | locale = "" }, map )
 
         -- IMAGE VIEWER
         ZoomImage image ->
@@ -368,7 +389,7 @@ update msg model =
             ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ), showMenu = False }
             , Cmd.batch
                 [ Task.attempt (Partition Filter) (getViewportOf "gallery")
-                , updateMap radio selection
+                , updateMap radio selection True
                 ]
             )
 
@@ -954,8 +975,8 @@ modalView show =
 -- Map Helpers
 
 
-updateMap : Radio -> String -> Cmd msg
-updateMap radio selected =
+updateMap : Radio -> String -> Bool -> Cmd msg
+updateMap radio selected clearPrevious =
     case radio of
         RadioTrip ->
             case stringToTrip selected of
@@ -966,16 +987,25 @@ updateMap radio selected =
                     Cmd.none
 
         RadioLocation ->
+            let
+                port_ =
+                    case clearPrevious of
+                        True ->
+                            Ports.viewLocation
+
+                        False ->
+                            Ports.showLocation
+            in
             case stringToLocation selected of
                 Just location ->
                     let
                         coordinates =
                             locationCoordinates location
                     in
-                    Ports.viewLocation ( String.replace " " "_" selected, [ negate <| Tuple.first coordinates, negate <| Tuple.second coordinates ] )
+                    port_ ( String.replace " " "_" selected, [ negate <| Tuple.first coordinates, negate <| Tuple.second coordinates ] )
 
                 Nothing ->
-                    Cmd.none
+                    port_ ( "", [] )
 
         RadioCountry ->
             case stringToCountry selected of
