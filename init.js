@@ -19,6 +19,12 @@ window.onscroll = function(ev) {
 };
 
 // Ports and fuctions for map control
+app.ports.drawMap.subscribe(function() {
+    requestAnimationFrame(function() {
+        drawMap();
+    });
+    return null;
+});
 
 app.ports.viewAll.subscribe(function() {
     allView();
@@ -204,7 +210,7 @@ function sphereRotate() {
 
 
 // Map
-(function() {
+function drawMap() {
     m = d3.behavior.zoom();
     proj = d3.geo.orthographic().precision(0.5).clipAngle(90).clipExtent([[-1, -1],[401, 401]]).translate([200, 200]).scale(190).rotate([-40, -30]);
 
@@ -422,4 +428,4 @@ function sphereRotate() {
         rr.world();
     });
 
-})();
+}

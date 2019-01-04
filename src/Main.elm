@@ -100,7 +100,10 @@ emptyViewport =
 init : Int -> ( Model, Cmd Msg )
 init scrollWidth =
     ( initialModel scrollWidth
-    , getWindow Init
+    , Cmd.batch
+        [ getWindow Init
+        , Ports.drawMap ()
+        ]
     )
 
 
@@ -291,7 +294,16 @@ update msg model =
 
         -- IMAGE VIEWER
         ZoomImage image ->
-            ( model, Task.attempt (SetZoom image) getViewport )
+            let
+                map =
+                    case image of
+                        Just _ ->
+                            Cmd.none
+
+                        Nothing ->
+                            Ports.drawMap ()
+            in
+            ( model, Cmd.batch [ Task.attempt (SetZoom image) getViewport, map ] )
 
         SetZoom image result ->
             case result of
