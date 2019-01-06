@@ -25,8 +25,8 @@ rebuild: clean build
 manifest:
 	cd manifester; cargo run --release; cd ..
 
-serve: dist/assets/js/init.js prodindex
-	elm-live src/Main.elm -d dist --open -- --output=dist/assets/js/iridescence.min.js --optimize
+serve: dist/assets/js/init.js debugindex
+	elm-live src/Main.elm -d dist --open -- --output=dist/assets/js/iridescence.js --optimize
 
 debug: dist/assets/js/init.js debugindex
 	elm-live src/Main.elm -d dist --open -- --output=dist/assets/js/iridescence.js --debug
