@@ -398,6 +398,10 @@ label > .icon {
     filter: drop-shadow( 5px 5px 5px #000 );
 }
 
+#response {
+    padding-top: 1em;
+}
+
 .title {
     font-size: 14pt;
     line-hight: 1.25em;
@@ -490,7 +494,6 @@ label > .icon {
     top: 50%;
     left: 50%;
     width: 400px;
-    height: 550px;
     margin-top: -200px; /* Half the height */
     margin-left: -275px; /* Half the width */
     max-width: 100%;

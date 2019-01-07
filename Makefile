@@ -34,5 +34,5 @@ debug: dist/assets/js/init.js debugindex
 clean:
 	@-rm -f $(JSTARGETS)
 
-deploy: build
+deploy: dist/assets/js/init.js build
 	rsync -avr --chown=www-data:www-data --checksum --delete -e ssh dist/ AkashaR:odyssey/sandbox/
