@@ -598,8 +598,8 @@ displayImages images viewportWidth partition imageRows =
         gallerySingleImage =
             List.length images == 1
     in
-    case partition of
-        one :: theRest ->
+    case ( partition, gallerySingleImage ) of
+        ( one :: theRest, _ ) ->
             let
                 rowWidth =
                     List.length one
@@ -609,12 +609,15 @@ displayImages images viewportWidth partition imageRows =
             in
             displayImages (List.drop rowWidth images) viewportWidth theRest newImageRows
 
-        one ->
+        ( one, False ) ->
             let
                 rowOfImages =
                     List.take (List.length one) images
             in
             displayRowOfImages rowOfImages viewportWidth gallerySingleImage :: imageRows
+
+        ( one, True ) ->
+            displayRowOfImages images viewportWidth gallerySingleImage :: imageRows
 
 
 displayRowOfImages : List Image -> Float -> Bool -> Html Msg
