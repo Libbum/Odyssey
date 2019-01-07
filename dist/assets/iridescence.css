@@ -18,9 +18,6 @@ h1 {
     color: #348899;
 }
 
-/* Phone only */
-@media (max-width: 599px) {
-}
 /* Tablet portrait down */
 @media (max-width: 899px) {
     #aside {
@@ -81,7 +78,7 @@ h1 {
 }
 
 /* Height captures for aside */
-@media (max-height: 770px) {
+@media (max-height: 850px) {
     nav {
         padding-top: 10vh;
     }
@@ -93,19 +90,19 @@ h1 {
     }
 }
 
-@media (max-height: 840px) {
+@media (max-height: 930px) {
     header > h1 {
         display: none;
     }
 }
 
-@media (max-height: 890px) {
+@media (max-height: 990px) {
     .quote {
         display: none;
     }
 }
 
-@media (min-height: 1040px) {
+@media (min-height: 1070px) {
     body {
         font-size: 14pt!important;
         line-hight: 1.5em!important;
@@ -115,7 +112,7 @@ h1 {
     }
 }
 
-@media (min-height: 1130px) {
+@media (min-height: 1200px) {
     body {
         font-size: 16pt!important;
         line-height: 1.75em!important;
@@ -369,6 +366,7 @@ label > .icon {
 .burger .icon {
     -webkit-transform: scale(1.0);
 ￼   transform: scale(1.0);
+    margin-top: 5px;
 }
 
 #gallery {
@@ -403,6 +401,7 @@ label > .icon {
 }
 
 .title {
+    padding-top: 0.6em;
     font-size: 14pt;
     line-hight: 1.25em;
     color: #cce1e6;
