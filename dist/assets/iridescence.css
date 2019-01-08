@@ -126,6 +126,11 @@ input[type="submit"]:active {
     text-align: center;
 }
 
+form .center {
+    width: 280px;
+    display: inline-block;
+}
+
 textarea {
     padding: 0.75em 1em;
     resize: none;
@@ -137,7 +142,7 @@ form {
 
 #verify {
     display: inline-block;
-    width: 200px;
+    width: 100px;
     float: right;
     margin-top: 0;
 }
@@ -405,14 +410,14 @@ label > .icon {
 }
 
 .modal {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    width: 400px;
-    margin-top: -200px; /* Half the height */
-    margin-left: -275px; /* Half the width */
-    max-width: 100%;
-    max-height: 100%;
+    position: absolute;
+    margin: auto;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 280px;
+    height: 450px;
     z-index: 100;
     background: white;
     border: 1px solid #ccc;
