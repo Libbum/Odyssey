@@ -255,18 +255,11 @@ update msg model =
 
                                 filter =
                                     newFilter ( selected, "" ) model.filter
-
-                                map =
-                                    if model.showMenu then
-                                        updateMap selected "" True
-
-                                    else
-                                        Cmd.none
                             in
                             ( { model | rows = { rows | visible = 10 }, filterSelected = ( selected, "" ), filter = filter }
                             , Cmd.batch
                                 [ Task.attempt (Partition Filter) (getViewportOf "gallery")
-                                , map
+                                , updateMap selected "" True
                                 ]
                             )
 
@@ -299,7 +292,7 @@ update msg model =
                     locale
 
                 map =
-                    case ( model.filterSelected, model.gallery.width >= 900 ) of
+                    case ( model.filterSelected, model.window.width >= 900 ) of
                         ( ( RadioLocation, _ ), _ ) ->
                             Cmd.none
 
@@ -314,7 +307,7 @@ update msg model =
         PopLocale ->
             let
                 map =
-                    case ( model.filterSelected, model.gallery.width >= 900 ) of
+                    case ( model.filterSelected, model.window.width >= 900 ) of
                         ( ( RadioLocation, _ ), _ ) ->
                             Cmd.none
 
@@ -398,18 +391,11 @@ update msg model =
 
                 filter =
                     newFilter ( radio, selection ) model.filter
-
-                map =
-                    if model.showMenu then
-                        updateMap radio selection True
-
-                    else
-                        Cmd.none
             in
             ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ) }
             , Cmd.batch
                 [ Task.attempt (Partition Filter) (getViewportOf "gallery")
-                , map
+                , updateMap radio selection True
                 ]
             )
 
@@ -528,13 +514,21 @@ view model =
                         Nothing ->
                             []
 
-                ( asideView, mapHide ) =
+                mapHide =
+                    case ( model.showMenu, model.window.width >= 900 ) of
+                        ( False, False ) ->
+                            Html.Attributes.class "map-hide"
+
+                        _ ->
+                            Html.Attributes.class ""
+
+                asideView =
                     case model.showMenu of
                         True ->
-                            ( Html.Attributes.class "show-aside", Html.Attributes.class "" )
+                            Html.Attributes.class "show-aside"
 
                         False ->
-                            ( Html.Attributes.class "", Html.Attributes.class "map-hide" )
+                            Html.Attributes.class ""
             in
             div [ Html.Attributes.class "content" ]
                 [ Html.header [ Html.Attributes.id "title" ]

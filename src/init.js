@@ -253,27 +253,21 @@ function getRotation(coords) {
 }
 
 function gotoView(coords) {
-    if (window.orientation > -1) { //mobile (probably)
-        proj.rotate(coords).scale(190);
-        m.scale(190);
-        d3.select("#map").selectAll("path").attr("d", d3.geo.path().projection(proj));
-    } else {
-        var interp = sphereRotate();
-        d3.transition().delay(500).duration(2000)
-            .tween("rotate", function() {
-                var sc = d3.interpolate(proj.scale(), 190); //width / 2 - 10 = 190
-                //If statement stops us from transitioning to ourself and NaNing out.
-                if (interp.source(proj.rotate()).target(coords).distance() > 0) {
-                    return function(i) {
-                        proj.rotate(interp(i)).scale(sc(i));
-                        m.scale(sc(i));
-                        d3.select("#map").selectAll("path").attr("d", d3.geo.path().projection(proj));
-                    };
-                } else {
-                    return false;
-                }
-            });
-    }
+    var interp = sphereRotate();
+    d3.transition().delay(500).duration(2000)
+        .tween("rotate", function() {
+            var sc = d3.interpolate(proj.scale(), 190); //width / 2 - 10 = 190
+            //If statement stops us from transitioning to ourself and NaNing out.
+            if (interp.source(proj.rotate()).target(coords).distance() > 0) {
+                return function(i) {
+                    proj.rotate(interp(i)).scale(sc(i));
+                    m.scale(sc(i));
+                    d3.select("#map").selectAll("path").attr("d", d3.geo.path().projection(proj));
+                };
+            } else {
+                return false;
+            }
+        });
 }
 
 function sphereRotate() {

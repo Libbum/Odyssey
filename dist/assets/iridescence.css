@@ -291,7 +291,8 @@ label > .icon {
 }
 
 #map.map-hide {
-    display: none;
+    position: absolute;
+    left: 1000px;
 }
 
 #title {
