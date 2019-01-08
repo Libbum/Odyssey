@@ -290,6 +290,10 @@ label > .icon {
     margin: 0 auto;
 }
 
+#map.map-hide {
+    display: none;
+}
+
 #title {
     position: fixed;
     display: block;
@@ -610,15 +614,18 @@ label > .icon {
     .quote {
         display: none;
     }
+    header {
+        margin-top: -1.5em;
+    }
 }
-
-@media (max-height: 600px) and (max-width: 900px) {
-    nav {
-        margin-top: 1em;
+/* Adroid chrome (at least) steals 60px for the address bar */
+@media (max-height: 559px) and (max-width: 900px) {
+    header {
+        margin-top: 0;
     }
 }
 
-@media (max-height: 600px) and (max-width: 1200px) {
+@media (max-height: 559px) and (max-width: 1200px) {
     #map {
         display: none;
     }
@@ -627,19 +634,19 @@ label > .icon {
     }
 }
 
-@media (max-height: 905px) and (max-width: 1800px) {
+@media (max-height: 905px) and (min-width: 1201px) and (max-width: 1800px) {
     header > h1 {
         display: none;
     }
 }
 
-@media (max-height: 810px) and (max-width: 1800px) {
+@media (max-height: 810px) and (min-width: 1201px) and (max-width: 1800px) {
     .quote {
         display: none;
     }
 }
 
-@media (max-height: 750px) and (max-width: 1800px) {
+@media (max-height: 750px) and (min-width: 1201px) and (max-width: 1800px) {
     #aside {
         min-height: 420px;
     }
