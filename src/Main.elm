@@ -256,7 +256,7 @@ update msg model =
                                 filter =
                                     newFilter ( selected, "" ) model.filter
                             in
-                            ( { model | rows = { rows | visible = 10 }, filterSelected = ( selected, "" ), filter = filter, showMenu = False }
+                            ( { model | rows = { rows | visible = 10 }, filterSelected = ( selected, "" ), filter = filter }
                             , Cmd.batch
                                 [ Task.attempt (Partition Filter) (getViewportOf "gallery")
                                 , updateMap selected "" True
@@ -386,7 +386,7 @@ update msg model =
                 filter =
                     newFilter ( radio, selection ) model.filter
             in
-            ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ), showMenu = False }
+            ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ) }
             , Cmd.batch
                 [ Task.attempt (Partition Filter) (getViewportOf "gallery")
                 , updateMap radio selection True

@@ -18,125 +18,33 @@ h1 {
     color: #348899;
 }
 
-/* Tablet portrait down */
-@media (max-width: 899px) {
-    #aside {
-        visibility: hidden;
-        opacity: 0;
-        width: 500px;
-        transition: display 0s 0.5s, opacity 0.5s linear;
-    }
-    #title {
-        display: block;
-    }
-    #gallery {
-        margin-top: 50px;
-    }
-}
-/* Tablet landscape up */
-@media (min-width: 900px) {
-    #aside {
-        width: 290px;
-        display: inherit;
-    }
-    #title {
-        display: none;
-    }
-    header {
-        padding: 1em!important;
-    }
-    .right {
-        margin-right: -0.5em!important;
-    }
-    .middle {
-        width: 80%!important;
-    }
-}
-/* Desktop up */
-@media (min-width: 1200px) {
-    #aside {
-        width: 370px;
-        display: inherit;
-    }
-    .middle {
-        width: 60%!important;
-    }
-    header {
-        padding: 1.5em!important;
-    }
-    .right {
-        margin-right: -1em!important;
-    }
-
-}
-/* Big Desktop up */
-@media (min-width: 1800px) {
-    #aside {
-        width: 495px;
-        display: inherit;
-    }
-}
-
-/* Height captures for aside */
-@media (max-height: 850px) {
-    nav {
-        padding-top: 10vh;
-    }
-    .locale {
-        padding-top: 5vh;
-    }
-    #map {
-        display: none;
-    }
-}
-
-@media (max-height: 930px) {
-    header > h1 {
-        display: none;
-    }
-}
-
-@media (max-height: 990px) {
-    .quote {
-        display: none;
-    }
-}
-
-@media (min-height: 1070px) {
-    body {
-        font-size: 14pt!important;
-        line-hight: 1.5em!important;
-    }
-    .locale {
-        height: 4em!important;
-    }
-}
-
-@media (min-height: 1200px) {
-    body {
-        font-size: 16pt!important;
-        line-height: 1.75em!important;
-    }
-    .locale {
-        height: 5em!important;
-    }
+.content {
+    min-width: 360px;
 }
 
 #aside {
     background: #343642;
     color: #cce1e6;
     height: 100%;
+    visibility: hidden;
     position: fixed;
     text-align: center;
     top: 0;
     right: 0;
+    opacity: 0;
+    width: 300px;
+    min-width: 200px;
+    max-width: 500px;
+    min-height: 330px;
+    transition: margin 0s 0.5s, visibility 0s 0.5s, opacity 0.5s ease-out 0s;
 }
 
 #aside.show-aside {
     margin-top: 44px;
-    visibility: visible;
     opacity: 1;
+    visibility: visible;
     margin-bottom: 10px;
+    transition: opacity 0.5s ease-in 0s;
 }
 
 #aside.show-aside footer {
@@ -144,7 +52,7 @@ h1 {
 }
 
 header {
-    padding: 3em;
+    padding: 1.2em;
     padding-top: 0em;
     padding-bottom: 1em;
 }
@@ -326,7 +234,7 @@ ul.icons li {
 .right {
     padding-top: 0.5em;
     text-align: right;
-    margin-right: -2em;
+    margin-right: 0em;
     font-size: smaller;
 }
 
@@ -335,10 +243,11 @@ ul.icons li {
     margin: 0 auto;
     width: 90%;
     text-align: center;
+    display: none;
 }
 
 .middle {
-    width: 40%;
+    width: 90%;
     margin: 0 auto;
 }
 
@@ -366,11 +275,12 @@ label > .icon {
 .burger .icon {
     -webkit-transform: scale(1.0);
 ￼   transform: scale(1.0);
-    margin-top: 5px;
+    margin-top: 8px;
 }
 
 #gallery {
     padding-bottom: 4px;
+    margin-top: 50px;
 }
 
 #map {
@@ -382,6 +292,7 @@ label > .icon {
 
 #title {
     position: fixed;
+    display: block;
     right: 0;
     left: 0;
     top: 0;
@@ -462,8 +373,8 @@ label > .icon {
 .blur {
     position: absolute;
     z-index: -5;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     margin: 0px;
 }
 
@@ -633,4 +544,133 @@ label > .icon {
 
 .iglobe-selected {
     fill: #962d3e;
+}
+
+/* Phone and tablet portrait default */
+/* Tablet landscape up */
+@media (min-width: 900px) {
+    #aside {
+        width: 290px;
+        min-height: 360px;
+        visibility: visible;
+        opacity: 1;
+        margin-top: 0;
+    }
+    .locale {
+        display: block;
+    }
+    #gallery {
+        margin-top: 0;
+    }
+    #title {
+        display: none;
+    }
+    .middle {
+        width: 60%;
+    }
+}
+/* Desktop up */
+@media (min-width: 1200px) {
+    body {
+        font-size: 14pt;
+        line-hight: 1.5em;
+    }
+    .locale {
+        height: 4em;
+    }
+    #aside {
+        width: 370px;
+    }
+    .middle {
+        width: 50%;
+    }
+}
+/* Big Desktop up */
+@media (min-width: 1800px) {
+    #aside {
+        width: 495px;
+    }
+    body {
+        font-size: 16pt;
+        line-height: 1.75em;
+    }
+    .locale {
+        height: 5em;
+    }
+}
+
+/* Height captures for aside */
+@media (max-height: 735px) and (max-width: 1200px) {
+    header > h1 {
+        display: none;
+    }
+}
+
+@media (max-height: 660px) and (max-width: 1200px) {
+    .quote {
+        display: none;
+    }
+}
+
+@media (max-height: 600px) and (max-width: 900px) {
+    nav {
+        margin-top: 1em;
+    }
+}
+
+@media (max-height: 600px) and (max-width: 1200px) {
+    #map {
+        display: none;
+    }
+    .locale {
+        margin-top: 1em;
+    }
+}
+
+@media (max-height: 905px) and (max-width: 1800px) {
+    header > h1 {
+        display: none;
+    }
+}
+
+@media (max-height: 810px) and (max-width: 1800px) {
+    .quote {
+        display: none;
+    }
+}
+
+@media (max-height: 750px) and (max-width: 1800px) {
+    #aside {
+        min-height: 420px;
+    }
+    #map {
+        display: none;
+    }
+    .locale {
+        margin-top: 1em;
+    }
+}
+
+@media (max-height: 1160px) and (min-width: 1801px) {
+    header > h1 {
+        display: none;
+    }
+}
+
+@media (max-height: 1070px) and (min-width: 1801px) {
+    .quote {
+        display: none;
+    }
+}
+
+@media (max-height: 960px) and (min-width: 1801px) {
+    #aside {
+        min-height: 475px;
+    }
+    #map {
+        display: none;
+    }
+    .locale {
+        margin-top: 1em;
+    }
 }
