@@ -35,4 +35,4 @@ clean:
 	@-rm -f $(JSTARGETS)
 
 deploy: dist/assets/js/init.js build
-	rsync -avr --chown=www-data:www-data --checksum --delete -e ssh dist/ AkashaR:odyssey/sandbox/
+	rsync -avr --chown=www-data:www-data --checksum --delete -e ssh dist/ AkashaR:odyssey
