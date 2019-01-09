@@ -417,7 +417,7 @@ label > .icon {
     bottom: 0;
     left: 0;
     width: 280px;
-    height: 450px;
+    height: 470px;
     z-index: 100;
     background: white;
     border: 1px solid #ccc;
@@ -470,7 +470,7 @@ label > .icon {
 .description-button {
     position: fixed;
     top: 10px;
-    right: 40px;
+    left: 5px;
 }
 
 .description-button .icon {

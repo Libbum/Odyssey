@@ -6,6 +6,7 @@ import Browser.Events
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Html.Events.Extra.Touch as Touch
 import Icons
 import Json.Decode as Decode exposing (Decoder)
 import List.Zipper as Zipper exposing (Zipper)
@@ -49,6 +50,7 @@ type alias Model =
     , showDescription : Bool
     , showControls : Bool
     , showMenu : Bool
+    , currentSwipeStart : Maybe Position
     }
 
 
@@ -71,6 +73,7 @@ initialModel scrollWidth =
     , showDescription = True
     , showControls = False
     , showMenu = False
+    , currentSwipeStart = Nothing
     }
 
 
@@ -120,6 +123,25 @@ type Radio
     | RadioTrip
 
 
+type Keyboard
+    = Left
+    | Right
+    | Escape
+    | Other
+
+
+type alias Position =
+    { x : Float
+    , y : Float
+    }
+
+
+type SwipeDirection
+    = Tap
+    | SwipeLeft
+    | SwipeRight
+
+
 
 --- Update
 
@@ -143,6 +165,8 @@ type Msg
     | SetSelection String
     | GoToTop
     | KeyPress Keyboard
+    | SwipeStart ( Float, Float )
+    | SwipeEnd ( Float, Float )
     | NoOp
 
 
@@ -444,6 +468,60 @@ update msg model =
                 _ ->
                     ( model, Cmd.none )
 
+        SwipeStart ( x, y ) ->
+            ( { model | currentSwipeStart = Just { x = x, y = y } }, Cmd.none )
+
+        SwipeEnd ( x, y ) ->
+            case model.currentSwipeStart of
+                Just start ->
+                    let
+                        direction =
+                            getSwipeDirection start { x = x, y = y }
+                    in
+                    case ( direction, model.zoom ) of
+                        ( SwipeLeft, Just _ ) ->
+                            case model.layout of
+                                Just zip ->
+                                    case Zipper.next zip of
+                                        Just _ ->
+                                            let
+                                                ( layout, image ) =
+                                                    getPreviousZoom model
+                                            in
+                                            ( { model | zoom = image, layout = layout, currentSwipeStart = Nothing }, Cmd.none )
+
+                                        Nothing ->
+                                            ( { model | currentSwipeStart = Nothing }, Cmd.none )
+
+                                Nothing ->
+                                    ( { model | currentSwipeStart = Nothing }, Cmd.none )
+
+                        ( SwipeRight, Just _ ) ->
+                            case model.layout of
+                                Just zip ->
+                                    case Zipper.previous zip of
+                                        Just _ ->
+                                            let
+                                                ( layout, image ) =
+                                                    getNextZoom model
+                                            in
+                                            ( { model | zoom = image, layout = layout, currentSwipeStart = Nothing }, Cmd.none )
+
+                                        Nothing ->
+                                            ( { model | currentSwipeStart = Nothing }, Cmd.none )
+
+                                Nothing ->
+                                    ( { model | currentSwipeStart = Nothing }, Cmd.none )
+
+                        ( Tap, Just _ ) ->
+                            ( { model | currentSwipeStart = Nothing, showControls = not model.showControls }, Cmd.none )
+
+                        _ ->
+                            ( { model | currentSwipeStart = Nothing }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
 
@@ -464,13 +542,6 @@ subscriptions _ =
         , Browser.Events.onKeyDown (Decode.map KeyPress keyDecoder)
         , nearBottom (\_ -> LazyLoad)
         ]
-
-
-type Keyboard
-    = Left
-    | Right
-    | Escape
-    | Other
 
 
 keyDecoder : Decoder Keyboard
@@ -703,6 +774,11 @@ zoomImage image showControls showPrevious showNext showDescription =
 
                 _ ->
                     Html.text ""
+
+        swipeOptions =
+            { stopPropagation = False
+            , preventDefault = False -- We still want to zoom, refresh etc
+            }
     in
     div [ Html.Attributes.class "zoombox" ]
         [ Html.img [ Html.Attributes.class "blur", src (blurURL image) ] []
@@ -712,7 +788,12 @@ zoomImage image showControls showPrevious showNext showDescription =
             ]
             []
         , div
-            [ Html.Attributes.class "control", onMouseEnter (ToggleControls True), onMouseLeave (ToggleControls False) ]
+            [ Html.Attributes.class "control"
+            , onMouseEnter (ToggleControls True)
+            , onMouseLeave (ToggleControls False)
+            , Touch.onWithOptions "touchstart" swipeOptions (SwipeStart << touchCoordinates)
+            , Touch.onWithOptions "touchend" swipeOptions (SwipeEnd << touchCoordinates)
+            ]
             [ previous
             , next
             , Html.button [ Html.Attributes.class "description-button", descriptionIcon, controlVisible, onClick ToggleDescription ] [ Icons.info ]
@@ -986,6 +1067,40 @@ modalView show =
                 ]
             ]
         ]
+
+
+
+-- Swipe Interactions
+
+
+touchCoordinates : Touch.Event -> ( Float, Float )
+touchCoordinates touchEvent =
+    List.head touchEvent.changedTouches
+        |> Maybe.map .clientPos
+        |> Maybe.withDefault ( 0, 0 )
+
+
+getSwipeDirection : Position -> Position -> SwipeDirection
+getSwipeDirection start end =
+    let
+        deltaX =
+            end.x - start.x
+
+        deltaY =
+            end.y - start.y
+
+        sensitivity =
+            3
+    in
+    if abs deltaX > abs deltaY && abs deltaX > sensitivity then
+        if deltaX > 0 then
+            SwipeLeft
+
+        else
+            SwipeRight
+
+    else
+        Tap
 
 
 
