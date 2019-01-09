@@ -41,7 +41,7 @@ document.querySelector('form').addEventListener('submit', function(e) {
 
 // Ports and fuctions for map control
 current = 0;
-currentCoords = [];
+currentCoords = [-30, -40];
 currentCountry = "";
 currentLocation = "";
 currentTrip = "";
