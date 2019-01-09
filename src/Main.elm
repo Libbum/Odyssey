@@ -603,7 +603,7 @@ view model =
             in
             div [ Html.Attributes.class "content" ]
                 [ Html.header [ Html.Attributes.id "title" ]
-                    [ Html.button [ Html.Attributes.class "title", onClick GoToTop ] [ Html.text "Iridessence" ]
+                    [ Html.button [ Html.Attributes.class "title", onClick GoToTop ] [ Html.text "Odyssey" ]
                     , Html.span [ Html.Attributes.class "burger" ]
                         [ Html.label []
                             [ Html.input

@@ -7,7 +7,7 @@ document.body.removeChild(scrollDiv)
 
 // App entry
 var app = Elm.Main.init({
-    node: document.getElementById('iridescence'),
+    node: document.getElementById('odyssey'),
     flags: scrollbarWidth
 });
 
