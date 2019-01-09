@@ -289,6 +289,10 @@ label > .icon {
     margin-top: 50px;
 }
 
+#gallery img:hover {
+    cursor: pointer;
+}
+
 #map {
     padding: 20px;
     padding-top: 1em;
