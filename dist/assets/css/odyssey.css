@@ -30,17 +30,18 @@ h1 {
     position: fixed;
     text-align: center;
     top: 0;
-    right: 0;
+    right: -1000px;
     opacity: 0;
     width: 300px;
     min-width: 200px;
     max-width: 500px;
     min-height: 330px;
-    transition: margin 0s 0.5s, visibility 0s 0.5s, opacity 0.5s ease-out 0s;
+    transition: right 0s 1s, margin 0s 1s, visibility 0s 1s, opacity 1s ease-out 0s;
 }
 
 #aside.show-aside {
     margin-top: 44px;
+    right: 0;
     opacity: 1;
     visibility: visible;
     margin-bottom: 10px;
@@ -293,11 +294,6 @@ label > .icon {
     padding-top: 1em;
     padding-bottom: 0;
     margin: 0 auto;
-}
-
-#map.map-hide {
-    position: absolute;
-    left: 1000px;
 }
 
 #title {
@@ -565,6 +561,7 @@ label > .icon {
         visibility: visible;
         opacity: 1;
         margin-top: 0;
+        right: 0;
     }
     .locale {
         display: block;

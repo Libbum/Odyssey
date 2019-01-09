@@ -585,14 +585,6 @@ view model =
                         Nothing ->
                             []
 
-                mapHide =
-                    case ( model.showMenu, model.window.width >= 900 ) of
-                        ( False, False ) ->
-                            Html.Attributes.class "map-hide"
-
-                        _ ->
-                            Html.Attributes.class ""
-
                 asideView =
                     case model.showMenu of
                         True ->
@@ -618,7 +610,7 @@ view model =
                         ]
                     ]
                 , Html.section [ Html.Attributes.id "aside", asideView ]
-                    [ div [ Html.Attributes.id "map", mapHide ] []
+                    [ div [ Html.Attributes.id "map" ] []
                     , Html.header []
                         [ Html.h1 [] [ Html.text "Odyssey" ]
                         , Html.i [ Html.Attributes.class "quote" ]
