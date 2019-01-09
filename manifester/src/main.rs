@@ -6,7 +6,7 @@ extern crate indicatif;
 use failure::Error;
 use image::FilterType::Lanczos3;
 use image::GenericImageView;
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::str::FromStr;
@@ -109,6 +109,7 @@ enum Location {
     Ostersund,
     Paris,
     Petergof,
+    Potsdam,
     Prague,
     Pripyat,
     Pushkin,
@@ -205,6 +206,7 @@ impl FromStr for Location {
             "Ostersund" => Ok(Location::Ostersund),
             "Paris" => Ok(Location::Paris),
             "Petergof" => Ok(Location::Petergof),
+            "Potsdam" => Ok(Location::Potsdam),
             "Prague" => Ok(Location::Prague),
             "Pripyat" => Ok(Location::Pripyat),
             "Pushkin" => Ok(Location::Pushkin),
@@ -244,7 +246,7 @@ impl FromStr for Location {
 fn main() -> Result<(), Error> {
     // Ignore the thumbnails and blurs at this point. We will check for them later.
     let walker = globwalk::GlobWalkerBuilder::from_patterns(
-        "../gallery/",
+        "../dist/gallery/",
         &["*.{png,jpg,jpeg,PNG,JPG,JPEG}", "!*_small*", "!*_blur*"],
     )
     .follow_links(true)
@@ -254,7 +256,7 @@ fn main() -> Result<(), Error> {
 
     // This is a little annoying, we can't size_hint this iterator, so we must count it.
     let progcount = globwalk::GlobWalkerBuilder::from_patterns(
-        "../gallery/",
+        "../dist/gallery/",
         &["*.{png,jpg,jpeg,PNG,JPG,JPEG}", "!*_small*", "!*_blur*"],
     )
     .follow_links(true)
@@ -263,11 +265,14 @@ fn main() -> Result<(), Error> {
     .filter_map(Result::ok)
     .count() as u64;
     let bar = ProgressBar::new(progcount);
+    bar.set_style(ProgressStyle::default_bar()
+        .template("[{elapsed_precise}] {bar:25.cyan/blue} {pos:>5}/{len:5} {msg}"));
 
 
     let mut manifest = File::create("Manifest.elm")?;
 
-    for file in walker {
+    for file in bar.wrap_iter(walker) {
+        bar.set_message(&file.path().strip_prefix("../dist/gallery/")?.to_str().unwrap_or_default());
         // Open image and grab its dimensions.
         let img = image::open(&file.path())?;
         let (width, height) = img.dimensions();
@@ -299,13 +304,14 @@ fn main() -> Result<(), Error> {
                 .save(file.path().with_file_name(blur))?;
         }
 
-        // Get image decription if it exists.
+        // Get image decription if it exists, create file if not.
         let mut description = String::new();
-        File::open(file.path().with_extension("desc"))
-            .and_then(|mut f| f.read_to_string(&mut description))?;
+        let _ =File::open(file.path().with_extension("desc"))
+            .or_else(|_| File::create(file.path().with_extension("desc")))
+            .and_then(|mut f| f.read_to_string(&mut description));
 
         // Build a manifest of all files. We do this entirely each time as descriptions or filenames may have changed.
-        let mut path_iter = file.path().strip_prefix("../gallery/")?.iter().rev();
+        let mut path_iter = file.path().strip_prefix("../dist/gallery/")?.iter().rev();
 
         let name = path_iter
             .next()
@@ -328,8 +334,6 @@ fn main() -> Result<(), Error> {
             .ok_or_else(|| failure::err_msg("Year unwrap issue."))?;
 
         write!(manifest, ",Image \"{}\" (Date {} {:?}) {:?} {:.3} \"{}\"\n", name, year, month, location, ratio, description.trim())?;
-
-        bar.inc(1);
     }
     bar.finish();
 

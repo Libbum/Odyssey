@@ -518,6 +518,7 @@ type Location
     | Bodo
     | Bordoy
     | Bratislava
+    | Bremen
     | Budapest
     | Chernobyl
     | Copenhagen
@@ -564,6 +565,7 @@ type Location
     | Ostersund
     | Paris
     | Petergof
+    | Potsdam
     | Prague
     | Pripyat
     | Pushkin
@@ -611,6 +613,7 @@ locationList =
     , Bodo
     , Bordoy
     , Bratislava
+    , Bremen
     , Budapest
     , Chernobyl
     , Copenhagen
@@ -739,6 +742,9 @@ stringToLocation location =
 
         "Bratislava" ->
             Just Bratislava
+
+        "Bremen" ->
+            Just Bremen
 
         "Budapest" ->
             Just Budapest
@@ -877,6 +883,9 @@ stringToLocation location =
 
         "Petergof" ->
             Just Petergof
+
+        "Potsdam" ->
+            Just Potsdam
 
         "Prague" ->
             Just Prague
@@ -1226,6 +1235,12 @@ locationInformation location =
             , coordinates = ( 17.11, 48.15 )
             }
 
+        Bremen ->
+            { name = "Bremen"
+            , country = Germany
+            , coordinates = ( 8.8, 53.08 )
+            }
+
         Budapest ->
             { name = "Budapest"
             , country = Hungary
@@ -1500,6 +1515,12 @@ locationInformation location =
             { name = "Petergof"
             , country = Russia
             , coordinates = ( 29.89, 59.89 )
+            }
+
+        Potsdam ->
+            { name = "Potsdam"
+            , country = Germany
+            , coordinates = ( 13.06, 52.39 )
             }
 
         Prague ->
@@ -2633,7 +2654,71 @@ manifest =
     , Image "P1050988.jpg" (Date 2012 Jul) Munich 1.5 ""
     , Image "P1050945.jpg" (Date 2012 Jul) Munich 1.331 ""
     , Image "P1050949.jpg" (Date 2012 Jul) Munich 1.249 ""
+    , Image "IMG_20181119_132200.jpg" (Date 2018 Nov) Potsdam 0.565 ""
+    , Image "IMG_20181119_132149.jpg" (Date 2018 Nov) Potsdam 2.13 ""
+    , Image "IMG_20181119_215014.jpg" (Date 2018 Nov) Potsdam 0.746 ""
+    , Image "IMG_20181119_111133.jpg" (Date 2018 Nov) Potsdam 1.353 ""
     , Image "IMG_20180330_143852.jpg" (Date 2018 Mar) Gothenburg 1.771 ""
+    , Image "IMG_20181222_175342.jpg" (Date 2018 Dec) Gothenburg 0.639 ""
+    , Image "IMG_20181225_205130.jpg" (Date 2018 Dec) Gothenburg 1.634 ""
+    , Image "IMG_20181231_170159.jpg" (Date 2018 Dec) Gothenburg 1.679 ""
+    , Image "IMG_20181225_093030.jpg" (Date 2018 Dec) Gothenburg 1.608 ""
+    , Image "IMG_20181212_195135.jpg" (Date 2018 Dec) Stockholm 0.638 ""
+    , Image "IMG_20181128_115334.jpg" (Date 2018 Dec) Stockholm 0.565 ""
+    , Image "IMG_20180624_160731.jpg" (Date 2018 Jun) Auschwitz 1.771 ""
+    , Image "IMG_20180624_160936.jpg" (Date 2018 Jun) Auschwitz 2.418 ""
+    , Image "IMG_20180624_152701.jpg" (Date 2018 Jun) Auschwitz 1.771 ""
+    , Image "IMG_20180624_152747.jpg" (Date 2018 Jun) Auschwitz 1.701 ""
+    , Image "IMG_20180624_152239.jpg" (Date 2018 Jun) Auschwitz 0.565 ""
+    , Image "IMG_20180624_155259.jpg" (Date 2018 Jun) Auschwitz 1.771 ""
+    , Image "IMG_20180624_160426.jpg" (Date 2018 Jun) Auschwitz 1.771 ""
+    , Image "IMG_20180624_140349.jpg" (Date 2018 Jun) Auschwitz 2.03 ""
+    , Image "IMG_20180624_161643.jpg" (Date 2018 Jun) Auschwitz 1.561 ""
+    , Image "IMG_20180624_164444.jpg" (Date 2018 Jun) Auschwitz 1.771 ""
+    , Image "IMG_20180624_151658.jpg" (Date 2018 Jun) Auschwitz 2.475 ""
+    , Image "IMG_20180624_144926.jpg" (Date 2018 Jun) Auschwitz 1.771 ""
+    , Image "IMG_20180624_162543.jpg" (Date 2018 Jun) Auschwitz 1.771 ""
+    , Image "IMG_20180624_162710.jpg" (Date 2018 Jun) Auschwitz 1.771 ""
+    , Image "IMG_20180624_161949.jpg" (Date 2018 Jun) Auschwitz 1.771 ""
+    , Image "IMG_20180624_161848.jpg" (Date 2018 Jun) Auschwitz 1.029 ""
+    , Image "IMG_20180624_170418.jpg" (Date 2018 Jun) Auschwitz 2.101 ""
+    , Image "IMG_20180625_005544.jpg" (Date 2018 Jun) Katowice 1.779 ""
+    , Image "IMG_20180621_163716.jpg" (Date 2018 Jun) Krakow 0.542 ""
+    , Image "IMG_20180622_112934.jpg" (Date 2018 Jun) Krakow 0.476 ""
+    , Image "IMG_20180621_182745.jpg" (Date 2018 Jun) Krakow 0.565 ""
+    , Image "IMG_20180622_162705.jpg" (Date 2018 Jun) Krakow 1.5 ""
+    , Image "IMG_20180621_180025.jpg" (Date 2018 Jun) Krakow 2.083 ""
+    , Image "IMG_20180621_182941.jpg" (Date 2018 Jun) Krakow 1.771 ""
+    , Image "IMG_20180622_113955.jpg" (Date 2018 Jun) Krakow 0.565 ""
+    , Image "IMG_20180621_175246.jpg" (Date 2018 Jun) Krakow 0.652 ""
+    , Image "IMG_20180622_113114.jpg" (Date 2018 Jun) Krakow 0.472 ""
+    , Image "IMG_20180622_161630.jpg" (Date 2018 Jun) Krakow 1.5 ""
+    , Image "IMG_20180622_154651.jpg" (Date 2018 Jun) Krakow 0.565 ""
+    , Image "IMG_20180622_113222.jpg" (Date 2018 Jun) Krakow 1.477 ""
+    , Image "IMG_20180621_184535.jpg" (Date 2018 Jun) Krakow 1.771 ""
+    , Image "IMG_20180622_105758.jpg" (Date 2018 Jun) Krakow 0.565 ""
+    , Image "IMG_20180621_181016.jpg" (Date 2018 Jun) Krakow 0.565 ""
+    , Image "IMG_20180621_112337.jpg" (Date 2018 Jun) Krakow 1.771 ""
+    , Image "IMG_20180627_162201.jpg" (Date 2018 Jun) Vienna 0.752 ""
+    , Image "IMG_20180626_121101.jpg" (Date 2018 Jun) Vienna 0.75 ""
+    , Image "IMG_20180627_172601.jpg" (Date 2018 Jun) Vienna 1.629 ""
+    , Image "IMG_20180627_172139.jpg" (Date 2018 Jun) Vienna 1.771 ""
+    , Image "IMG_20180627_152909.jpg" (Date 2018 Jun) Vienna 0.565 ""
+    , Image "IMG_20180626_150402.jpg" (Date 2018 Jun) Vienna 1.794 ""
+    , Image "IMG_20180626_150649.jpg" (Date 2018 Jun) Vienna 1.509 ""
+    , Image "IMG_20180627_152645.jpg" (Date 2018 Jun) Vienna 1.603 ""
+    , Image "IMG_20180627_161733.jpg" (Date 2018 Jun) Vienna 0.565 ""
+    , Image "IMG_20180627_172204.jpg" (Date 2018 Jun) Vienna 1.08 ""
+    , Image "IMG_20180627_144029.jpg" (Date 2018 Jun) Vienna 1.085 ""
+    , Image "IMG_20180627_162558.jpg" (Date 2018 Jun) Vienna 0.676 ""
+    , Image "IMG_20180627_161752.jpg" (Date 2018 Jun) Vienna 1.614 ""
+    , Image "IMG_20180629_103804.jpg" (Date 2018 Jun) Vienna 1.711 ""
+    , Image "IMG_20180626_152523.jpg" (Date 2018 Jun) Vienna 0.614 ""
+    , Image "IMG_20180626_175026.jpg" (Date 2018 Jun) Vienna 0.565 ""
+    , Image "IMG_20180627_140223.jpg" (Date 2018 Jun) Vienna 1.57 ""
+    , Image "IMG_20180627_172534.jpg" (Date 2018 Jun) Vienna 1.771 ""
+    , Image "IMG_20180628_181453.jpg" (Date 2018 Jun) Bratislava 0.565 ""
+    , Image "IMG_20180609_161817.jpg" (Date 2018 Jun) Stockholm 1.771 ""
     , Image "DSC_1741.jpg" (Date 2018 Jan) Revsund 1.778 ""
     , Image "DSC_1693.jpg" (Date 2018 Jan) Revsund 1.778 ""
     , Image "20180102_141636.jpg" (Date 2018 Jan) Revsund 0.75 ""
@@ -2667,6 +2752,7 @@ manifest =
     , Image "IMG_20180412_173902.jpg" (Date 2018 Apr) Exeter 0.565 ""
     , Image "IMG_20180412_174846.jpg" (Date 2018 Apr) Exeter 1.351 ""
     , Image "IMG_20180402_153200_1.jpg" (Date 2018 Apr) Gothenburg 1.771 ""
+    , Image "IMG_20181027_185949.jpg" (Date 2018 Oct) Gothenburg 0.565 ""
     , Image "IMG_20180510_162204.jpg" (Date 2018 May) Gothenburg 1.336 ""
     , Image "IMG_20180510_132752.jpg" (Date 2018 May) Gothenburg 2.632 ""
     , Image "IMG_20180510_145837.jpg" (Date 2018 May) Gothenburg 1.771 ""
@@ -2820,6 +2906,46 @@ manifest =
     , Image "20171230_134614.jpg" (Date 2017 Dec) Ostersund 0.75 ""
     , Image "DSC_1664.jpg" (Date 2017 Dec) Ostersund 0.562 ""
     , Image "20171230_134130.jpg" (Date 2017 Dec) Ostersund 0.75 ""
+    , Image "DSC_0922.jpg" (Date 2017 Jul) Fjaerland 0.562 ""
+    , Image "DSC_0896.jpg" (Date 2017 Jul) Fjaerland 1.778 ""
+    , Image "DSC_0893.jpg" (Date 2017 Jul) Fjaerland 1.778 ""
+    , Image "DSC_0905.jpg" (Date 2017 Jul) Fjaerland 0.618 ""
+    , Image "DSC_0917.jpg" (Date 2017 Jul) Fjaerland 1.778 ""
+    , Image "DSC_0901.jpg" (Date 2017 Jul) Fjaerland 1.778 ""
+    , Image "DSC_0928.jpg" (Date 2017 Jul) Fjaerland 1.898 ""
+    , Image "DSC_0855.jpg" (Date 2017 Jul) Flam 0.562 ""
+    , Image "DSC_0834.jpg" (Date 2017 Jul) Flam 0.562 ""
+    , Image "DSC_0837.jpg" (Date 2017 Jul) Flam 2.024 ""
+    , Image "DSC_0841.jpg" (Date 2017 Jul) Flam 1.778 ""
+    , Image "DSC_0850.jpg" (Date 2017 Jul) Flam 0.678 ""
+    , Image "DSC_0854.jpg" (Date 2017 Jul) Flam 0.583 ""
+    , Image "DSC_0848.jpg" (Date 2017 Jul) Flam 0.562 ""
+    , Image "DSC_0999.jpg" (Date 2017 Jul) Bergen 1.609 ""
+    , Image "DSC_0935.jpg" (Date 2017 Jul) Bergen 2.212 ""
+    , Image "DSC_0991.jpg" (Date 2017 Jul) Bergen 1.963 ""
+    , Image "DSC_1005.jpg" (Date 2017 Jul) Bergen 1.671 ""
+    , Image "DSC_0995.jpg" (Date 2017 Jul) Bergen 2.312 ""
+    , Image "DSC_0943.jpg" (Date 2017 Jul) Bergen 1.778 ""
+    , Image "DSC_0975.jpg" (Date 2017 Jul) Bergen 0.606 ""
+    , Image "DSC_0960.jpg" (Date 2017 Jul) Bergen 2.051 ""
+    , Image "DSC_1003.jpg" (Date 2017 Jul) Bergen 0.603 ""
+    , Image "DSC_0986.jpg" (Date 2017 Jul) Bergen 1.778 ""
+    , Image "DSC_0944.jpg" (Date 2017 Jul) Bergen 0.7 ""
+    , Image "DSC_0978.jpg" (Date 2017 Jul) Bergen 1.674 ""
+    , Image "DSC_0863.jpg" (Date 2017 Jul) Balestrand 0.562 ""
+    , Image "DSC_0879.jpg" (Date 2017 Jul) Balestrand 1.778 ""
+    , Image "DSC_0887.jpg" (Date 2017 Jul) Balestrand 0.696 ""
+    , Image "DSC_0877.jpg" (Date 2017 Jul) Balestrand 0.618 ""
+    , Image "DSC_0885.jpg" (Date 2017 Jul) Balestrand 1.778 ""
+    , Image "DSC_0861.jpg" (Date 2017 Jul) Balestrand 1.998 ""
+    , Image "DSC_0875.jpg" (Date 2017 Jul) Balestrand 1.778 ""
+    , Image "DSC_0881.jpg" (Date 2017 Jul) Balestrand 1.778 ""
+    , Image "DSC_0813.jpg" (Date 2017 Jul) Oslo 1.086 ""
+    , Image "DSC_0824.jpg" (Date 2017 Jul) Oslo 0.588 ""
+    , Image "DSC_0820.jpg" (Date 2017 Jul) Oslo 1.817 ""
+    , Image "DSC_0816.jpg" (Date 2017 Jul) Oslo 1.795 ""
+    , Image "DSC_0829.jpg" (Date 2017 Jul) Oslo 0.67 ""
+    , Image "DSC_0817.jpg" (Date 2017 Jul) Oslo 0.556 ""
     , Image "DSC_1319.jpg" (Date 2017 Jul) Vidoy 1.705 ""
     , Image "DSC_1172.jpg" (Date 2017 Jul) Eysturoy 1.723 ""
     , Image "DSC_1187.jpg" (Date 2017 Jul) Eysturoy 1.671 ""
@@ -2883,46 +3009,6 @@ manifest =
     , Image "DSC_1276.jpg" (Date 2017 Jul) Torshavn 0.575 ""
     , Image "DSC_1273.jpg" (Date 2017 Jul) Torshavn 1.778 ""
     , Image "DSC_1272.jpg" (Date 2017 Jul) Torshavn 1.413 ""
-    , Image "DSC_0922.jpg" (Date 2017 Jul) Fjaerland 0.562 ""
-    , Image "DSC_0896.jpg" (Date 2017 Jul) Fjaerland 1.778 ""
-    , Image "DSC_0893.jpg" (Date 2017 Jul) Fjaerland 1.778 ""
-    , Image "DSC_0905.jpg" (Date 2017 Jul) Fjaerland 0.618 ""
-    , Image "DSC_0917.jpg" (Date 2017 Jul) Fjaerland 1.778 ""
-    , Image "DSC_0901.jpg" (Date 2017 Jul) Fjaerland 1.778 ""
-    , Image "DSC_0928.jpg" (Date 2017 Jul) Fjaerland 1.898 ""
-    , Image "DSC_0855.jpg" (Date 2017 Jul) Flam 0.562 ""
-    , Image "DSC_0834.jpg" (Date 2017 Jul) Flam 0.562 ""
-    , Image "DSC_0837.jpg" (Date 2017 Jul) Flam 2.024 ""
-    , Image "DSC_0841.jpg" (Date 2017 Jul) Flam 1.778 ""
-    , Image "DSC_0850.jpg" (Date 2017 Jul) Flam 0.678 ""
-    , Image "DSC_0854.jpg" (Date 2017 Jul) Flam 0.583 ""
-    , Image "DSC_0848.jpg" (Date 2017 Jul) Flam 0.562 ""
-    , Image "DSC_0999.jpg" (Date 2017 Jul) Bergen 1.609 ""
-    , Image "DSC_0935.jpg" (Date 2017 Jul) Bergen 2.212 ""
-    , Image "DSC_0991.jpg" (Date 2017 Jul) Bergen 1.963 ""
-    , Image "DSC_1005.jpg" (Date 2017 Jul) Bergen 1.671 ""
-    , Image "DSC_0995.jpg" (Date 2017 Jul) Bergen 2.312 ""
-    , Image "DSC_0943.jpg" (Date 2017 Jul) Bergen 1.778 ""
-    , Image "DSC_0975.jpg" (Date 2017 Jul) Bergen 0.606 ""
-    , Image "DSC_0960.jpg" (Date 2017 Jul) Bergen 2.051 ""
-    , Image "DSC_1003.jpg" (Date 2017 Jul) Bergen 0.603 ""
-    , Image "DSC_0986.jpg" (Date 2017 Jul) Bergen 1.778 ""
-    , Image "DSC_0944.jpg" (Date 2017 Jul) Bergen 0.7 ""
-    , Image "DSC_0978.jpg" (Date 2017 Jul) Bergen 1.674 ""
-    , Image "DSC_0863.jpg" (Date 2017 Jul) Balestrand 0.562 ""
-    , Image "DSC_0879.jpg" (Date 2017 Jul) Balestrand 1.778 ""
-    , Image "DSC_0887.jpg" (Date 2017 Jul) Balestrand 0.696 ""
-    , Image "DSC_0877.jpg" (Date 2017 Jul) Balestrand 0.618 ""
-    , Image "DSC_0885.jpg" (Date 2017 Jul) Balestrand 1.778 ""
-    , Image "DSC_0861.jpg" (Date 2017 Jul) Balestrand 1.998 ""
-    , Image "DSC_0875.jpg" (Date 2017 Jul) Balestrand 1.778 ""
-    , Image "DSC_0881.jpg" (Date 2017 Jul) Balestrand 1.778 ""
-    , Image "DSC_0813.jpg" (Date 2017 Jul) Oslo 1.086 ""
-    , Image "DSC_0824.jpg" (Date 2017 Jul) Oslo 0.588 ""
-    , Image "DSC_0820.jpg" (Date 2017 Jul) Oslo 1.817 ""
-    , Image "DSC_0816.jpg" (Date 2017 Jul) Oslo 1.795 ""
-    , Image "DSC_0829.jpg" (Date 2017 Jul) Oslo 0.67 ""
-    , Image "DSC_0817.jpg" (Date 2017 Jul) Oslo 0.556 ""
     , Image "DSC_0799.jpg" (Date 2017 Jul) Stockholm 1.988 ""
     , Image "DSC_0804.jpg" (Date 2017 Jul) Stockholm 1.637 ""
     , Image "DSC_0800.jpg" (Date 2017 Jul) Stockholm 1.778 ""
