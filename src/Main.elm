@@ -812,7 +812,7 @@ singleImageSize images =
                         300
 
                     else
-                        floor (300 * img.aspectRatio)
+                        floor (300 / img.aspectRatio)
             in
             ( [ width ], height )
         )
