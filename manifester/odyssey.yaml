@@ -1,0 +1,153 @@
+#   ___     __
+#  / _ \   / _)
+# | | | |  \ \   _  _  _   ____   ____  ___  _  _  _
+# | | | | / _ \ | || || | /  ._) /  ._)/ __)| || || |
+# | |_| |( (_) )| \| |/ |( () ) ( () ) > _) | \| |/ |
+#  \___/  \___/  \_   _/  \__/   \__/  \___) \_   _/
+#                  | |                         | |
+#                  |_|                         |_|    Configuration file.
+
+# Location List
+Armenia:
+  local: Հայաստան
+  Yerevan: Երևան
+Australia:
+  Melbourne:
+  Sydney:
+Austria:
+  local: Österreich
+  Vienna: Wien
+CzechRepublic:
+  local: Česká republika
+  Prague: Praha
+Denmark:
+  local: Danmark
+  Copenhagen: København
+  Dronningmolle: Dronningmølle
+  Helsingor: Helsingør
+  Roskilde:
+Estonia:
+  local: Eesti
+  Tallinn:
+Finland:
+  local: Suomi
+  Helsinki:
+France:
+  Paris:
+FaeroeIslands:
+  local: Føroyar
+  Bordoy: Borðoy
+  Eysturoy:
+  Hestur:
+  Streymoy:
+  Torshavn: Tórshavn
+  Vagar: Vágar
+  Vidoy: Viðoy
+Germany:
+  local: Deutschland
+  Berlin:
+  Bremen:
+  Frankfurt:
+  Freiburg:
+  Heidelberg:
+  Karlsruhe:
+  Munich:
+  Potsdam:
+Greece:
+  local: Ελλάδα
+  Athens: Αθήνα
+  Crete: Κρήτη
+HongKong:
+  local: 香港
+  HongKongCity: 香港
+Hungary:
+  local: Magyarország
+  Budapest:
+Iceland:
+  local: Ísland
+  Geysir:
+  Jokulsarlon: Jökulsárlón
+  Reykjavik:
+  Skaftafell:
+  Skogarfoss: Skógarfoss
+  Thingvellir: Þingvellir
+  Vik: Vík í Mýrdal
+Japan:
+  local: 日本
+  Himeji: 姫路市
+  Hiroshima: 広島市
+  Koyasan: 高野山
+  Kyoto: 京都市
+  Osaka: 大阪市
+  Tokyo: 東京
+Latvia:
+  local: Latvija
+  Riga: Rīga
+Netherlands:
+  local: Nederland
+  Amsterdam:
+Norway:
+  local: Norge
+  Balestrand:
+  Bergen:
+  Bodo: Bodø
+  Fjaerland: Fjærland
+  Flam: Flåm
+  Kristiansund:
+  Oslo:
+  Rorvik: Rørvik
+  Svolvaer: Svolvær
+  Tromso: Tromsø
+  Trondheim:
+  Trysil:
+Poland:
+  local: Polska
+  Auschwitz: Oświęcim
+  Katowice:
+  Krakow: Kraków
+  Warsaw: Warszawa
+Qatar:
+  local: ﻖﻃﺭ
+  Doha: الدوحة
+Russia:
+  local: Росси́я
+  Petergof: Петергоф
+  Pushkin: Пушкин
+  SaintPetersburg: Санкт-Петербу́рг
+Singapore:
+  SingaporeCity:
+Slovakia:
+  local: Slovensko
+  Bratislava:
+Sweden:
+  local: Sverige
+  Are: Åre
+  Gothenburg: Göteborg
+  Helsingborg:
+  Kinnekulle:
+  Lund:
+  Ostersund: Östersund
+  Revsund:
+  Stockholm:
+  Trollhattan: Trollhättan
+  Umea: Umeå
+Thailand:
+  local: ประเทศไทย
+  Ayutthaya: อยุธยา
+  Bangkok: กรุงเทพมหานคร
+  Kanchanaburi: กาญจนบุรี
+  KoSamui: เกาะสมุย
+  KoTao: เกาะเต่า
+Ukraine:
+  local: Україна
+  Chernobyl: Чорнобиль
+  Kiev: Київ
+  Pripyat: При́п'ять
+UnitedKingdom:
+  Exeter:
+  London:
+Vietnam:
+  local: Việt Nam
+  HaLongBay: Vịnh Hạ Long
+  Hanoi: Hà Nội
+  HoChiMinhCity: Thành phố Hồ Chí Minh

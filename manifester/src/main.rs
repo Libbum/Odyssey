@@ -1,15 +1,95 @@
+#![recursion_limit="256"]
 extern crate failure;
 extern crate globwalk;
 extern crate image;
 extern crate indicatif;
+extern crate hashbrown;
+#[macro_use] extern crate enum_derive;
+#[macro_use] extern crate macro_attr;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
+extern crate serde_yaml;
 
 use failure::Error;
 use image::FilterType::Lanczos3;
 use image::GenericImageView;
 use indicatif::{ProgressBar, ProgressStyle};
+use std::iter::FromIterator;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::str::FromStr;
+use std::fmt;
+use hashbrown::HashMap;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CountryCodes {
+    #[serde(with = "codes")]
+    pub codes: HashMap<String, String>,
+}
+
+type Config = HashMap<String, HashMap<String, Option<String>>>;
+
+#[derive(Debug, Serialize, Deserialize)]
+struct CountryCodeStruct {
+    name: String,
+    #[serde(rename = "alpha-3")]
+    alpha3: String,
+}
+
+mod codes {
+    use super::CountryCodeStruct;
+    use hashbrown::HashMap;
+
+    use serde::ser::Serializer;
+    use serde::de::{Deserialize, Deserializer};
+
+    pub fn serialize<S>(map: &HashMap<String, String>, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer
+        {
+            serializer.collect_seq(map.values())
+        }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<HashMap<String, String>, D::Error>
+        where D: Deserializer<'de>
+        {
+            let mut map = HashMap::new();
+            for item in Vec::<CountryCodeStruct>::deserialize(deserializer)? {
+                map.insert(item.name, item.alpha3);
+            }
+            Ok(map)
+        }
+}
+
+#[derive(Serialize, Deserialize)]
+struct FeatureCollection {
+    #[serde(rename = "type")]
+    type_: String,
+    features: Vec<Feature>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Feature {
+    #[serde(rename = "type")]
+    type_: String,
+    properties: Properties,
+    geometry: Geometry,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Properties {
+    name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    localname: Option<String>,
+    country: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Geometry {
+    #[serde(rename = "type")]
+    type_: String,
+    coordinates: Vec<f32>,
+}
 
 #[derive(Debug)]
 enum Month {
@@ -49,198 +129,159 @@ impl FromStr for Month {
     }
 }
 
-#[derive(Debug)]
-enum Location {
-    Amsterdam,
-    Are,
-    Athens,
-    Auschwitz,
-    Ayutthaya,
-    Balestrand,
-    Bangkok,
-    Bergen,
-    Berlin,
-    Bodo,
-    Bordoy,
-    Bratislava,
-    Budapest,
-    Chernobyl,
-    Copenhagen,
-    Crete,
-    Doha,
-    Dronningmolle,
-    Exeter,
-    Eysturoy,
-    Fjaerland,
-    Flam,
-    Frankfurt,
-    Freiburg,
-    Geysir,
-    Gothenburg,
-    HaLongBay,
-    Hanoi,
-    Heidelberg,
-    Helsingborg,
-    Helsingor,
-    Helsinki,
-    Hestur,
-    Himeji,
-    Hiroshima,
-    HoChiMinhCity,
-    HongKongCity,
-    Jokulsarlon,
-    Kanchanaburi,
-    Karlsruhe,
-    Katowice,
-    Kiev,
-    Kinnekulle,
-    KoSamui,
-    KoTao,
-    Koyasan,
-    Krakow,
-    Kristiansund,
-    Kyoto,
-    London,
-    Lund,
-    Melbourne,
-    Munich,
-    Osaka,
-    Oslo,
-    Ostersund,
-    Paris,
-    Petergof,
-    Potsdam,
-    Prague,
-    Pripyat,
-    Pushkin,
-    Revsund,
-    Reykjavik,
-    Riga,
-    Rorvik,
-    Roskilde,
-    SaintPetersburg,
-    SingaporeCity,
-    Skaftafell,
-    Skogarfoss,
-    Stockholm,
-    Streymoy,
-    Svolvaer,
-    Sydney,
-    Tallinn,
-    Thingvellir,
-    Tokyo,
-    Torshavn,
-    Trollhattan,
-    Tromso,
-    Trondheim,
-    Trysil,
-    Umea,
-    Vagar,
-    Vidoy,
-    Vienna,
-    Vik,
-    Warsaw,
-    Yerevan,
+macro_attr! {
+    #[derive(Debug, PartialEq, EnumFromStr!)]
+    enum Country {
+        Armenia,
+        Australia,
+        Austria,
+        CzechRepublic,
+        Germany,
+        Denmark,
+        Estonia,
+        Finland,
+        France,
+        FaeroeIslands,
+        UnitedKingdom,
+        Greece,
+        HongKong,
+        Hungary,
+        Iceland,
+        Japan,
+        Latvia,
+        Netherlands,
+        Norway,
+        Poland,
+        Qatar,
+        Russia,
+        Singapore,
+        Slovakia,
+        Sweden,
+        Thailand,
+        Ukraine,
+        Vietnam,
+    }
 }
 
-impl FromStr for Location {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Location, Error> {
-        match s {
-            "Amsterdam" => Ok(Location::Amsterdam),
-            "Are" => Ok(Location::Are),
-            "Athens" => Ok(Location::Athens),
-            "Auschwitz" => Ok(Location::Auschwitz),
-            "Ayutthaya" => Ok(Location::Ayutthaya),
-            "Balestrand" => Ok(Location::Balestrand),
-            "Bangkok" => Ok(Location::Bangkok),
-            "Bergen" => Ok(Location::Bergen),
-            "Berlin" => Ok(Location::Berlin),
-            "Bodo" => Ok(Location::Bodo),
-            "Bordoy" => Ok(Location::Bordoy),
-            "Bratislava" => Ok(Location::Bratislava),
-            "Budapest" => Ok(Location::Budapest),
-            "Chernobyl" => Ok(Location::Chernobyl),
-            "Copenhagen" => Ok(Location::Copenhagen),
-            "Crete" => Ok(Location::Crete),
-            "Doha" => Ok(Location::Doha),
-            "Dronningmolle" => Ok(Location::Dronningmolle),
-            "Exeter" => Ok(Location::Exeter),
-            "Eysturoy" => Ok(Location::Eysturoy),
-            "Fjaerland" => Ok(Location::Fjaerland),
-            "Flam" => Ok(Location::Flam),
-            "Frankfurt" => Ok(Location::Frankfurt),
-            "Freiburg" => Ok(Location::Freiburg),
-            "Geysir" => Ok(Location::Geysir),
-            "Gothenburg" => Ok(Location::Gothenburg),
-            "Ha_Long_Bay" => Ok(Location::HaLongBay),
-            "Hanoi" => Ok(Location::Hanoi),
-            "Heidelberg" => Ok(Location::Heidelberg),
-            "Helsingborg" => Ok(Location::Helsingborg),
-            "Helsingor" => Ok(Location::Helsingor),
-            "Helsinki" => Ok(Location::Helsinki),
-            "Hestur" => Ok(Location::Hestur),
-            "Himeji" => Ok(Location::Himeji),
-            "Hiroshima" => Ok(Location::Hiroshima),
-            "Ho_Chi_Minh_City" => Ok(Location::HoChiMinhCity),
-            "Hong Kong" => Ok(Location::HongKongCity),
-            "Jokulsarlon" => Ok(Location::Jokulsarlon),
-            "Kanchanaburi" => Ok(Location::Kanchanaburi),
-            "Karlsruhe" => Ok(Location::Karlsruhe),
-            "Katowice" => Ok(Location::Katowice),
-            "Kiev" => Ok(Location::Kiev),
-            "Kinnekulle" => Ok(Location::Kinnekulle),
-            "Ko_Samui" => Ok(Location::KoSamui),
-            "Ko_Tao" => Ok(Location::KoTao),
-            "Koyasan" => Ok(Location::Koyasan),
-            "Krakow" => Ok(Location::Krakow),
-            "Kristiansund" => Ok(Location::Kristiansund),
-            "Kyoto" => Ok(Location::Kyoto),
-            "London" => Ok(Location::London),
-            "Lund" => Ok(Location::Lund),
-            "Melbourne" => Ok(Location::Melbourne),
-            "Munich" => Ok(Location::Munich),
-            "Osaka" => Ok(Location::Osaka),
-            "Oslo" => Ok(Location::Oslo),
-            "Ostersund" => Ok(Location::Ostersund),
-            "Paris" => Ok(Location::Paris),
-            "Petergof" => Ok(Location::Petergof),
-            "Potsdam" => Ok(Location::Potsdam),
-            "Prague" => Ok(Location::Prague),
-            "Pripyat" => Ok(Location::Pripyat),
-            "Pushkin" => Ok(Location::Pushkin),
-            "Revsund" => Ok(Location::Revsund),
-            "Reykjavik" => Ok(Location::Reykjavik),
-            "Riga" => Ok(Location::Riga),
-            "Rorvik" => Ok(Location::Rorvik),
-            "Roskilde" => Ok(Location::Roskilde),
-            "Saint_Petersburg" => Ok(Location::SaintPetersburg),
-            "Singapore" => Ok(Location::SingaporeCity),
-            "Skaftafell" => Ok(Location::Skaftafell),
-            "Skogarfoss" => Ok(Location::Skogarfoss),
-            "Stockholm" => Ok(Location::Stockholm),
-            "Streymoy" => Ok(Location::Streymoy),
-            "Svolvaer" => Ok(Location::Svolvaer),
-            "Sydney" => Ok(Location::Sydney),
-            "Tallinn" => Ok(Location::Tallinn),
-            "Thingvellir" => Ok(Location::Thingvellir),
-            "Tokyo" => Ok(Location::Tokyo),
-            "Torshavn" => Ok(Location::Torshavn),
-            "Trollhattan" => Ok(Location::Trollhattan),
-            "Tromso" => Ok(Location::Tromso),
-            "Trondheim" => Ok(Location::Trondheim),
-            "Trysil" => Ok(Location::Trysil),
-            "Umea" => Ok(Location::Umea),
-            "Vagar" => Ok(Location::Vagar),
-            "Vidoy" => Ok(Location::Vidoy),
-            "Vienna" => Ok(Location::Vienna),
-            "Vik" => Ok(Location::Vik),
-            "Warsaw" => Ok(Location::Warsaw),
-            "Yerevan" => Ok(Location::Yerevan),
-            err => Err(failure::err_msg(format!("{} is currently not a location in the system.", err))),
-        }
+macro_attr! {
+    #[derive(Debug, PartialEq, EnumFromStr!)]
+    enum Location {
+        Amsterdam,
+        Are,
+        Athens,
+        Auschwitz,
+        Ayutthaya,
+        Balestrand,
+        Bangkok,
+        Bergen,
+        Berlin,
+        Bodo,
+        Bordoy,
+        Bratislava,
+        Bremen,
+        Budapest,
+        Chernobyl,
+        Copenhagen,
+        Crete,
+        Doha,
+        Dronningmolle,
+        Exeter,
+        Eysturoy,
+        Fjaerland,
+        Flam,
+        Frankfurt,
+        Freiburg,
+        Geysir,
+        Gothenburg,
+        HaLongBay,
+        Hanoi,
+        Heidelberg,
+        Helsingborg,
+        Helsingor,
+        Helsinki,
+        Hestur,
+        Himeji,
+        Hiroshima,
+        HoChiMinhCity,
+        HongKongCity,
+        Jokulsarlon,
+        Kanchanaburi,
+        Karlsruhe,
+        Katowice,
+        Kiev,
+        Kinnekulle,
+        KoSamui,
+        KoTao,
+        Koyasan,
+        Krakow,
+        Kristiansund,
+        Kyoto,
+        London,
+        Lund,
+        Melbourne,
+        Munich,
+        Osaka,
+        Oslo,
+        Ostersund,
+        Paris,
+        Petergof,
+        Potsdam,
+        Prague,
+        Pripyat,
+        Pushkin,
+        Revsund,
+        Reykjavik,
+        Riga,
+        Rorvik,
+        Roskilde,
+        SaintPetersburg,
+        SingaporeCity,
+        Skaftafell,
+        Skogarfoss,
+        Stockholm,
+        Streymoy,
+        Svolvaer,
+        Sydney,
+        Tallinn,
+        Thingvellir,
+        Tokyo,
+        Torshavn,
+        Trollhattan,
+        Tromso,
+        Trondheim,
+        Trysil,
+        Umea,
+        Vagar,
+        Vidoy,
+        Vienna,
+        Vik,
+        Warsaw,
+        Yerevan,
     }
+}
+
+impl fmt::Display for Country {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+impl fmt::Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+
+fn name_from_string(from: &str) -> String {
+    let mut name: Vec<char> = Vec::new();
+    for (idx, c) in from.char_indices() {
+        if idx > 0 && c.is_uppercase() {
+            name.push(' ');
+        }
+        name.push(c);
+    }
+    String::from_iter(name)
 }
 
 fn main() -> Result<(), Error> {
@@ -248,26 +289,62 @@ fn main() -> Result<(), Error> {
     let walker = globwalk::GlobWalkerBuilder::from_patterns(
         "../dist/gallery/",
         &["*.{png,jpg,jpeg,PNG,JPG,JPEG}", "!*_small*", "!*_blur*"],
-    )
-    .follow_links(true)
-    .build()?
-    .into_iter()
-    .filter_map(Result::ok);
+        )
+        .follow_links(true)
+        .build()?
+        .into_iter()
+        .filter_map(Result::ok);
 
     // This is a little annoying, we can't size_hint this iterator, so we must count it.
     let progcount = globwalk::GlobWalkerBuilder::from_patterns(
         "../dist/gallery/",
         &["*.{png,jpg,jpeg,PNG,JPG,JPEG}", "!*_small*", "!*_blur*"],
-    )
-    .follow_links(true)
-    .build()?
-    .into_iter()
-    .filter_map(Result::ok)
-    .count() as u64;
+        )
+        .follow_links(true)
+        .build()?
+        .into_iter()
+        .filter_map(Result::ok)
+        .count() as u64;
     let bar = ProgressBar::new(progcount);
     bar.set_style(ProgressStyle::default_bar()
-        .template("[{elapsed_precise}] {bar:25.cyan/blue} {pos:>5}/{len:5} {msg}"));
+                  .template("[{elapsed_precise}] {bar:25.cyan/blue} {pos:>5}/{len:5} {msg}"));
 
+    let cca3_file = File::open("cca3.json")?;
+    let cca3_read: CountryCodes  = serde_json::from_reader(cca3_file)?;
+    let cca3 = &cca3_read.codes;
+
+    let config_file = File::open("odyssey.yaml")?;
+    let config: Config = serde_yaml::from_reader(config_file)?;
+    let mut features: Vec<Feature> = Vec::new();
+    for (country_string, locations) in &config {
+        //let country = country_string.parse::<Country>()?;
+        let country_name = name_from_string(&country_string);
+        let country_code = cca3.get(&country_name).ok_or_else(|| failure::err_msg(format!("{} does not exist in cca3.json", country_name)))?;
+
+        //let mut country_local_name = None;
+        //if let Some(local) = locations.get("local") {
+        //    country_local_name = local.to_owned();
+        //}
+        //        println!("{}: {}, {:?}, {}", country.to_string(), country_name, country_local_name, country_code);
+
+        for (location_string, local_name) in locations.iter().filter(|(l,_)| *l != "local") {
+            let location = location_string.parse::<Location>()?;
+            let mut location_name = name_from_string(&location_string);
+            if location_name.ends_with("City") && location != Location::HoChiMinhCity {
+                location_name.truncate(location_name.len()-5);
+            }
+
+            let properties = Properties { name: location_name, localname: local_name.to_owned(), country: country_code.to_string() };
+            let geometry = Geometry { type_: "Point".to_string(), coordinates: Vec::new() }; //TODO: Pull coordinates
+
+            features.push(Feature { type_: "Feature".to_string(), properties, geometry });
+            //           println!("    {}: {}, {:?}", location, location_name, local_name);
+        }
+    }
+
+    let cities = FeatureCollection { type_: "FeatureCollection".to_string(), features };
+    let buffer = File::create("cities.json")?;
+    serde_json::to_writer(&buffer, &cities)?;
 
     let mut manifest = File::create("Manifest.elm")?;
 
