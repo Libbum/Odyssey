@@ -1,0 +1,53 @@
+{
+  "trips": [
+    {
+      "name": "J07",
+      "description": "Singapore/Japan 2007",
+      "cities": ["Melbourne", "Singapore", "Osaka", "Himeji", "Osaka", "Hiroshima", "Koyasan", "Osaka", "Tokyo", "Kyoto", "Osaka"],
+      "dates": ["2007/12"]
+    },
+    {
+      "name": "E12",
+      "description": "Europe 2012",
+      "cities": ["Melbourne", "Singapore", "Frankfurt", "Karlsruhe", "Heidelberg", "Munich", "Vienna", "Budapest", "Prague", "Riga", "Copenhagen", "Dronningmolle", "Helsingor", "Helsingborg", "Copenhagen", "Berlin", "Paris", "Singapore"],
+      "dates": ["2012/07", "2012/08"]
+    },
+    {
+      "name": "E14",
+      "description": "Europe/Russia 2014",
+      "cities": ["Melbourne", "Doha", "Copenhagen", "Roskilde", "Copenhagen", "Reykjavik", "Thingvellir", "Geysir", "Reykjavik", "Vik", "Skaftafell", "Jokulsarlon", "Skogarfoss", "Reykjavik", "Kristiansund",
+                 "Trondheim", "Rorvik", "Bodo", "Svolvaer", "Tromso", "Stockholm", "Saint Petersburg", "Petergof", "Pushkin", "Saint Petersburg", "Berlin", "Karlsruhe", "Frankfurt", "Doha"],
+      "dates": ["2014/06"]
+    },
+    {
+      "name": "A15",
+      "description": "Vietnam/Thailand 2015",
+      "cities": ["Melbourne", "Singapore", "Ho Chi Minh City", "Hanoi", "Ha Long Bay", "Hanoi", "Bangkok", "Kanchanaburi", "Bangkok", "Ayutthaya", "Bangkok", "Ko Samui", "Ko Tao", "Ko Samui", "Bangkok", "Melbourne"],
+      "dates": ["2015/07"]
+    },
+    {
+      "name": "S16",
+      "description": "Summer 2016",
+      "cities": ["Gothenburg", "Frankfurt", "Vienna", "Yerevan", "Vienna", "Frankfurt", "Gothenburg", "Tallinn", "Helsinki", "Gothenburg", "Stockholm", "Gothenburg", "Copenhagen", "Crete", "Athens", "Frankfurt", "Freiburg", "Frankfurt", "Gothenburg"],
+      "dates": ["2016/05", "2016/06", "2016/07", "2016/09"]
+    },
+    {
+      "name": "S17",
+      "description": "Summer 2017",
+      "cities": ["Gothenburg", "Stockholm", "Kiev", "Chernobyl", "Kiev", "Stockholm", "Gothenburg", "Oslo", "Flam", "Balestrand", "Fjaerland", "Bergen", "Torshavn", "Copenhagen", "Gothenburg"],
+      "dates": ["2017/07", "2017/08"]
+    },
+    {
+      "name": "W17",
+      "description": "Winter 2017/2018",
+      "cities": ["Gothenburg", "Are", "Ostersund", "Revsund", "Ostersund", "Gothenburg", "Stockholm", "London", "Exeter", "London", "Stockholm"],
+      "dates": ["2017/12", "2018/01", "2018/02", "2018/03", "2018/04"]
+    },
+    {
+      "name": "S18",
+      "description": "Summer 2018",
+      "cities": ["Stockholm", "Gothenburg", "Krakow", "Auschwitz", "Katowice", "Vienna", "Bratislava", "Warsaw", "Stockholm"],
+      "dates": ["2018/06", "2018/07"]
+    }
+  ]
+}
