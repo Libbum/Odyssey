@@ -85,45 +85,41 @@ struct Trip {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct FeatureCollection<P, G> {
+struct FeatureCollection {
     #[serde(rename = "type")]
     type_: String,
-    features: Vec<Feature<P, G>>,
+    features: Vec<Feature>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Feature<P, G> {
+struct Feature {
     #[serde(rename = "type")]
     type_: String,
-    properties: P,
-    geometry: G,
+    properties: Properties,
+    geometry: Geometry,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct PlaceProperties {
+struct Properties {
     name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     localname: Option<String>,
-    country: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    country: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct TripProperties {
-    name: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct PointGeometry {
+struct Geometry {
     #[serde(rename = "type")]
     type_: String,
-    coordinates: Vec<f32>,
+    coordinates: Coordinates,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct LineGeometry {
-    #[serde(rename = "type")]
-    type_: String,
-    coordinates: Vec<Vec<f32>>,
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+enum Coordinates {
+    Point(Vec<f32>),
+    LineString(Vec<Vec<f32>>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -222,14 +218,14 @@ fn to_location_identfier_string(from: &str) -> String {
 }
 
 fn get_new_places(
-    cities: &FeatureCollection<PlaceProperties, PointGeometry>,
+    cities: &FeatureCollection,
     config: &Config,
     cca3: &HashMap<String, String>,
 ) -> (Vec<String>, Vec<String>) {
     let cities_country_codes = cities
         .features
         .iter()
-        .map(|f| f.properties.country.clone())
+        .map(|f| f.properties.country.clone().unwrap())
         .collect::<Vec<String>>();
     let mut cities_countries: Vec<String> = Vec::new();
     for c in cities_country_codes {
@@ -276,6 +272,45 @@ fn get_new_places(
     (new_countries, new_locations)
 }
 
+fn write_trip(config: &Config, features: &[Feature]) -> Result<(), Error> {
+    let mut trip_features: Vec<Feature> = Vec::new();
+    for trip in &config.trips {
+        let properties = Properties {
+            name: trip.name.clone(),
+            localname: None,
+            country: None,
+        };
+        let mut coords: Vec<Vec<f32>> = Vec::new();
+        for city in &trip.cities {
+            for location in features {
+                if to_location_identfier_string(&location.properties.name) == city.to_string() {
+                    match &location.geometry.coordinates {
+                        Coordinates::Point(value) => coords.push(value.clone()),
+                        _ => return Err(failure::err_msg(format!("{} had LineString Coordinates", city.to_string()))),
+                    }
+                    break;
+                }
+            }
+        }
+        let geometry = Geometry {
+            type_: "LineString".to_string(),
+            coordinates: Coordinates::LineString(coords),
+        };
+        trip_features.push(Feature {
+            type_: "Feature".to_string(),
+            properties,
+            geometry,
+        });
+    }
+    let trips = FeatureCollection {
+        type_: "FeatureCollection".to_string(),
+        features: trip_features,
+    };
+    let trips_buffer = File::create("trips.json")?;
+    serde_json::to_writer(&trips_buffer, &trips)?;
+    Ok(())
+}
+
 fn country_details(
     country_string: &str,
     cca3: &HashMap<String, String>,
@@ -297,7 +332,7 @@ fn location_details(location_string: &str) -> Result<(Location, String), Error> 
     Ok((location, location_name))
 }
 
-fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Result<FeatureCollection<PlaceProperties, PointGeometry>, Error> {
+fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Result<(), Error> {
     let pause = time::Duration::from_secs(1);
     let cities_buffer = OpenOptions::new()
         .read(true)
@@ -305,11 +340,10 @@ fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Res
         .create(false) //Fail if we need to create the file
         .open("cities.json");
 
-    let cities = match cities_buffer {
+    match cities_buffer {
         Ok(buffer) => {
             // Add new info to cities.json
-            println!("Checking for new locations");
-            let mut cities: FeatureCollection<PlaceProperties, PointGeometry> = serde_json::from_reader(&buffer)?;
+            let mut cities: FeatureCollection = serde_json::from_reader(&buffer)?;
             let (new_countries, new_locations) = get_new_places(&cities, config, cca3);
             for (country_string, locations) in &config.places {
                 if new_countries.contains(&country_string) {
@@ -321,17 +355,17 @@ fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Res
                             let (location, location_name) = location_details(location_string)?;
                             let coords = search(&format!("{}, {}", location_name, country_name))?;
 
-                            let properties = PlaceProperties {
+                            let properties = Properties {
                                 name: location_name,
                                 localname: local_name.to_owned(),
-                                country: country_code.to_string(),
+                                country: Some(country_code.to_string()),
                             };
-                            let geometry = PointGeometry {
+                            let geometry = Geometry {
                                 type_: "Point".to_string(),
-                                coordinates: vec![
+                                coordinates: Coordinates::Point(vec![
                                     coords.lon.parse::<f32>()?,
                                     coords.lat.parse::<f32>()?,
-                                ],
+                                ]),
                             };
 
                             println!("{} {:?}", location.to_string(), geometry.coordinates);
@@ -348,12 +382,13 @@ fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Res
             if new_countries.len() + new_locations.len() > 0 {
                 serde_json::to_writer(&buffer, &cities)?;
             }
-            cities
+            //It's quicker to just redo the trips rather than checking them.
+            write_trip(&config, &cities.features)?;
         }
         Err(_) => {
             // Create a new cities.json
             println!("No cities.json found, building one");
-            let mut features: Vec<Feature<PlaceProperties, PointGeometry>> = Vec::new();
+            let mut features: Vec<Feature> = Vec::new();
             for (country_string, locations) in &config.places {
                 let (country_name, country_code) = country_details(&country_string, cca3)?;
                 for (location_string, local_name) in locations.iter().filter(|(l, _)| *l != "local")
@@ -361,14 +396,14 @@ fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Res
                     let (location, location_name) = location_details(location_string)?;
                     let coords = search(&format!("{}, {}", location_name, country_name))?;
 
-                    let properties = PlaceProperties {
+                    let properties = Properties {
                         name: location_name,
                         localname: local_name.to_owned(),
-                        country: country_code.to_string(),
+                        country: Some(country_code.to_string()),
                     };
-                    let geometry = PointGeometry {
+                    let geometry = Geometry {
                         type_: "Point".to_string(),
-                        coordinates: vec![coords.lon.parse::<f32>()?, coords.lat.parse::<f32>()?],
+                        coordinates: Coordinates::Point(vec![coords.lon.parse::<f32>()?, coords.lat.parse::<f32>()?]),
                     };
 
                     println!("{} {:?}", location.to_string(), geometry.coordinates);
@@ -380,16 +415,19 @@ fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Res
                     thread::sleep(pause); //We can't hammer the Nominatim server.
                 }
             }
+            //It's quicker to just redo the trips rather than checking them.
+            write_trip(&config, &features)?;
+
             let cities = FeatureCollection {
                 type_: "FeatureCollection".to_string(),
                 features,
             };
             let cities_create = File::create("cities.json")?;
             serde_json::to_writer(&cities_create, &cities)?;
-            cities
+
         }
     };
-    Ok(cities)
+    Ok(())
 }
 
 fn main() -> Result<(), Error> {
@@ -426,39 +464,8 @@ fn main() -> Result<(), Error> {
     let cca3_read: CountryCodes = serde_json::from_reader(cca3_file)?;
     let cca3 = &cca3_read.codes;
 
-    let cities = construct_cities_json(&config, &cca3)?;
-    println!("{:?}", config.trips);
-    let mut features: Vec<Feature<TripProperties, LineGeometry>> = Vec::new();
-    for trip in config.trips {
-        let properties = TripProperties {
-            name: trip.name,
-        };
-        let mut coordinates: Vec<Vec<f32>> = Vec::new();
-        for city in trip.cities {
-            for location in &cities.features {
-                if to_location_identfier_string(&location.properties.name) == city.to_string() {
-                    coordinates.push(location.geometry.coordinates.clone());
-                    break;
-                }
-            }
-        }
-        let geometry = LineGeometry {
-            type_: "LineString".to_string(),
-            coordinates,
-        };
-        features.push(Feature {
-            type_: "Feature".to_string(),
-            properties,
-            geometry,
-        });
-    }
-    let trips = FeatureCollection {
-        type_: "FeatureCollection".to_string(),
-        features,
-    };
+    construct_cities_json(&config, &cca3)?;
 
-    let trips_buffer = File::create("trips.json")?;
-    serde_json::to_writer(&trips_buffer, &trips)?;
     return Ok(()); // Temporary whilst we build the automation.
 
     let mut manifest = File::create("Manifest.elm")?;
@@ -568,7 +575,6 @@ macro_attr! {
         Hungary,
         Iceland,
         Japan,
-        Kazakhstan,
         Latvia,
         Netherlands,
         Norway,
@@ -588,7 +594,6 @@ macro_attr! {
 macro_attr! {
     #[derive(Debug, PartialEq, EnumFromStr!, Serialize, Deserialize)]
     enum Location {
-        Almaty,
         Amsterdam,
         Are,
         Athens,
