@@ -150,13 +150,12 @@ macro_attr! {
         Australia,
         Austria,
         CzechRepublic,
-        Germany,
         Denmark,
         Estonia,
         Finland,
         France,
         FaeroeIslands,
-        UnitedKingdom,
+        Germany,
         Greece,
         HongKong,
         Hungary,
@@ -173,6 +172,7 @@ macro_attr! {
         Sweden,
         Thailand,
         Ukraine,
+        UnitedKingdom,
         Vietnam,
     }
 }
