@@ -25,6 +25,7 @@ use std::io::{Read, Write};
 use std::iter::FromIterator;
 use std::str::FromStr;
 use std::{fmt, thread, time};
+use std::process::Command;
 
 static NOMINATIM_ENDPOINT: &str = "http://nominatim.openstreetmap.org";
 const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
@@ -306,7 +307,7 @@ fn write_trip(config: &Config, features: &[Feature]) -> Result<(), Error> {
         type_: "FeatureCollection".to_string(),
         features: trip_features,
     };
-    let trips_buffer = File::create("trips.json")?;
+    let trips_buffer = File::create("world/trips.json")?;
     serde_json::to_writer(&trips_buffer, &trips)?;
     Ok(())
 }
@@ -338,7 +339,7 @@ fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Res
         .read(true)
         .write(true)
         .create(false) //Fail if we need to create the file
-        .open("cities.json");
+        .open("world/cities.json");
 
     match cities_buffer {
         Ok(buffer) => {
@@ -387,7 +388,7 @@ fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Res
         }
         Err(_) => {
             // Create a new cities.json
-            println!("No cities.json found, building one");
+            println!("No world/cities.json found, building one");
             let mut features: Vec<Feature> = Vec::new();
             for (country_string, locations) in &config.places {
                 let (country_name, country_code) = country_details(&country_string, cca3)?;
@@ -422,7 +423,7 @@ fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Res
                 type_: "FeatureCollection".to_string(),
                 features,
             };
-            let cities_create = File::create("cities.json")?;
+            let cities_create = File::create("world/cities.json")?;
             serde_json::to_writer(&cities_create, &cities)?;
 
         }
@@ -460,11 +461,25 @@ fn main() -> Result<(), Error> {
     let config_file = File::open("odyssey.yaml")?;
     let config: Config = serde_yaml::from_reader(config_file)?;
 
-    let cca3_file = File::open("cca3.json")?;
+    let cca3_file = File::open("world/cca3.json")?;
     let cca3_read: CountryCodes = serde_json::from_reader(cca3_file)?;
     let cca3 = &cca3_read.codes;
 
     construct_cities_json(&config, &cca3)?;
+
+    println!("Building world.");
+    Command::new("topojson")
+        .arg("-o")
+        .arg("../dist/assets/world.json")
+        .arg("--id-property")
+        .arg("su_a3")
+        .arg("--properties")
+        .arg("name,localname,country")
+        .arg("--")
+        .arg("world/countries.json")
+        .arg("world/cities.json")
+        .arg("world/trips.json")
+        .status()?;
 
     return Ok(()); // Temporary whilst we build the automation.
 

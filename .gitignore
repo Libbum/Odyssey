@@ -7,5 +7,6 @@ gallery
 iridescence*.js
 dist/assets/js/
 manifester/target
-manifester/cities.json
+manifester/world/cities.json
+manifester/world/trips.json
 manifester/Manifest.elm
