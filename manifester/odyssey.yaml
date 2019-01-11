@@ -8,146 +8,328 @@
 #                  |_|                         |_|    Configuration file.
 
 # Location List
-Armenia:
-  local: Հայաստան
-  Yerevan: Երևան
-Australia:
-  Melbourne:
-  Sydney:
-Austria:
-  local: Österreich
-  Vienna: Wien
-CzechRepublic:
-  local: Česká republika
-  Prague: Praha
-Denmark:
-  local: Danmark
-  Copenhagen: København
-  Dronningmolle: Dronningmølle
-  Helsingor: Helsingør
-  Roskilde:
-Estonia:
-  local: Eesti
-  Tallinn:
-Finland:
-  local: Suomi
-  Helsinki:
-France:
-  Paris:
-FaeroeIslands:
-  local: Føroyar
-  Bordoy: Borðoy
-  Eysturoy:
-  Hestur:
-  Streymoy:
-  Torshavn: Tórshavn
-  Vagar: Vágar
-  Vidoy: Viðoy
-Germany:
-  local: Deutschland
-  Berlin:
-  Bremen:
-  Frankfurt:
-  Freiburg:
-  Heidelberg:
-  Karlsruhe:
-  Munich:
-  Potsdam:
-Greece:
-  local: Ελλάδα
-  Athens: Αθήνα
-  Crete: Κρήτη
-HongKong:
-  local: 香港
-  HongKongCity: 香港
-Hungary:
-  local: Magyarország
-  Budapest:
-Iceland:
-  local: Ísland
-  Geysir:
-  Jokulsarlon: Jökulsárlón
-  Reykjavik:
-  Skaftafell:
-  Skogarfoss: Skógarfoss
-  Thingvellir: Þingvellir
-  Vik: Vík í Mýrdal
-Japan:
-  local: 日本
-  Himeji: 姫路市
-  Hiroshima: 広島市
-  Koyasan: 高野山
-  Kyoto: 京都市
-  Osaka: 大阪市
-  Tokyo: 東京
-Latvia:
-  local: Latvija
-  Riga: Rīga
-Netherlands:
-  local: Nederland
-  Amsterdam:
-Norway:
-  local: Norge
-  Balestrand:
-  Bergen:
-  Bodo: Bodø
-  Fjaerland: Fjærland
-  Flam: Flåm
-  Kristiansund:
-  Oslo:
-  Rorvik: Rørvik
-  Svolvaer: Svolvær
-  Tromso: Tromsø
-  Trondheim:
-  Trysil:
-Poland:
-  local: Polska
-  Auschwitz: Oświęcim
-  Katowice:
-  Krakow: Kraków
-  Warsaw: Warszawa
-Qatar:
-  local: ﻖﻃﺭ
-  Doha: الدوحة
-Russia:
-  local: Росси́я
-  Petergof: Петергоф
-  Pushkin: Пушкин
-  SaintPetersburg: Санкт-Петербу́рг
-Singapore:
-  SingaporeCity:
-Slovakia:
-  local: Slovensko
-  Bratislava:
-Sweden:
-  local: Sverige
-  Are: Åre
-  Gothenburg: Göteborg
-  Helsingborg:
-  Kinnekulle:
-  Lund:
-  Ostersund: Östersund
-  Revsund:
-  Stockholm:
-  Trollhattan: Trollhättan
-  Umea: Umeå
-Thailand:
-  local: ประเทศไทย
-  Ayutthaya: อยุธยา
-  Bangkok: กรุงเทพมหานคร
-  Kanchanaburi: กาญจนบุรี
-  KoSamui: เกาะสมุย
-  KoTao: เกาะเต่า
-Ukraine:
-  local: Україна
-  Chernobyl: Чорнобиль
-  Kiev: Київ
-  Pripyat: При́п'ять
-UnitedKingdom:
-  Exeter:
-  London:
-Vietnam:
-  local: Việt Nam
-  HaLongBay: Vịnh Hạ Long
-  Hanoi: Hà Nội
-  HoChiMinhCity: Thành phố Hồ Chí Minh
+places:
+  Armenia:
+    local: Հայաստան
+    Yerevan: Երևան
+  Australia:
+    Melbourne:
+    Sydney:
+  Austria:
+    local: Österreich
+    Vienna: Wien
+  CzechRepublic:
+    local: Česká republika
+    Prague: Praha
+  Denmark:
+    local: Danmark
+    Copenhagen: København
+    Dronningmolle: Dronningmølle
+    Helsingor: Helsingør
+    Roskilde:
+  Estonia:
+    local: Eesti
+    Tallinn:
+  Finland:
+    local: Suomi
+    Helsinki:
+  France:
+    Paris:
+  FaeroeIslands:
+    local: Føroyar
+    Bordoy: Borðoy
+    Eysturoy:
+    Hestur:
+    Streymoy:
+    Torshavn: Tórshavn
+    Vagar: Vágar
+    Vidoy: Viðoy
+  Germany:
+    local: Deutschland
+    Berlin:
+    Bremen:
+    Frankfurt:
+    Freiburg:
+    Heidelberg:
+    Karlsruhe:
+    Munich:
+    Potsdam:
+  Greece:
+    local: Ελλάδα
+    Athens: Αθήνα
+    Crete: Κρήτη
+  HongKong:
+    local: 香港
+    HongKongCity: 香港
+  Hungary:
+    local: Magyarország
+    Budapest:
+  Iceland:
+    local: Ísland
+    Geysir:
+    Jokulsarlon: Jökulsárlón
+    Reykjavik:
+    Skaftafell:
+    Skogarfoss: Skógarfoss
+    Thingvellir: Þingvellir
+    Vik: Vík í Mýrdal
+  Japan:
+    local: 日本
+    Himeji: 姫路市
+    Hiroshima: 広島市
+    Koyasan: 高野山
+    Kyoto: 京都市
+    Osaka: 大阪市
+    Tokyo: 東京
+  Latvia:
+    local: Latvija
+    Riga: Rīga
+  Netherlands:
+    local: Nederland
+    Amsterdam:
+  Norway:
+    local: Norge
+    Balestrand:
+    Bergen:
+    Bodo: Bodø
+    Fjaerland: Fjærland
+    Flam: Flåm
+    Kristiansund:
+    Oslo:
+    Rorvik: Rørvik
+    Svolvaer: Svolvær
+    Tromso: Tromsø
+    Trondheim:
+    Trysil:
+  Poland:
+    local: Polska
+    Auschwitz: Oświęcim
+    Katowice:
+    Krakow: Kraków
+    Warsaw: Warszawa
+  Qatar:
+    local: ﻖﻃﺭ
+    Doha: الدوحة
+  Russia:
+    local: Росси́я
+    Petergof: Петергоф
+    Pushkin: Пушкин
+    SaintPetersburg: Санкт-Петербу́рг
+  Singapore:
+    SingaporeCity:
+  Slovakia:
+    local: Slovensko
+    Bratislava:
+  Sweden:
+    local: Sverige
+    Are: Åre
+    Gothenburg: Göteborg
+    Helsingborg:
+    Kinnekulle:
+    Lund:
+    Ostersund: Östersund
+    Revsund:
+    Stockholm:
+    Trollhattan: Trollhättan
+    Umea: Umeå
+  Thailand:
+    local: ประเทศไทย
+    Ayutthaya: อยุธยา
+    Bangkok: กรุงเทพมหานคร
+    Kanchanaburi: กาญจนบุรี
+    KoSamui: เกาะสมุย
+    KoTao: เกาะเต่า
+  Ukraine:
+    local: Україна
+    Chernobyl: Чорнобиль
+    Kiev: Київ
+    Pripyat: При́п'ять
+  UnitedKingdom:
+    Exeter:
+    London:
+  Vietnam:
+    local: Việt Nam
+    HaLongBay: Vịnh Hạ Long
+    Hanoi: Hà Nội
+    HoChiMinhCity: Thành phố Hồ Chí Minh
+
+# Trip list
+trips:
+  - name: J07
+    description: Singapore/Japan 2007
+    cities:
+      - Melbourne
+      - SingaporeCity
+      - Osaka
+      - Himeji
+      - Osaka
+      - Hiroshima
+      - Koyasan
+      - Osaka
+      - Tokyo
+      - Kyoto
+      - Osaka
+    dates:
+      - 2007/12
+  - name: E12
+    description: Europe 2012
+    cities:
+      - Melbourne
+      - SingaporeCity
+      - Frankfurt
+      - Karlsruhe
+      - Heidelberg
+      - Munich
+      - Vienna
+      - Budapest
+      - Prague
+      - Riga
+      - Copenhagen
+      - Dronningmolle
+      - Helsingor
+      - Helsingborg
+      - Copenhagen
+      - Berlin
+      - Paris
+      - SingaporeCity
+    dates:
+      - 2012/07
+      - 2012/08
+  - name: E14
+    description: Europe/Russia 2014
+    cities:
+      - Melbourne
+      - Doha
+      - Copenhagen
+      - Roskilde
+      - Copenhagen
+      - Reykjavik
+      - Thingvellir
+      - Geysir
+      - Reykjavik
+      - Vik
+      - Skaftafell
+      - Jokulsarlon
+      - Skogarfoss
+      - Reykjavik
+      - Kristiansund
+      - Trondheim
+      - Rorvik
+      - Bodo
+      - Svolvaer
+      - Tromso
+      - Stockholm
+      - SaintPetersburg
+      - Petergof
+      - Pushkin
+      - SaintPetersburg
+      - Berlin
+      - Karlsruhe
+      - Frankfurt
+      - Doha
+    dates:
+      - 2014/06
+  - name: A15
+    description: Vietnam/Thailand 2015
+    cities:
+      - Melbourne
+      - SingaporeCity
+      - HoChiMinhCity
+      - Hanoi
+      - HaLongBay
+      - Hanoi
+      - Bangkok
+      - Kanchanaburi
+      - Bangkok
+      - Ayutthaya
+      - Bangkok
+      - KoSamui
+      - KoTao
+      - KoSamui
+      - Bangkok
+      - Melbourne
+    dates:
+      - 2015/07
+  - name: S16
+    description: Summer 2016
+    cities:
+      - Gothenburg
+      - Frankfurt
+      - Vienna
+      - Yerevan
+      - Vienna
+      - Frankfurt
+      - Gothenburg
+      - Tallinn
+      - Helsinki
+      - Gothenburg
+      - Stockholm
+      - Gothenburg
+      - Copenhagen
+      - Crete
+      - Athens
+      - Frankfurt
+      - Freiburg
+      - Frankfurt
+      - Gothenburg
+    dates:
+      - 2016/05
+      - 2016/06
+      - 2016/07
+      - 2016/09
+  - name: S17
+    description: Summer 2017
+    cities:
+      - Gothenburg
+      - Stockholm
+      - Kiev
+      - Chernobyl
+      - Kiev
+      - Stockholm
+      - Gothenburg
+      - Oslo
+      - Flam
+      - Balestrand
+      - Fjaerland
+      - Bergen
+      - Torshavn
+      - Copenhagen
+      - Gothenburg
+    dates:
+      - 2017/07
+      - 2017/08
+  - name: W17
+    description: Winter 2017/2018
+    cities:
+      - Gothenburg
+      - Are
+      - Ostersund
+      - Revsund
+      - Ostersund
+      - Gothenburg
+      - Stockholm
+      - London
+      - Exeter
+      - London
+      - Stockholm
+    dates:
+      - 2017/12
+      - 2018/01
+      - 2018/02
+      - 2018/03
+      - 2018/04
+  - name: S18
+    description: Summer 2018
+    cities:
+      - Stockholm
+      - Gothenburg
+      - Krakow
+      - Auschwitz
+      - Katowice
+      - Vienna
+      - Bratislava
+      - Warsaw
+      - Stockholm
+    dates:
+      - 2018/06
+      - 2018/07

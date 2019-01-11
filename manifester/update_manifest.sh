@@ -2,7 +2,7 @@
 # Inserts data from odyssey.yaml into src/main.rs where needed.
 # Should be run after updating odyssey.yaml with new data, before building the manifest
 
-countries=$(rg -oN '^\w+' odyssey.yaml | sort | sed 's/^/        /;s/$/,/');
+countries=$(rg -oN '^\s{2}(\w+)' -r '$1' odyssey.yaml | sort | sed 's/^/        /;s/$/,/');
 
 echo "Updating Countries list in manifester"
 awk -v countries="$countries" '
@@ -11,7 +11,7 @@ awk -v countries="$countries" '
     /^    }/     {p=1}
     p' src/main.rs > new_countries.rs
 
-locations=$(rg -oN '^\s+(\w+)' -r '$1' odyssey.yaml | rg -v 'local' | sort | sed 's/^/        /;s/$/,/');
+locations=$(rg -oN '^\s+{4}(\w+)' -r '$1' odyssey.yaml | rg -v 'local|cities|dates|description' | sort | sed 's/^/        /;s/$/,/');
 
 echo "Updating Locations list in manifester"
 awk -v locations="$locations" '
