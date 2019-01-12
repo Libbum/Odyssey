@@ -459,7 +459,17 @@ fn construct_manifest(config: &Config, cca3: &BTreeMap<String, String>) -> Resul
     let mut manifest = File::create("Manifest.elm")?;
     writeln!(manifest, "module Manifest exposing (..)")?;
 
+    writeln!(manifest, "-- COUNTRIES")?;
     write_countries(&mut manifest, config, cca3)?;
+
+    writeln!(manifest, "-- LOCATIONS")?;
+    write_locations(&mut manifest, config)?;
+
+    writeln!(manifest, "-- TRIPS")?;
+    write_trips(&mut manifest, config)?;
+
+    writeln!(manifest, "-- MANIFEST")?;
+    write_manifest(&mut manifest, config)?;
 
     Ok(())
 }
@@ -469,7 +479,6 @@ fn write_countries(
     config: &Config,
     cca3: &BTreeMap<String, String>,
 ) -> Result<(), Error> {
-    writeln!(manifest, "-- COUNTRIES")?;
     writeln!(manifest, "type Country")?;
     let mut idx = 0;
     for (cntry, _) in &config.places {
@@ -520,6 +529,8 @@ fn write_countries(
         writeln!(manifest, "        \"{}\" ->", name)?;
         writeln!(manifest, "            Just {}", cntry)?;
     }
+    writeln!(manifest, "        _ ->")?;
+    writeln!(manifest, "            Nothing")?;
 
     writeln!(manifest, "countryLocalName : Country -> Maybe String")?;
     writeln!(manifest, "countryLocalName country =")?;
@@ -533,6 +544,212 @@ fn write_countries(
     writeln!(manifest, "        _ ->")?;
     writeln!(manifest, "            Nothing")?;
 
+    Ok(())
+}
+
+fn write_locations(
+    manifest: &mut File,
+    config: &Config,
+) -> Result<(), Error> {
+
+    let mut config_locations = config
+        .places
+        .iter()
+        .map(|(_, locations)| {
+            locations
+                .iter()
+                .map(|(name, loc)| (name.clone(), loc.clone()))
+                .collect::<Vec<(Location, Option<String>)>>()
+        })
+        .flatten()
+        .filter(|(l,_)| *l != Location::Local)
+        .collect::<Vec<(Location, Option<String>)>>();
+    config_locations.sort();
+    writeln!(manifest, "type Location")?;
+    let mut idx = 0;
+    for (loc, _) in &config_locations {
+        if idx != 0 {
+            writeln!(manifest, "    | {}", loc)?;
+        } else {
+            writeln!(manifest, "    = {}", loc)?;
+        }
+        idx += 1;
+    }
+
+    writeln!(manifest, "locationList : List Location")?;
+    writeln!(manifest, "locationList =")?;
+    idx = 0;
+    for (loc, _) in &config_locations {
+        if idx != 0 {
+            writeln!(manifest, "    , {}", loc)?;
+        } else {
+            writeln!(manifest, "    [ {}", loc)?;
+        }
+        idx += 1;
+    }
+    writeln!(manifest, "    ]")?;
+
+    writeln!(manifest, "stringToLocation : String -> Maybe Location")?;
+    writeln!(manifest, "stringToLocation location =")?;
+    writeln!(manifest, "    case location of")?;
+    for (loc, _) in &config_locations {
+        let name = location_name(&loc)?;
+        writeln!(manifest, "        \"{}\" ->", name)?;
+        writeln!(manifest, "            Just {}", loc)?;
+    }
+    writeln!(manifest, "        _ ->")?;
+    writeln!(manifest, "            Nothing")?;
+
+
+    writeln!(manifest, "locationLocalName : Location -> Maybe String")?;
+    writeln!(manifest, "locationLocalName location =")?;
+    writeln!(manifest, "    case location of")?;
+    for (loc, local_name) in &config_locations {
+        if let Some(local) = local_name {
+            writeln!(manifest, "        {} ->", loc)?;
+            writeln!(manifest, "            Just \"{}\"", local)?;
+        };
+    }
+    writeln!(manifest, "        _ ->")?;
+    writeln!(manifest, "            Nothing")?;
+
+    writeln!(manifest, "type alias LocationInformation =")?;
+    writeln!(manifest, "    {{ name : String")?;
+    writeln!(manifest, "    , country : Country")?;
+    writeln!(manifest, "    , coordinates : ( Float, Float )")?;
+    writeln!(manifest, "    }}")?;
+
+    //writeln!(manifest, "locationInformation : Location -> LocationInformation")?;
+    //writeln!(manifest, "locationInformation location =")?;
+    //writeln!(manifest, "    case location of")?;
+    //    Amsterdam ->
+    //        { name = "Amsterdam"
+    //        , country = Netherlands
+    //        , coordinates = ( 4.9, 52.37 )
+    //        }
+    Ok(())
+}
+
+fn trip_id_string(description: &str) -> String {
+    let mut id = description.clone().to_string();
+    id.retain(|c| c != ' ' && c != '/');
+    id
+}
+
+fn write_trips(
+    manifest: &mut File,
+    config: &Config,
+) -> Result<(), Error> {
+    writeln!(manifest, "type Trip")?;
+    let mut idx = 0;
+    for trip in &config.trips {
+        if idx != 0 {
+            writeln!(manifest, "    | {}", trip_id_string(&trip.description))?;
+        } else {
+            writeln!(manifest, "    = {}", trip_id_string(&trip.description))?;
+        }
+        idx += 1;
+    }
+
+    writeln!(manifest, "tripList : List Trip")?;
+    writeln!(manifest, "tripList =")?;
+    idx = 0;
+    for trip in &config.trips {
+        if idx != 0 {
+            writeln!(manifest, "    , {}", trip_id_string(&trip.description))?;
+        } else {
+            writeln!(manifest, "    [ {}", trip_id_string(&trip.description))?;
+        }
+        idx += 1;
+    }
+    writeln!(manifest, "    ]")?;
+
+    writeln!(manifest, "stringToTrip : String -> Maybe Trip")?;
+    writeln!(manifest, "stringToTrip trip =")?;
+    writeln!(manifest, "    case trip of")?;
+    for trip in &config.trips {
+        writeln!(manifest, "        \"{}\" ->", trip.description)?;
+        writeln!(manifest, "            Just {}", trip_id_string(&trip.description))?;
+    }
+    writeln!(manifest, "        _ ->")?;
+    writeln!(manifest, "            Nothing")?;
+
+    writeln!(manifest, "type alias TripInformation =")?;
+    writeln!(manifest, "    {{ name : String")?;
+    writeln!(manifest, "    , description : String")?;
+    writeln!(manifest, "    , locations : List Location")?;
+    writeln!(manifest, "    , dates : List Date")?;
+    writeln!(manifest, "    }}")?;
+
+
+    writeln!(manifest, "tripInformation : Trip -> TripInformation")?;
+    writeln!(manifest, "tripInformation trip =")?;
+    writeln!(manifest, "    case trip of")?;
+    for trip in &config.trips {
+        writeln!(manifest, "        {} ->", trip_id_string(&trip.description))?;
+        writeln!(manifest, "            {{ name = \"{}\"", trip.name)?;
+        writeln!(manifest, "            , description = \"{}\"", trip.description)?;
+        write!(manifest, "            , locations = [ ")?;
+        idx = 0;
+        for place in &trip.cities {
+            if idx != 0 {
+                write!(manifest, ", {}", place)?;
+            } else {
+                write!(manifest, "{}", place)?;
+            }
+            idx += 1;
+        }
+        write!(manifest, " ]\n")?;
+        write!(manifest, "            , dates = [ ")?;
+        idx = 0;
+        for date in &trip.dates {
+            let splitidx = date.find('/').ok_or_else(|| failure::err_msg(format!("{} has a malformed date string", trip_id_string(&trip.description))))?;
+            let (year, month_str) = date.split_at(splitidx);
+            let mut month_string = month_str.to_string();
+            month_string.retain(|c| c != '/');
+            if idx != 0 {
+                write!(manifest, ", Date {} {}", year, Month::from_str(&month_string)?)?;
+            } else {
+                write!(manifest, "Date {} {}", year, Month::from_str(&month_string)?)?;
+            }
+            idx += 1;
+        }
+        write!(manifest, " ]\n")?;
+        writeln!(manifest, "            }}")?;
+    }
+
+    // Extras, just to keep Date contained.
+    writeln!(manifest, "type alias Year =")?;
+    writeln!(manifest, "    Int")?;
+
+    writeln!(manifest, "type Month")?;
+    // No point in making Month an iterator.
+    writeln!(manifest, "    = Jan")?;
+    writeln!(manifest, "    | Feb")?;
+    writeln!(manifest, "    | Mar")?;
+    writeln!(manifest, "    | Apr")?;
+    writeln!(manifest, "    | May")?;
+    writeln!(manifest, "    | Jun")?;
+    writeln!(manifest, "    | Jul")?;
+    writeln!(manifest, "    | Aug")?;
+    writeln!(manifest, "    | Sep")?;
+    writeln!(manifest, "    | Oct")?;
+    writeln!(manifest, "    | Nov")?;
+    writeln!(manifest, "    | Dec")?;
+    writeln!(manifest, "type alias Date =")?;
+    writeln!(manifest, "    {{ year : Year")?;
+    writeln!(manifest, "    , month : Month")?;
+    writeln!(manifest, "    }}")?;
+
+    Ok(())
+}
+
+fn write_manifest(
+    manifest: &mut File,
+    config: &Config,
+) -> Result<(), Error> {
+    //writeln!(manifest, "manifest : List Image")?;
+    //writeln!(manifest, "manifest =")?;
     Ok(())
 }
 
@@ -802,6 +1019,12 @@ impl fmt::Display for Country {
 }
 
 impl fmt::Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+impl fmt::Display for Month {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self, f)
     }
