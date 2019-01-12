@@ -10,33 +10,33 @@
 # Location List
 places:
   Armenia:
-    local: Հայաստան
+    Local: Հայաստան
     Yerevan: Երևան
   Australia:
     Melbourne:
     Sydney:
   Austria:
-    local: Österreich
+    Local: Österreich
     Vienna: Wien
   CzechRepublic:
-    local: Česká republika
+    Local: Česká republika
     Prague: Praha
   Denmark:
-    local: Danmark
+    Local: Danmark
     Copenhagen: København
     Dronningmolle: Dronningmølle
     Helsingor: Helsingør
     Roskilde:
   Estonia:
-    local: Eesti
+    Local: Eesti
     Tallinn:
   Finland:
-    local: Suomi
+    Local: Suomi
     Helsinki:
   France:
     Paris:
   FaeroeIslands:
-    local: Føroyar
+    Local: Føroyar
     Bordoy: Borðoy
     Eysturoy:
     Hestur:
@@ -45,7 +45,7 @@ places:
     Vagar: Vágar
     Vidoy: Viðoy
   Germany:
-    local: Deutschland
+    Local: Deutschland
     Berlin:
     Bremen:
     Frankfurt:
@@ -55,17 +55,17 @@ places:
     Munich:
     Potsdam:
   Greece:
-    local: Ελλάδα
+    Local: Ελλάδα
     Athens: Αθήνα
     Crete: Κρήτη
   HongKong:
-    local: 香港
+    Local: 香港
     HongKongCity: 香港
   Hungary:
-    local: Magyarország
+    Local: Magyarország
     Budapest:
   Iceland:
-    local: Ísland
+    Local: Ísland
     Geysir:
     Jokulsarlon: Jökulsárlón
     Reykjavik:
@@ -74,7 +74,7 @@ places:
     Thingvellir: Þingvellir
     Vik: Vík í Mýrdal
   Japan:
-    local: 日本
+    Local: 日本
     Himeji: 姫路市
     Hiroshima: 広島市
     Koyasan: 高野山
@@ -82,13 +82,13 @@ places:
     Osaka: 大阪市
     Tokyo: 東京
   Latvia:
-    local: Latvija
+    Local: Latvija
     Riga: Rīga
   Netherlands:
-    local: Nederland
+    Local: Nederland
     Amsterdam:
   Norway:
-    local: Norge
+    Local: Norge
     Balestrand:
     Bergen:
     Bodo: Bodø
@@ -102,26 +102,26 @@ places:
     Trondheim:
     Trysil:
   Poland:
-    local: Polska
+    Local: Polska
     Auschwitz: Oświęcim
     Katowice:
     Krakow: Kraków
     Warsaw: Warszawa
   Qatar:
-    local: ﻖﻃﺭ
+    Local: ﻖﻃﺭ
     Doha: الدوحة
   Russia:
-    local: Росси́я
+    Local: Росси́я
     Petergof: Петергоф
     Pushkin: Пушкин
     SaintPetersburg: Санкт-Петербу́рг
   Singapore:
     SingaporeCity:
   Slovakia:
-    local: Slovensko
+    Local: Slovensko
     Bratislava:
   Sweden:
-    local: Sverige
+    Local: Sverige
     Are: Åre
     Gothenburg: Göteborg
     Helsingborg:
@@ -133,14 +133,14 @@ places:
     Trollhattan: Trollhättan
     Umea: Umeå
   Thailand:
-    local: ประเทศไทย
+    Local: ประเทศไทย
     Ayutthaya: อยุธยา
     Bangkok: กรุงเทพมหานคร
     Kanchanaburi: กาญจนบุรี
     KoSamui: เกาะสมุย
     KoTao: เกาะเต่า
   Ukraine:
-    local: Україна
+    Local: Україна
     Chernobyl: Чорнобиль
     Kiev: Київ
     Pripyat: При́п'ять
@@ -148,7 +148,7 @@ places:
     Exeter:
     London:
   Vietnam:
-    local: Việt Nam
+    Local: Việt Nam
     HaLongBay: Vịnh Hạ Long
     Hanoi: Hà Nội
     HoChiMinhCity: Thành phố Hồ Chí Minh

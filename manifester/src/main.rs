@@ -1,7 +1,6 @@
 #![recursion_limit = "256"]
 extern crate failure;
 extern crate globwalk;
-extern crate hashbrown;
 extern crate image;
 extern crate indicatif;
 extern crate reqwest;
@@ -15,17 +14,17 @@ extern crate serde_json;
 extern crate serde_yaml;
 
 use failure::Error;
-use hashbrown::HashMap;
 use image::FilterType::Lanczos3;
 use image::GenericImageView;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::header::USER_AGENT;
+use std::collections::BTreeMap;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::iter::FromIterator;
+use std::process::Command;
 use std::str::FromStr;
 use std::{fmt, thread, time};
-use std::process::Command;
 
 static NOMINATIM_ENDPOINT: &str = "http://nominatim.openstreetmap.org";
 const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
@@ -35,7 +34,7 @@ const NAME: &str = env!("CARGO_PKG_NAME");
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CountryCodes {
     #[serde(with = "codes")]
-    pub codes: HashMap<String, String>,
+    pub codes: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -47,23 +46,23 @@ struct CountryCodeStruct {
 
 mod codes {
     use super::CountryCodeStruct;
-    use hashbrown::HashMap;
+    use std::collections::BTreeMap;
 
     use serde::de::{Deserialize, Deserializer};
     use serde::ser::Serializer;
 
-    pub fn serialize<S>(map: &HashMap<String, String>, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(map: &BTreeMap<String, String>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         serializer.collect_seq(map.values())
     }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<HashMap<String, String>, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<BTreeMap<String, String>, D::Error>
     where
         D: Deserializer<'de>,
     {
-        let mut map = HashMap::new();
+        let mut map = BTreeMap::new();
         for item in Vec::<CountryCodeStruct>::deserialize(deserializer)? {
             map.insert(item.name, item.alpha3);
         }
@@ -73,7 +72,7 @@ mod codes {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Config {
-    places: HashMap<String, HashMap<String, Option<String>>>,
+    places: BTreeMap<Country, BTreeMap<Location, Option<String>>>,
     trips: Vec<Trip>,
 }
 
@@ -221,8 +220,8 @@ fn to_location_identfier_string(from: &str) -> String {
 fn get_new_places(
     cities: &FeatureCollection,
     config: &Config,
-    cca3: &HashMap<String, String>,
-) -> (Vec<String>, Vec<String>) {
+    cca3: &BTreeMap<String, String>,
+) -> (Vec<Country>, Vec<Location>) {
     let cities_country_codes = cities
         .features
         .iter()
@@ -239,13 +238,15 @@ fn get_new_places(
             }
         }
     }
-    let config_countries = config.places
+    let config_countries = config
+        .places
         .iter()
-        .map(|(name, _)| name.clone())
-        .collect::<Vec<String>>();
-    let mut new_countries: Vec<String> = Vec::new();
+        .map(|(name, _)| name)
+        .cloned()
+        .collect::<Vec<Country>>();
+    let mut new_countries: Vec<Country> = Vec::new();
     for ctry in config_countries {
-        if !cities_countries.contains(&ctry) {
+        if !cities_countries.contains(&ctry.to_string()) {
             new_countries.push(ctry);
         }
     }
@@ -254,19 +255,21 @@ fn get_new_places(
         .iter()
         .map(|f| to_location_identfier_string(&f.properties.name))
         .collect::<Vec<String>>();
-    let config_locations = config.places
+    let config_locations = config
+        .places
         .iter()
         .map(|(_, locations)| {
             locations
                 .iter()
-                .map(|(name, _)| name.clone())
-                .collect::<Vec<String>>()
+                .map(|(name, _)| name)
+                .cloned()
+                .collect::<Vec<Location>>()
         })
         .flatten()
-        .collect::<Vec<String>>();
-    let mut new_locations: Vec<String> = Vec::new();
+        .collect::<Vec<Location>>();
+    let mut new_locations: Vec<Location> = Vec::new();
     for loc in config_locations {
-        if !cities_locations.contains(&loc) && loc != "local" {
+        if !cities_locations.contains(&loc.to_string()) && loc != Location::Local {
             new_locations.push(loc);
         }
     }
@@ -287,7 +290,12 @@ fn write_trip(config: &Config, features: &[Feature]) -> Result<(), Error> {
                 if to_location_identfier_string(&location.properties.name) == city.to_string() {
                     match &location.geometry.coordinates {
                         Coordinates::Point(value) => coords.push(value.clone()),
-                        _ => return Err(failure::err_msg(format!("{} had LineString Coordinates", city.to_string()))),
+                        _ => {
+                            return Err(failure::err_msg(format!(
+                                "{} had LineString Coordinates",
+                                city.to_string()
+                            )));
+                        }
                     }
                     break;
                 }
@@ -313,27 +321,26 @@ fn write_trip(config: &Config, features: &[Feature]) -> Result<(), Error> {
 }
 
 fn country_details(
-    country_string: &str,
-    cca3: &HashMap<String, String>,
+    country_id: &Country,
+    cca3: &BTreeMap<String, String>,
 ) -> Result<(String, String), Error> {
     //let country = country_string.parse::<Country>()?;
-    let country_name = name_from_string(&country_string);
+    let country_name = name_from_string(&country_id.to_string());
     let country_code = cca3
         .get(&country_name)
         .ok_or_else(|| failure::err_msg(format!("{} does not exist in cca3.json", country_name)))?;
     Ok((country_name, country_code.to_string()))
 }
 
-fn location_details(location_string: &str) -> Result<(Location, String), Error> {
-    let location = location_string.parse::<Location>()?;
-    let mut location_name = name_from_string(&location_string);
-    if location_name.ends_with("City") && location != Location::HoChiMinhCity {
+fn location_name(location_id: &Location) -> Result<String, Error> {
+    let mut location_name = location_id.to_string();
+    if location_name.ends_with("City") && *location_id != Location::HoChiMinhCity {
         location_name.truncate(location_name.len() - 5);
     }
-    Ok((location, location_name))
+    Ok(location_name)
 }
 
-fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Result<(), Error> {
+fn construct_world(config: &Config, cca3: &BTreeMap<String, String>) -> Result<(), Error> {
     let pause = time::Duration::from_secs(1);
     let cities_buffer = OpenOptions::new()
         .read(true)
@@ -346,14 +353,14 @@ fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Res
             // Add new info to cities.json
             let mut cities: FeatureCollection = serde_json::from_reader(&buffer)?;
             let (new_countries, new_locations) = get_new_places(&cities, config, cca3);
-            for (country_string, locations) in &config.places {
-                if new_countries.contains(&country_string) {
-                    let (country_name, country_code) = country_details(&country_string, cca3)?;
-                    for (location_string, local_name) in
-                        locations.iter().filter(|(l, _)| *l != "local")
+            for (country_id, locations) in &config.places {
+                if new_countries.contains(&country_id) {
+                    let (country_name, country_code) = country_details(&country_id, cca3)?;
+                    for (location_id, local_name) in
+                        locations.iter().filter(|(l, _)| **l != Location::Local)
                     {
-                        if new_locations.contains(location_string) {
-                            let (location, location_name) = location_details(location_string)?;
+                        if new_locations.contains(location_id) {
+                            let location_name = location_name(location_id)?;
                             let coords = search(&format!("{}, {}", location_name, country_name))?;
 
                             let properties = Properties {
@@ -369,7 +376,7 @@ fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Res
                                 ]),
                             };
 
-                            println!("{} {:?}", location.to_string(), geometry.coordinates);
+                            println!("{} {:?}", location_id.to_string(), geometry.coordinates);
                             cities.features.push(Feature {
                                 type_: "Feature".to_string(),
                                 properties,
@@ -392,9 +399,10 @@ fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Res
             let mut features: Vec<Feature> = Vec::new();
             for (country_string, locations) in &config.places {
                 let (country_name, country_code) = country_details(&country_string, cca3)?;
-                for (location_string, local_name) in locations.iter().filter(|(l, _)| *l != "local")
+                for (location_id, local_name) in
+                    locations.iter().filter(|(l, _)| **l != Location::Local)
                 {
-                    let (location, location_name) = location_details(location_string)?;
+                    let location_name = location_name(&location_id)?;
                     let coords = search(&format!("{}, {}", location_name, country_name))?;
 
                     let properties = Properties {
@@ -404,10 +412,13 @@ fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Res
                     };
                     let geometry = Geometry {
                         type_: "Point".to_string(),
-                        coordinates: Coordinates::Point(vec![coords.lon.parse::<f32>()?, coords.lat.parse::<f32>()?]),
+                        coordinates: Coordinates::Point(vec![
+                            coords.lon.parse::<f32>()?,
+                            coords.lat.parse::<f32>()?,
+                        ]),
                     };
 
-                    println!("{} {:?}", location.to_string(), geometry.coordinates);
+                    println!("{} {:?}", location_id.to_string(), geometry.coordinates);
                     features.push(Feature {
                         type_: "Feature".to_string(),
                         properties,
@@ -425,9 +436,103 @@ fn construct_cities_json(config: &Config, cca3: &HashMap<String, String>) -> Res
             };
             let cities_create = File::create("world/cities.json")?;
             serde_json::to_writer(&cities_create, &cities)?;
-
         }
     };
+
+    println!("Building world.");
+    Command::new("topojson")
+        .arg("-o")
+        .arg("../dist/assets/world.json")
+        .arg("--id-property")
+        .arg("su_a3")
+        .arg("--properties")
+        .arg("name,localname,country")
+        .arg("--")
+        .arg("world/countries.json")
+        .arg("world/cities.json")
+        .arg("world/trips.json")
+        .status()?;
+    Ok(())
+}
+
+fn construct_manifest(config: &Config, cca3: &BTreeMap<String, String>) -> Result<(), Error> {
+    let mut manifest = File::create("Manifest.elm")?;
+    writeln!(manifest, "module Manifest exposing (..)")?;
+
+    write_countries(&mut manifest, config, cca3)?;
+
+    Ok(())
+}
+
+fn write_countries(
+    manifest: &mut File,
+    config: &Config,
+    cca3: &BTreeMap<String, String>,
+) -> Result<(), Error> {
+    writeln!(manifest, "-- COUNTRIES")?;
+    writeln!(manifest, "type Country")?;
+    let mut idx = 0;
+    for (cntry, _) in &config.places {
+        if idx != 0 {
+            writeln!(manifest, "    | {}", cntry)?;
+        } else {
+            writeln!(manifest, "    = {}", cntry)?;
+        }
+        idx += 1;
+    }
+
+    writeln!(manifest, "countryList : List Country")?;
+    writeln!(manifest, "countryList =")?;
+    idx = 0;
+    for (cntry, _) in &config.places {
+        if idx != 0 {
+            writeln!(manifest, "    , {}", cntry)?;
+        } else {
+            writeln!(manifest, "    [ {}", cntry)?;
+        }
+        idx += 1;
+    }
+    writeln!(manifest, "    ]")?;
+
+    writeln!(manifest, "countryId : Country -> String")?;
+    writeln!(manifest, "countryId country =")?;
+    writeln!(manifest, "    case country of")?;
+    for (cntry, _) in &config.places {
+        let (_, code) = country_details(cntry, &cca3)?;
+        writeln!(manifest, "        {} ->", cntry)?;
+        writeln!(manifest, "            \"{}\"", code)?;
+    }
+
+    writeln!(manifest, "countryName : Country -> String")?;
+    writeln!(manifest, "countryName country =")?;
+    writeln!(manifest, "    case country of")?;
+    for (cntry, _) in &config.places {
+        let (name, _) = country_details(cntry, &cca3)?;
+        writeln!(manifest, "        {} ->", cntry)?;
+        writeln!(manifest, "            \"{}\"", name)?;
+    }
+
+    writeln!(manifest, "stringToCountry : String -> Maybe Country")?;
+    writeln!(manifest, "stringToCountry country =")?;
+    writeln!(manifest, "    case country of")?;
+    for (cntry, _) in &config.places {
+        let (name, _) = country_details(cntry, &cca3)?;
+        writeln!(manifest, "        \"{}\" ->", name)?;
+        writeln!(manifest, "            Just {}", cntry)?;
+    }
+
+    writeln!(manifest, "countryLocalName : Country -> Maybe String")?;
+    writeln!(manifest, "countryLocalName country =")?;
+    writeln!(manifest, "    case country of")?;
+    for (cntry, locations) in &config.places {
+        if let Some(Some(local)) = locations.get(&Location::Local) {
+            writeln!(manifest, "        {} ->", cntry)?;
+            writeln!(manifest, "            Just \"{}\"", local)?;
+        };
+    }
+    writeln!(manifest, "        _ ->")?;
+    writeln!(manifest, "            Nothing")?;
+
     Ok(())
 }
 
@@ -465,25 +570,11 @@ fn main() -> Result<(), Error> {
     let cca3_read: CountryCodes = serde_json::from_reader(cca3_file)?;
     let cca3 = &cca3_read.codes;
 
-    construct_cities_json(&config, &cca3)?;
+    construct_world(&config, &cca3)?;
 
-    println!("Building world.");
-    Command::new("topojson")
-        .arg("-o")
-        .arg("../dist/assets/world.json")
-        .arg("--id-property")
-        .arg("su_a3")
-        .arg("--properties")
-        .arg("name,localname,country")
-        .arg("--")
-        .arg("world/countries.json")
-        .arg("world/cities.json")
-        .arg("world/trips.json")
-        .status()?;
+    construct_manifest(&config, &cca3)?;
 
     return Ok(()); // Temporary whilst we build the automation.
-
-    let mut manifest = File::create("Manifest.elm")?;
 
     for file in bar.wrap_iter(walker) {
         bar.set_message(
@@ -556,16 +647,16 @@ fn main() -> Result<(), Error> {
             .and_then(|p| p.to_str())
             .ok_or_else(|| failure::err_msg("Year unwrap issue."))?;
 
-        write!(
-            manifest,
-            ",Image \"{}\" (Date {} {:?}) {:?} {:.3} \"{}\"\n",
-            name,
-            year,
-            month,
-            location,
-            ratio,
-            description.trim()
-        )?;
+        //      write!(
+        //          manifest,
+        //          ",Image \"{}\" (Date {} {:?}) {:?} {:.3} \"{}\"\n",
+        //          name,
+        //          year,
+        //          month,
+        //          location,
+        //          ratio,
+        //          description.trim()
+        //      )?;
     }
     bar.finish();
 
@@ -573,7 +664,7 @@ fn main() -> Result<(), Error> {
 }
 
 macro_attr! {
-    #[derive(Debug, PartialEq, EnumFromStr!, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, EnumFromStr!, Serialize, Deserialize)]
     enum Country {
         Armenia,
         Australia,
@@ -607,8 +698,9 @@ macro_attr! {
 }
 
 macro_attr! {
-    #[derive(Debug, PartialEq, EnumFromStr!, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, EnumFromStr!, Serialize, Deserialize)]
     enum Location {
+        Local,
         Amsterdam,
         Are,
         Athens,

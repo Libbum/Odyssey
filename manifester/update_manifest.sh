@@ -11,10 +11,11 @@ awk -v countries="$countries" '
     /^    }/     {p=1}
     p' src/main.rs > new_countries.rs
 
-locations=$(rg -oN '^\s+{4}(\w+)' -r '$1' odyssey.yaml | rg -v 'local|cities|dates|description' | sort | sed 's/^/        /;s/$/,/');
+locations=$(rg -oN '^\s+{4}(\w+)' -r '$1' odyssey.yaml | rg -v 'Local|cities|dates|description' | sort | sed 's/^/        /;s/$/,/');
+local="        Local,\n"
 
 echo "Updating Locations list in manifester"
-awk -v locations="$locations" '
+awk -v locations="$local$locations" '
     BEGIN       {p=1}
     /^    enum Location {/   {print;print locations;p=0}
     /^    }/     {p=1}

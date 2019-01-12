@@ -9,7 +9,6 @@ image = "0.20"
 indicatif = "0.9"
 globwalk = "0.5"
 failure = "0.1"
-hashbrown = { version = "0.1", features = ["serde"] }
 reqwest = "0.9"
 macro-attr = "0.2"
 enum_derive = "0.1.7"
