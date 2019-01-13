@@ -14,6 +14,7 @@ extern crate serde_json;
 extern crate serde_yaml;
 
 use failure::Error;
+use globwalk::DirEntry;
 use image::FilterType::Lanczos3;
 use image::GenericImageView;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -174,7 +175,7 @@ fn search(place_name: &str) -> Result<LatLon, Error> {
 
 fn to_location_identfier_string(from: &str) -> String {
     let mut identifier = from.clone().to_string();
-    identifier.retain(|c| c != ' ');
+    identifier.retain(|c| c != ' ' && c != '_');
     if identifier == "Singapore" || identifier == "HongKong" {
         identifier.push_str("City");
     }
@@ -414,6 +415,7 @@ fn construct_manifest(
     cca3: &BTreeMap<String, String>,
     locations_information: &[LocationInformation],
 ) -> Result<(), Error> {
+    println!("Building Manifest.");
     let mut manifest = File::create("Manifest.elm")?;
     writeln!(manifest, "module Manifest exposing (..)")?;
 
@@ -427,8 +429,13 @@ fn construct_manifest(
     write_trips(&mut manifest, config)?;
 
     writeln!(manifest, "-- MANIFEST")?;
-    write_manifest(&mut manifest, config)?;
+    write_manifest(&mut manifest)?;
 
+    Command::new("elm-format")
+        .arg("--elm-version=0.19")
+        .arg("--yes")
+        .arg("Manifest.elm")
+        .status()?;
     Ok(())
 }
 
@@ -708,13 +715,7 @@ fn write_trips(manifest: &mut File, config: &Config) -> Result<(), Error> {
     Ok(())
 }
 
-fn write_manifest(manifest: &mut File, config: &Config) -> Result<(), Error> {
-    //writeln!(manifest, "manifest : List Image")?;
-    //writeln!(manifest, "manifest =")?;
-    Ok(())
-}
-
-fn main() -> Result<(), Error> {
+fn write_manifest(manifest: &mut File) -> Result<(), Error> {
     // Ignore the thumbnails and blurs at this point. We will check for them later.
     let walker = globwalk::GlobWalkerBuilder::from_patterns(
         "../dist/gallery/",
@@ -723,38 +724,20 @@ fn main() -> Result<(), Error> {
     .follow_links(true)
     .build()?
     .into_iter()
-    .filter_map(Result::ok);
-
-    // This is a little annoying, we can't size_hint this iterator, so we must count it.
-    let progcount = globwalk::GlobWalkerBuilder::from_patterns(
-        "../dist/gallery/",
-        &["*.{png,jpg,jpeg,PNG,JPG,JPEG}", "!*_small*", "!*_blur*"],
-    )
-    .follow_links(true)
-    .build()?
-    .into_iter()
     .filter_map(Result::ok)
-    .count() as u64;
+    .collect::<Vec<DirEntry>>();
+
+    let progcount = walker.len() as u64;
     let bar = ProgressBar::new(progcount);
     bar.set_style(
         ProgressStyle::default_bar()
             .template("[{elapsed_precise}] {bar:25.cyan/blue} {pos:>5}/{len:5} {msg}"),
     );
 
-    let config_file = File::open("odyssey.yaml")?;
-    let config: Config = serde_yaml::from_reader(config_file)?;
+    writeln!(manifest, "manifest : List Image")?;
+    writeln!(manifest, "manifest =")?;
 
-    let cca3_file = File::open("world/cca3.json")?;
-    let cca3_read: CountryCodes = serde_json::from_reader(cca3_file)?;
-    let cca3 = &cca3_read.codes;
-
-    let locations_information = construct_world(&config, &cca3)?;
-
-    construct_manifest(&config, &cca3, &locations_information)?;
-
-    return Ok(()); // Temporary whilst we build the automation.
-
-    for file in bar.wrap_iter(walker) {
+    for (idx, file) in bar.wrap_iter(walker.iter().enumerate()) {
         bar.set_message(
             &file
                 .path()
@@ -809,12 +792,12 @@ fn main() -> Result<(), Error> {
             .next()
             .and_then(|p| p.to_str())
             .ok_or_else(|| failure::err_msg("File name unwrap issue."))?;
-        let location = path_iter
+        let location_str = path_iter
             .next()
             .and_then(|p| p.to_str())
-            .ok_or_else(|| failure::err_msg("Location unwrap issue."))?
-            .parse::<Location>()?;
-        let _country = path_iter.next(); // We can parse this later if we choose to generate location data here too. Don't need it now.
+            .ok_or_else(|| failure::err_msg("Location unwrap issue."))?;
+        let location = to_location_identfier_string(&location_str).parse::<Location>()?;
+        let _country = path_iter.next();
         let month = path_iter
             .next()
             .and_then(|p| p.to_str())
@@ -825,18 +808,49 @@ fn main() -> Result<(), Error> {
             .and_then(|p| p.to_str())
             .ok_or_else(|| failure::err_msg("Year unwrap issue."))?;
 
-        //      write!(
-        //          manifest,
-        //          ",Image \"{}\" (Date {} {:?}) {:?} {:.3} \"{}\"\n",
-        //          name,
-        //          year,
-        //          month,
-        //          location,
-        //          ratio,
-        //          description.trim()
-        //      )?;
+        if idx != 0 {
+            write!(
+                manifest,
+                "    , Image \"{}\" (Date {} {:?}) {:?} {:.3} \"{}\"\n",
+                name,
+                year,
+                month,
+                location,
+                ratio,
+                description.trim()
+            )?;
+        } else {
+            write!(
+                manifest,
+                "    [ Image \"{}\" (Date {} {:?}) {:?} {:.3} \"{}\"\n",
+                name,
+                year,
+                month,
+                location,
+                ratio,
+                description.trim()
+            )?;
+        }
     }
+    writeln!(manifest, "    ]")?;
     bar.finish();
+
+    Ok(())
+}
+
+fn main() -> Result<(), Error> {
+    let config_file = File::open("odyssey.yaml")?;
+    let config: Config = serde_yaml::from_reader(config_file)?;
+
+    let cca3_file = File::open("world/cca3.json")?;
+    let cca3_read: CountryCodes = serde_json::from_reader(cca3_file)?;
+    let cca3 = &cca3_read.codes;
+
+    let locations_information = construct_world(&config, &cca3)?;
+
+    construct_manifest(&config, &cca3, &locations_information)?;
+
+    println!("World and Manifest builds complete.");
 
     Ok(())
 }
