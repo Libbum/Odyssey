@@ -1,8 +1,9 @@
-#![recursion_limit = "256"]
+#![recursion_limit = "1024"]
 extern crate failure;
 extern crate globwalk;
 extern crate image;
 extern crate indicatif;
+extern crate rayon;
 extern crate reqwest;
 #[macro_use]
 extern crate enum_derive;
@@ -25,7 +26,8 @@ use std::io::{Read, Write};
 use std::iter::FromIterator;
 use std::process::Command;
 use std::str::FromStr;
-use std::{fmt, thread, time};
+use std::time::Duration;
+use std::{fmt, thread};
 
 static NOMINATIM_ENDPOINT: &str = "http://nominatim.openstreetmap.org";
 const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
@@ -276,7 +278,7 @@ fn construct_world(
     config: &Config,
     cca3: &BTreeMap<String, String>,
 ) -> Result<Vec<LocationInformation>, Error> {
-    let pause = time::Duration::from_secs(1);
+    let pause = Duration::from_secs(1);
     let cities_buffer = OpenOptions::new()
         .read(true)
         .write(true)
@@ -754,46 +756,60 @@ fn write_manifest(manifest: &mut File) -> Result<(), Error> {
     writeln!(manifest, "manifest =")?;
 
     for (idx, file) in bar.wrap_iter(walker.iter().enumerate()) {
-        bar.set_message(
-            &file
-                .path()
-                .strip_prefix("../dist/gallery/")?
-                .to_str()
-                .unwrap_or_default(),
-        );
+        let bar_msg = file
+            .path()
+            .strip_prefix("../dist/gallery/")?
+            .to_str()
+            .unwrap_or_default();
+        if bar_msg.len() > 50 {
+            let msg = bar_msg.split('/').collect::<Vec<&str>>();
+            bar.set_message(&format!(".../.../{}", msg.last().unwrap()));
+        } else {
+            bar.set_message(&bar_msg);
+        }
+
         // Open image and grab its dimensions.
         let img = image::open(&file.path())?;
         let (width, height) = img.dimensions();
         let ratio = width as f64 / height as f64;
-
-        // Generate a thumbnail and blur if they doesn't already exist.
-        let stem = file
-            .path()
-            .file_stem()
-            .and_then(|p| p.to_str())
-            .ok_or_else(|| failure::err_msg("File stem unwrap issue."))?;
-        let ext = file
-            .path()
-            .extension()
-            .and_then(|p| p.to_str())
-            .ok_or_else(|| failure::err_msg("Extension unwrap issue."))?;
-        let thumbnail = format!("{}_small.{}", stem, ext);
-        let blur = format!("{}_blur.{}", stem, ext);
-        let thumb_width = if ratio < 3.0 { 500 } else { 900 };
-        if !file.path().with_file_name(&thumbnail).exists()
-            && !file.path().with_file_name(&blur).exists()
-        {
-            let thumb = img.resize(thumb_width, 500, Lanczos3);
-            thumb.save(file.path().with_file_name(thumbnail))?;
-            thumb.blur(30.0).save(file.path().with_file_name(blur))?;
-        } else if !file.path().with_file_name(&thumbnail).exists() {
-            img.resize(thumb_width, 500, Lanczos3)
-                .save(file.path().with_file_name(thumbnail))?;
-        } else {
-            img.resize(thumb_width, 500, Lanczos3)
-                .blur(30.0)
-                .save(file.path().with_file_name(blur))?;
-        }
+        let afile = file.clone();
+        rayon::spawn(move || {
+            // Generate a thumbnail and blur if they doesn't already exist.
+            let stem = afile
+                .path()
+                .file_stem()
+                .and_then(|p| p.to_str())
+                .expect("File stem unwrap issue.");
+            let ext = afile
+                .path()
+                .extension()
+                .and_then(|p| p.to_str())
+                .expect("Extension unwrap issue.");
+            let thumbnail = format!("{}_small.{}", stem, ext);
+            let blur = format!("{}_blur.{}", stem, ext);
+            let thumb_width = if ratio < 3.0 { 500 } else { 900 };
+            if !afile.path().with_file_name(&thumbnail).exists()
+                && !afile.path().with_file_name(&blur).exists()
+            {
+                let thumb = img.resize(thumb_width, 500, Lanczos3);
+                thumb
+                    .save(afile.path().with_file_name(thumbnail))
+                    .expect("Failed to save thumbnail.");
+                thumb
+                    .blur(30.0)
+                    .save(afile.path().with_file_name(blur))
+                    .expect("Failed to save blur.");
+            } else if !afile.path().with_file_name(&thumbnail).exists() {
+                img.resize(thumb_width, 500, Lanczos3)
+                    .save(afile.path().with_file_name(thumbnail))
+                    .expect("Failed to save thumbnail.");
+            } else if !afile.path().with_file_name(&blur).exists() {
+                img.resize(thumb_width, 500, Lanczos3)
+                    .blur(30.0)
+                    .save(afile.path().with_file_name(blur))
+                    .expect("Failed to save blur.");
+            }
+        });
 
         // Get image decription if it exists, create file if not.
         let mut description = String::new();
@@ -855,6 +871,10 @@ fn write_manifest(manifest: &mut File) -> Result<(), Error> {
 }
 
 fn main() -> Result<(), Error> {
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(14)
+        .build_global()?;
+
     let config_file = File::open("odyssey.yaml")?;
     let config: Config = serde_yaml::from_reader(config_file)?;
 
