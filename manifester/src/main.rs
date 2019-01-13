@@ -416,8 +416,8 @@ fn construct_manifest(
     locations_information: &[LocationInformation],
 ) -> Result<(), Error> {
     println!("Building Manifest.");
-    let mut manifest = File::create("Manifest.elm")?;
-    writeln!(manifest, "module Manifest exposing (..)")?;
+    let mut manifest = File::create("../src/Manifest.elm")?;
+    writeln!(manifest, "module Manifest exposing (Country(..), Date, Image, Location(..), Month(..), Trip(..), Year, countryId, countryList, countryLocalName, countryName, locationInformation, locationList, locationLocalName, manifest, stringToCountry, stringToLocation, stringToTrip, tripInformation, tripList)")?;
 
     writeln!(manifest, "-- COUNTRIES")?;
     write_countries(&mut manifest, config, cca3)?;
@@ -434,7 +434,7 @@ fn construct_manifest(
     Command::new("elm-format")
         .arg("--elm-version=0.19")
         .arg("--yes")
-        .arg("Manifest.elm")
+        .arg("../src/Manifest.elm")
         .status()?;
     Ok(())
 }
@@ -472,7 +472,7 @@ fn write_countries(
     writeln!(manifest, "countryId country =")?;
     writeln!(manifest, "    case country of")?;
     for (cntry, _) in &config.places {
-        writeln!(manifest, "        {} ->", cntry.name())?;
+        writeln!(manifest, "        {} ->", cntry)?;
         writeln!(manifest, "            \"{}\"", cntry.code(&cca3)?)?;
     }
 
@@ -586,10 +586,18 @@ fn write_locations(
     writeln!(manifest, "locationInformation location =")?;
     writeln!(manifest, "    case location of")?;
     for info in locations_information {
+        let lon = info
+            .coordinates
+            .get(0)
+            .ok_or_else(|| failure::err_msg("No longitude value in coordinates"))?;
+        let lat = info
+            .coordinates
+            .get(1)
+            .ok_or_else(|| failure::err_msg("No latitude value in coordinates"))?;
         writeln!(manifest, "    {} ->", info.id)?;
         writeln!(manifest, "    {{ name = \"{}\"", info.name)?;
         writeln!(manifest, "    , country = {}", info.country)?;
-        writeln!(manifest, "    , coordinates = {:?}", info.coordinates)?;
+        writeln!(manifest, "    , coordinates = ( {:.3}, {:.3} )", lon, lat)?;
         writeln!(manifest, "    }}")?;
     }
     Ok(())
@@ -733,6 +741,14 @@ fn write_manifest(manifest: &mut File) -> Result<(), Error> {
         ProgressStyle::default_bar()
             .template("[{elapsed_precise}] {bar:25.cyan/blue} {pos:>5}/{len:5} {msg}"),
     );
+
+    writeln!(manifest, "type alias Image =")?;
+    writeln!(manifest, "    {{ file : String")?;
+    writeln!(manifest, "    , date : Date")?;
+    writeln!(manifest, "    , location : Location")?;
+    writeln!(manifest, "    , aspectRatio : Float")?;
+    writeln!(manifest, "    , description : String")?;
+    writeln!(manifest, "    }}")?;
 
     writeln!(manifest, "manifest : List Image")?;
     writeln!(manifest, "manifest =")?;
@@ -1068,7 +1084,14 @@ impl fmt::Display for Location {
 
 impl Location {
     fn name(&self) -> String {
-        let mut location_name = self.to_string();
+        let mut name: Vec<char> = Vec::new();
+        for (idx, c) in self.to_string().char_indices() {
+            if idx > 0 && c.is_uppercase() {
+                name.push(' ');
+            }
+            name.push(c);
+        }
+        let mut location_name = String::from_iter(name);
         if location_name.ends_with("City") && *self != Location::HoChiMinhCity {
             location_name.truncate(location_name.len() - 5);
         }

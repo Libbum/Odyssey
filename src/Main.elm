@@ -3,6 +3,7 @@ module Main exposing (main)
 import Browser
 import Browser.Dom exposing (getViewport, getViewportOf, setViewport)
 import Browser.Events
+import Gallery exposing (Filter(..))
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
@@ -10,7 +11,7 @@ import Html.Events.Extra.Touch as Touch
 import Icons
 import Json.Decode as Decode exposing (Decoder)
 import List.Zipper as Zipper exposing (Zipper)
-import Manifest exposing (Country(..), Filter(..), Image, Location(..), Trip(..), blurURL, countryId, countryNames, filterImages, imageURL, locale, locationCoordinates, locationNames, manifest, sortImages, stringToCountry, stringToLocation, stringToTrip, thumbURL, tripId, tripNames)
+import Manifest exposing (Country(..), Image, Location(..), Month(..), Trip(..), manifest)
 import Partition exposing (KPartition, greedyK)
 import Ports exposing (nearBottom)
 import Svg
@@ -207,7 +208,7 @@ update msg model =
                                 0
 
                         ratios =
-                            getRatios <| filterImages model.filter model.images
+                            getRatios <| Gallery.filterImages model.filter model.images
 
                         rowsGuess =
                             -- So we have the old veiwport, and we need to figure out if our new
@@ -722,11 +723,11 @@ displayImage image w h =
     -- Note the - 8 here on the width is to take into account the two 4px margins in the css
     -- We also send in a float as the width attribute to clean up the right edge
     Html.img
-        [ src (thumbURL image)
+        [ src (Gallery.thumbURL image)
         , Html.Attributes.attribute "width" (String.fromFloat <| w - 8.0)
         , height h
         , onClick (ZoomImage <| Just image)
-        , onMouseEnter (PutLocale <| locale image)
+        , onMouseEnter (PutLocale <| Gallery.locale image)
         , onMouseLeave PopLocale
         ]
         []
@@ -773,9 +774,9 @@ zoomImage image showControls showPrevious showNext showDescription =
             }
     in
     div [ Html.Attributes.class "zoombox" ]
-        [ Html.img [ Html.Attributes.class "blur", src (blurURL image) ] []
+        [ Html.img [ Html.Attributes.class "blur", src (Gallery.blurURL image) ] []
         , Html.img
-            [ src (imageURL image)
+            [ src (Gallery.imageURL image)
             , Html.Attributes.class "zoom"
             ]
             []
@@ -828,8 +829,8 @@ singleImageSize images =
 buildLayout : List Image -> Filter -> Maybe (Zipper Image)
 buildLayout images filter =
     images
-        |> filterImages filter
-        |> sortImages
+        |> Gallery.filterImages filter
+        |> Gallery.sortImages
         |> Zipper.fromList
 
 
@@ -971,13 +972,13 @@ filterMenu ( radio, selected ) =
                     ( "hidden", [], "" )
 
                 RadioLocation ->
-                    ( "visible", locationNames, "Location" )
+                    ( "visible", Gallery.locationNames, "Location" )
 
                 RadioCountry ->
-                    ( "visible", countryNames, "Country" )
+                    ( "visible", Gallery.countryNames, "Country" )
 
                 RadioTrip ->
-                    ( "visible", tripNames, "Trip" )
+                    ( "visible", Gallery.tripNames, "Trip" )
     in
     Html.select [ Html.Events.onInput SetSelection, Html.Attributes.class visible ] <|
         Html.option [ Html.Attributes.hidden True, Html.Attributes.selected (selected == "") ] [ Html.text ("— Select a " ++ name ++ " —") ]
@@ -996,7 +997,7 @@ newFilter ( radio, selected ) current =
             All
 
         RadioCountry ->
-            case stringToCountry selected of
+            case Manifest.stringToCountry selected of
                 Just country ->
                     ByCountry country
 
@@ -1004,7 +1005,7 @@ newFilter ( radio, selected ) current =
                     current
 
         RadioLocation ->
-            case stringToLocation selected of
+            case Manifest.stringToLocation selected of
                 Just location ->
                     ByLocation location
 
@@ -1012,7 +1013,7 @@ newFilter ( radio, selected ) current =
                     current
 
         RadioTrip ->
-            case stringToTrip selected of
+            case Manifest.stringToTrip selected of
                 Just trip ->
                     ByTrip trip
 
@@ -1103,9 +1104,9 @@ updateMap : Radio -> String -> Bool -> Cmd msg
 updateMap radio selected clearPrevious =
     case radio of
         RadioTrip ->
-            case stringToTrip selected of
+            case Manifest.stringToTrip selected of
                 Just trip ->
-                    Ports.viewTrip (tripId trip)
+                    Ports.viewTrip (Gallery.tripId trip)
 
                 _ ->
                     Cmd.none
@@ -1120,11 +1121,11 @@ updateMap radio selected clearPrevious =
                         False ->
                             Ports.showLocation
             in
-            case stringToLocation selected of
+            case Manifest.stringToLocation selected of
                 Just location ->
                     let
                         coordinates =
-                            locationCoordinates location
+                            Gallery.locationCoordinates location
                     in
                     port_ ( String.replace " " "_" selected, [ negate <| Tuple.first coordinates, negate <| Tuple.second coordinates ] )
 
@@ -1132,9 +1133,9 @@ updateMap radio selected clearPrevious =
                     port_ ( "", [] )
 
         RadioCountry ->
-            case stringToCountry selected of
+            case Manifest.stringToCountry selected of
                 Just country ->
-                    Ports.viewCountry (countryId country)
+                    Ports.viewCountry (Manifest.countryId country)
 
                 Nothing ->
                     Cmd.none

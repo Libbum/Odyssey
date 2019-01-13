@@ -2,11 +2,10 @@
 elm-stuff
 # elm-repl generated files
 repl-temp-*
-manifest.json
-gallery
+dist/gallery
 iridescence*.js
 dist/assets/js/
 manifester/target
 manifester/world/cities.json
 manifester/world/trips.json
-manifester/Manifest.elm
+src/Manifest.elm
