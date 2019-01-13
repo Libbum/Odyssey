@@ -5,6 +5,7 @@ repl-temp-*
 dist/gallery
 iridescence*.js
 dist/assets/js/
+dist/assets/world.json
 manifester/target
 manifester/world/cities.json
 manifester/world/trips.json

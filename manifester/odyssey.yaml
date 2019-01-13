@@ -14,6 +14,8 @@ places:
     Yerevan: Երևան
   Australia:
     Melbourne:
+    Mooroopna:
+    Shepparton:
     Sydney:
   Austria:
     Local: Österreich
@@ -124,12 +126,14 @@ places:
     Local: Sverige
     Are: Åre
     Gothenburg: Göteborg
+    Visby:
     Helsingborg:
     Kinnekulle:
     Lund:
     Ostersund: Östersund
     Revsund:
     Stockholm:
+    StoraKarlso: Stora Karlsö
     Trollhattan: Trollhättan
     Umea: Umeå
   Thailand:
@@ -336,6 +340,22 @@ trips:
       - Bratislava
       - Warsaw
       - Stockholm
+      - Visby
+      - StoraKarlso
+      - Visby
+      - Stockholm
+      - Doha
+      - Melbourne
+      - Shepparton
+      - Mooroopna
+      - Melbourne
+      - Doha
+      - Stockholm
+      - Bremen
+      - Stockholm
     dates:
       - 2018/06
       - 2018/07
+      - 2018/08
+      - 2018/09
+      - 2018/10
