@@ -1,7 +1,7 @@
 module Gallery exposing (Filter(..), blurURL, countryNames, filterImages, imageURL, locale, locationCoordinates, locationNames, sortImages, thumbURL, tripId, tripNames)
 
 import List.Extra exposing (unconsLast)
-import Manifest exposing (Country(..), Image, Location(..), Month(..), Trip(..), Year)
+import Manifest exposing (Country(..), Date, Image, Location(..), Month(..), Trip(..), Year)
 import Ordering exposing (Ordering)
 
 
@@ -88,23 +88,70 @@ locale image =
 
         countryString =
             Manifest.countryName info.country
+
+        date =
+            dateString image.date
     in
     case Manifest.countryLocalName info.country of
         Just localCountry ->
             case Manifest.locationLocalName image.location of
                 Just localLocation ->
-                    ( localLocation ++ ", " ++ localCountry ++ " (" ++ info.name ++ ", " ++ countryString ++ ")", info.name )
+                    ( localLocation ++ ", " ++ localCountry ++ " (" ++ info.name ++ ", " ++ countryString ++ "). " ++ date, info.name )
 
                 Nothing ->
-                    ( info.name ++ ", " ++ countryString ++ " (" ++ localCountry ++ ")", info.name )
+                    ( info.name ++ ", " ++ countryString ++ " (" ++ localCountry ++ "). " ++ date, info.name )
 
         Nothing ->
             case Manifest.locationLocalName image.location of
                 Just localLocation ->
-                    ( localLocation ++ " (" ++ info.name ++ "), " ++ countryString, info.name )
+                    ( localLocation ++ " (" ++ info.name ++ "), " ++ countryString ++ ". " ++ date, info.name )
 
                 Nothing ->
-                    ( info.name ++ ", " ++ countryString, info.name )
+                    ( info.name ++ ", " ++ countryString ++ ". " ++ date, info.name )
+
+
+dateString : Date -> String
+dateString date =
+    let
+        monthString =
+            case date.month of
+                Jan ->
+                    "Jan "
+
+                Feb ->
+                    "Feb "
+
+                Mar ->
+                    "Mar "
+
+                Apr ->
+                    "Apr "
+
+                May ->
+                    "May "
+
+                Jun ->
+                    "Jun "
+
+                Jul ->
+                    "Jul "
+
+                Aug ->
+                    "Aug "
+
+                Sep ->
+                    "Sep "
+
+                Oct ->
+                    "Oct "
+
+                Nov ->
+                    "Nov "
+
+                Dec ->
+                    "Dec "
+    in
+    monthString ++ String.fromInt date.year
 
 
 tripNames : List String

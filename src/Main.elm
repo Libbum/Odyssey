@@ -739,7 +739,11 @@ zoomImage image showControls showPrevious showNext showDescription =
         ( description, descriptionIcon ) =
             case showDescription of
                 True ->
-                    ( div [ Html.Attributes.class "description" ] [ Html.text image.description ], Html.Attributes.class "" )
+                    let
+                        ( locale, _ ) =
+                            Gallery.locale image
+                    in
+                    ( div [ Html.Attributes.class "description" ] [ Html.text locale, Html.br [] [], Html.text image.description ], Html.Attributes.class "" )
 
                 _ ->
                     ( Html.text "", Html.Attributes.class "desc-off" )
