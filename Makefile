@@ -23,7 +23,7 @@ build: dist/assets/js/odyssey.min.js prodindex
 rebuild: clean build
 
 manifest: manifester/odyssey.yaml manifester/world/cca3.json manifester/world/countries.json
-	cd manifester; update_manifest.sh; cargo run --release; cd ..
+	cd manifester; ./update_manifest.sh; cargo run --release; cd ..
 
 serve: dist/assets/js/init.js debugindex
 	elm-live src/Main.elm -d dist --open -- --output=dist/assets/js/odyssey.js --optimize
