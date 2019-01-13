@@ -84,6 +84,14 @@ struct Trip {
     dates: Vec<String>,
 }
 
+impl Trip {
+    fn id_string(&self) -> String {
+        let mut id = self.description.to_string();
+        id.retain(|c| c != ' ' && c != '/');
+        id
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct FeatureCollection {
     #[serde(rename = "type")]
@@ -164,17 +172,6 @@ fn search(place_name: &str) -> Result<LatLon, Error> {
     Ok(first)
 }
 
-fn name_from_string(from: &str) -> String {
-    let mut name: Vec<char> = Vec::new();
-    for (idx, c) in from.char_indices() {
-        if idx > 0 && c.is_uppercase() {
-            name.push(' ');
-        }
-        name.push(c);
-    }
-    String::from_iter(name)
-}
-
 fn to_location_identfier_string(from: &str) -> String {
     let mut identifier = from.clone().to_string();
     identifier.retain(|c| c != ' ');
@@ -253,7 +250,7 @@ fn write_trip(config: &Config, features: &[Feature]) -> Result<(), Error> {
         };
         let mut coords: Vec<Vec<f32>> = Vec::new();
         for city in &trip.cities {
-            coords.push(coordinates_from_features(&features, &city)?);
+            coords.push(city.feature_coordinates(&features)?);
         }
         let geometry = Geometry {
             type_: "LineString".to_string(),
@@ -274,45 +271,6 @@ fn write_trip(config: &Config, features: &[Feature]) -> Result<(), Error> {
     Ok(())
 }
 
-fn country_details(
-    country_id: &Country,
-    cca3: &BTreeMap<String, String>,
-) -> Result<(String, String), Error> {
-    //let country = country_string.parse::<Country>()?;
-    let country_name = name_from_string(&country_id.to_string());
-    let country_code = cca3
-        .get(&country_name)
-        .ok_or_else(|| failure::err_msg(format!("{} does not exist in cca3.json", country_name)))?;
-    Ok((country_name, country_code.to_string()))
-}
-
-fn location_name(location_id: &Location) -> Result<String, Error> {
-    let mut location_name = location_id.to_string();
-    if location_name.ends_with("City") && *location_id != Location::HoChiMinhCity {
-        location_name.truncate(location_name.len() - 5);
-    }
-    Ok(location_name)
-}
-fn coordinates_from_features(features: &[Feature], location: &Location) -> Result<Vec<f32>, Error> {
-    for feature in features {
-        if to_location_identfier_string(&feature.properties.name) == location.to_string() {
-            match &feature.geometry.coordinates {
-                Coordinates::Point(coords) => return Ok(coords.clone()),
-                _ => {
-                    return Err(failure::err_msg(format!(
-                        "{} does not have Point coordinates.",
-                        location
-                    )));
-                }
-            };
-        }
-    }
-    Err(failure::err_msg(format!(
-        "Could not find coordinates for {}.",
-        location
-    )))
-}
-
 fn construct_world(
     config: &Config,
     cca3: &BTreeMap<String, String>,
@@ -330,21 +288,20 @@ fn construct_world(
             // Add new info to cities.json
             let mut cities: FeatureCollection = serde_json::from_reader(&buffer)?;
             let (new_countries, new_locations) = get_new_places(&cities, config, cca3);
-            for (country_id, locations) in &config.places {
-                if new_countries.contains(&country_id) {
-                    let (country_name, country_code) = country_details(&country_id, cca3)?;
-                    for (location_id, local_name) in
+            for (country, locations) in &config.places {
+                if new_countries.contains(&country) {
+                    for (location, local_name) in
                         locations.iter().filter(|(l, _)| **l != Location::Local)
                     {
-                        let location_name = location_name(&location_id)?;
-                        let coordinates = if new_locations.contains(location_id) {
-                            let coords = search(&format!("{}, {}", location_name, country_name))?;
+                        let coordinates = if new_locations.contains(location) {
+                            let coords =
+                                search(&format!("{}, {}", location.name(), country.name()))?;
                             thread::sleep(pause); //We can't hammer the Nominatim server.
 
                             let properties = Properties {
-                                name: location_name.clone(),
+                                name: location.name(),
                                 localname: local_name.to_owned(),
-                                country: Some(country_code.to_string()),
+                                country: Some(country.code(&cca3)?),
                             };
                             let coordinates =
                                 vec![coords.lon.parse::<f32>()?, coords.lat.parse::<f32>()?];
@@ -353,7 +310,7 @@ fn construct_world(
                                 coordinates: Coordinates::Point(coordinates.clone()),
                             };
 
-                            println!("{} {:?}", location_id.to_string(), geometry.coordinates);
+                            println!("{} {:?}", location.to_string(), geometry.coordinates);
                             cities.features.push(Feature {
                                 type_: "Feature".to_string(),
                                 properties,
@@ -361,25 +318,22 @@ fn construct_world(
                             });
                             coordinates
                         } else {
-                            coordinates_from_features(&cities.features, &location_id)?
+                            location.feature_coordinates(&cities.features)?
                         };
                         locations_details.push(LocationInformation {
-                            id: location_id.clone(),
-                            name: location_name,
-                            country: country_id.clone(),
+                            id: location.clone(),
+                            name: location.name(),
+                            country: country.clone(),
                             coordinates,
                         });
                     }
                 } else {
-                    for (location_id, _) in locations.iter().filter(|(l, _)| **l != Location::Local)
-                    {
-                        let location_name = location_name(&location_id)?;
-                        let coordinates =
-                            coordinates_from_features(&cities.features, &location_id)?;
+                    for (location, _) in locations.iter().filter(|(l, _)| **l != Location::Local) {
+                        let coordinates = location.feature_coordinates(&cities.features)?;
                         locations_details.push(LocationInformation {
-                            id: location_id.clone(),
-                            name: location_name,
-                            country: country_id.clone(),
+                            id: location.clone(),
+                            name: location.name(),
+                            country: country.clone(),
                             coordinates,
                         });
                     }
@@ -395,19 +349,17 @@ fn construct_world(
             // Create a new cities.json
             println!("No world/cities.json found, building one");
             let mut features: Vec<Feature> = Vec::new();
-            for (country_id, locations) in &config.places {
-                let (country_name, country_code) = country_details(&country_id, cca3)?;
-                for (location_id, local_name) in
+            for (country, locations) in &config.places {
+                for (location, local_name) in
                     locations.iter().filter(|(l, _)| **l != Location::Local)
                 {
-                    let location_name = location_name(&location_id)?;
-                    let coords = search(&format!("{}, {}", location_name, country_name))?;
+                    let coords = search(&format!("{}, {}", location.name(), country.name()))?;
                     thread::sleep(pause); //We can't hammer the Nominatim server.
 
                     let properties = Properties {
-                        name: location_name.clone(),
+                        name: location.name(),
                         localname: local_name.to_owned(),
-                        country: Some(country_code.to_string()),
+                        country: Some(country.code(&cca3)?),
                     };
                     let coordinates = vec![coords.lon.parse::<f32>()?, coords.lat.parse::<f32>()?];
                     let geometry = Geometry {
@@ -415,16 +367,16 @@ fn construct_world(
                         coordinates: Coordinates::Point(coordinates.clone()),
                     };
 
-                    println!("{} {:?}", location_id.to_string(), geometry.coordinates);
+                    println!("{} {:?}", location.to_string(), geometry.coordinates);
                     features.push(Feature {
                         type_: "Feature".to_string(),
                         properties,
                         geometry,
                     });
                     locations_details.push(LocationInformation {
-                        id: location_id.clone(),
-                        name: location_name,
-                        country: country_id.clone(),
+                        id: location.clone(),
+                        name: location.name(),
+                        country: country.clone(),
                         coordinates,
                     });
                 }
@@ -513,26 +465,23 @@ fn write_countries(
     writeln!(manifest, "countryId country =")?;
     writeln!(manifest, "    case country of")?;
     for (cntry, _) in &config.places {
-        let (_, code) = country_details(cntry, &cca3)?;
-        writeln!(manifest, "        {} ->", cntry)?;
-        writeln!(manifest, "            \"{}\"", code)?;
+        writeln!(manifest, "        {} ->", cntry.name())?;
+        writeln!(manifest, "            \"{}\"", cntry.code(&cca3)?)?;
     }
 
     writeln!(manifest, "countryName : Country -> String")?;
     writeln!(manifest, "countryName country =")?;
     writeln!(manifest, "    case country of")?;
     for (cntry, _) in &config.places {
-        let (name, _) = country_details(cntry, &cca3)?;
         writeln!(manifest, "        {} ->", cntry)?;
-        writeln!(manifest, "            \"{}\"", name)?;
+        writeln!(manifest, "            \"{}\"", cntry.name())?;
     }
 
     writeln!(manifest, "stringToCountry : String -> Maybe Country")?;
     writeln!(manifest, "stringToCountry country =")?;
     writeln!(manifest, "    case country of")?;
     for (cntry, _) in &config.places {
-        let (name, _) = country_details(cntry, &cca3)?;
-        writeln!(manifest, "        \"{}\" ->", name)?;
+        writeln!(manifest, "        \"{}\" ->", cntry.name())?;
         writeln!(manifest, "            Just {}", cntry)?;
     }
     writeln!(manifest, "        _ ->")?;
@@ -599,8 +548,7 @@ fn write_locations(
     writeln!(manifest, "stringToLocation location =")?;
     writeln!(manifest, "    case location of")?;
     for (loc, _) in &config_locations {
-        let name = location_name(&loc)?;
-        writeln!(manifest, "        \"{}\" ->", name)?;
+        writeln!(manifest, "        \"{}\" ->", loc.name())?;
         writeln!(manifest, "            Just {}", loc)?;
     }
     writeln!(manifest, "        _ ->")?;
@@ -640,20 +588,14 @@ fn write_locations(
     Ok(())
 }
 
-fn trip_id_string(description: &str) -> String {
-    let mut id = description.clone().to_string();
-    id.retain(|c| c != ' ' && c != '/');
-    id
-}
-
 fn write_trips(manifest: &mut File, config: &Config) -> Result<(), Error> {
     writeln!(manifest, "type Trip")?;
     let mut idx = 0;
     for trip in &config.trips {
         if idx != 0 {
-            writeln!(manifest, "    | {}", trip_id_string(&trip.description))?;
+            writeln!(manifest, "    | {}", trip.id_string())?;
         } else {
-            writeln!(manifest, "    = {}", trip_id_string(&trip.description))?;
+            writeln!(manifest, "    = {}", trip.id_string())?;
         }
         idx += 1;
     }
@@ -663,9 +605,9 @@ fn write_trips(manifest: &mut File, config: &Config) -> Result<(), Error> {
     idx = 0;
     for trip in &config.trips {
         if idx != 0 {
-            writeln!(manifest, "    , {}", trip_id_string(&trip.description))?;
+            writeln!(manifest, "    , {}", trip.id_string())?;
         } else {
-            writeln!(manifest, "    [ {}", trip_id_string(&trip.description))?;
+            writeln!(manifest, "    [ {}", trip.id_string())?;
         }
         idx += 1;
     }
@@ -676,11 +618,7 @@ fn write_trips(manifest: &mut File, config: &Config) -> Result<(), Error> {
     writeln!(manifest, "    case trip of")?;
     for trip in &config.trips {
         writeln!(manifest, "        \"{}\" ->", trip.description)?;
-        writeln!(
-            manifest,
-            "            Just {}",
-            trip_id_string(&trip.description)
-        )?;
+        writeln!(manifest, "            Just {}", trip.id_string())?;
     }
     writeln!(manifest, "        _ ->")?;
     writeln!(manifest, "            Nothing")?;
@@ -696,7 +634,7 @@ fn write_trips(manifest: &mut File, config: &Config) -> Result<(), Error> {
     writeln!(manifest, "tripInformation trip =")?;
     writeln!(manifest, "    case trip of")?;
     for trip in &config.trips {
-        writeln!(manifest, "        {} ->", trip_id_string(&trip.description))?;
+        writeln!(manifest, "        {} ->", trip.id_string())?;
         writeln!(manifest, "            {{ name = \"{}\"", trip.name)?;
         writeln!(
             manifest,
@@ -713,15 +651,12 @@ fn write_trips(manifest: &mut File, config: &Config) -> Result<(), Error> {
             }
             idx += 1;
         }
-        write!(manifest, " ]\n")?;
+        writeln!(manifest, " ]")?;
         write!(manifest, "            , dates = [ ")?;
         idx = 0;
         for date in &trip.dates {
             let splitidx = date.find('/').ok_or_else(|| {
-                failure::err_msg(format!(
-                    "{} has a malformed date string",
-                    trip_id_string(&trip.description)
-                ))
+                failure::err_msg(format!("{} has a malformed date string", trip.id_string()))
             })?;
             let (year, month_str) = date.split_at(splitidx);
             let mut month_string = month_str.to_string();
@@ -743,7 +678,7 @@ fn write_trips(manifest: &mut File, config: &Config) -> Result<(), Error> {
             }
             idx += 1;
         }
-        write!(manifest, " ]\n")?;
+        writeln!(manifest, " ]")?;
         writeln!(manifest, "            }}")?;
     }
 
@@ -947,6 +882,12 @@ impl FromStr for Month {
     }
 }
 
+impl fmt::Display for Month {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
 macro_attr! {
     #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, EnumFromStr!, Serialize, Deserialize)]
     enum Country {
@@ -978,6 +919,32 @@ macro_attr! {
         Ukraine,
         UnitedKingdom,
         Vietnam,
+    }
+}
+
+impl fmt::Display for Country {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+impl Country {
+    fn name(&self) -> String {
+        let mut name: Vec<char> = Vec::new();
+        for (idx, c) in self.to_string().char_indices() {
+            if idx > 0 && c.is_uppercase() {
+                name.push(' ');
+            }
+            name.push(c);
+        }
+        String::from_iter(name)
+    }
+
+    fn code(&self, cca3: &BTreeMap<String, String>) -> Result<String, Error> {
+        let country_code = cca3.get(&self.name()).ok_or_else(|| {
+            failure::err_msg(format!("{} does not exist in cca3.json", self.name()))
+        })?;
+        Ok(country_code.to_string())
     }
 }
 
@@ -1079,20 +1046,38 @@ macro_attr! {
     }
 }
 
-impl fmt::Display for Country {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Debug::fmt(self, f)
-    }
-}
-
 impl fmt::Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self, f)
     }
 }
 
-impl fmt::Display for Month {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Debug::fmt(self, f)
+impl Location {
+    fn name(&self) -> String {
+        let mut location_name = self.to_string();
+        if location_name.ends_with("City") && *self != Location::HoChiMinhCity {
+            location_name.truncate(location_name.len() - 5);
+        }
+        location_name
+    }
+
+    fn feature_coordinates(&self, features: &[Feature]) -> Result<Vec<f32>, Error> {
+        for feature in features {
+            if to_location_identfier_string(&feature.properties.name) == self.to_string() {
+                match &feature.geometry.coordinates {
+                    Coordinates::Point(coords) => return Ok(coords.clone()),
+                    _ => {
+                        return Err(failure::err_msg(format!(
+                            "{} does not have Point coordinates.",
+                            self
+                        )));
+                    }
+                };
+            }
+        }
+        Err(failure::err_msg(format!(
+            "Could not find coordinates for {}.",
+            self
+        )))
     }
 }
