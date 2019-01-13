@@ -122,51 +122,18 @@ enum Coordinates {
     LineString(Vec<Vec<f32>>),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-enum Month {
-    Jan,
-    Feb,
-    Mar,
-    Apr,
-    May,
-    Jun,
-    Jul,
-    Aug,
-    Sep,
-    Oct,
-    Nov,
-    Dec,
-}
-
-impl FromStr for Month {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Month, Error> {
-        match s {
-            "01" => Ok(Month::Jan),
-            "02" => Ok(Month::Feb),
-            "03" => Ok(Month::Mar),
-            "04" => Ok(Month::Apr),
-            "05" => Ok(Month::May),
-            "06" => Ok(Month::Jun),
-            "07" => Ok(Month::Jul),
-            "08" => Ok(Month::Aug),
-            "09" => Ok(Month::Sep),
-            "10" => Ok(Month::Oct),
-            "11" => Ok(Month::Nov),
-            "12" => Ok(Month::Dec),
-            err => Err(failure::err_msg(format!(
-                "{} makes no sense to be a month.",
-                err
-            ))),
-        }
-    }
-}
-
 #[derive(Deserialize, Debug)]
 struct LatLon {
     lat: String,
     lon: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct LocationInformation {
+    id: Location,
+    name: String,
+    country: Country,
+    coordinates: Vec<f32>,
 }
 
 fn get_query_string(params: Vec<(&str, &str)>) -> String {
@@ -286,20 +253,7 @@ fn write_trip(config: &Config, features: &[Feature]) -> Result<(), Error> {
         };
         let mut coords: Vec<Vec<f32>> = Vec::new();
         for city in &trip.cities {
-            for location in features {
-                if to_location_identfier_string(&location.properties.name) == city.to_string() {
-                    match &location.geometry.coordinates {
-                        Coordinates::Point(value) => coords.push(value.clone()),
-                        _ => {
-                            return Err(failure::err_msg(format!(
-                                "{} had LineString Coordinates",
-                                city.to_string()
-                            )));
-                        }
-                    }
-                    break;
-                }
-            }
+            coords.push(coordinates_from_features(&features, &city)?);
         }
         let geometry = Geometry {
             type_: "LineString".to_string(),
@@ -339,8 +293,30 @@ fn location_name(location_id: &Location) -> Result<String, Error> {
     }
     Ok(location_name)
 }
+fn coordinates_from_features(features: &[Feature], location: &Location) -> Result<Vec<f32>, Error> {
+    for feature in features {
+        if to_location_identfier_string(&feature.properties.name) == location.to_string() {
+            match &feature.geometry.coordinates {
+                Coordinates::Point(coords) => return Ok(coords.clone()),
+                _ => {
+                    return Err(failure::err_msg(format!(
+                        "{} does not have Point coordinates.",
+                        location
+                    )));
+                }
+            };
+        }
+    }
+    Err(failure::err_msg(format!(
+        "Could not find coordinates for {}.",
+        location
+    )))
+}
 
-fn construct_world(config: &Config, cca3: &BTreeMap<String, String>) -> Result<(), Error> {
+fn construct_world(
+    config: &Config,
+    cca3: &BTreeMap<String, String>,
+) -> Result<Vec<LocationInformation>, Error> {
     let pause = time::Duration::from_secs(1);
     let cities_buffer = OpenOptions::new()
         .read(true)
@@ -348,6 +324,7 @@ fn construct_world(config: &Config, cca3: &BTreeMap<String, String>) -> Result<(
         .create(false) //Fail if we need to create the file
         .open("world/cities.json");
 
+    let mut locations_details: Vec<LocationInformation> = Vec::new();
     match cities_buffer {
         Ok(buffer) => {
             // Add new info to cities.json
@@ -359,21 +336,21 @@ fn construct_world(config: &Config, cca3: &BTreeMap<String, String>) -> Result<(
                     for (location_id, local_name) in
                         locations.iter().filter(|(l, _)| **l != Location::Local)
                     {
-                        if new_locations.contains(location_id) {
-                            let location_name = location_name(location_id)?;
+                        let location_name = location_name(&location_id)?;
+                        let coordinates = if new_locations.contains(location_id) {
                             let coords = search(&format!("{}, {}", location_name, country_name))?;
+                            thread::sleep(pause); //We can't hammer the Nominatim server.
 
                             let properties = Properties {
-                                name: location_name,
+                                name: location_name.clone(),
                                 localname: local_name.to_owned(),
                                 country: Some(country_code.to_string()),
                             };
+                            let coordinates =
+                                vec![coords.lon.parse::<f32>()?, coords.lat.parse::<f32>()?];
                             let geometry = Geometry {
                                 type_: "Point".to_string(),
-                                coordinates: Coordinates::Point(vec![
-                                    coords.lon.parse::<f32>()?,
-                                    coords.lat.parse::<f32>()?,
-                                ]),
+                                coordinates: Coordinates::Point(coordinates.clone()),
                             };
 
                             println!("{} {:?}", location_id.to_string(), geometry.coordinates);
@@ -382,8 +359,29 @@ fn construct_world(config: &Config, cca3: &BTreeMap<String, String>) -> Result<(
                                 properties,
                                 geometry,
                             });
-                            thread::sleep(pause); //We can't hammer the Nominatim server.
-                        }
+                            coordinates
+                        } else {
+                            coordinates_from_features(&cities.features, &location_id)?
+                        };
+                        locations_details.push(LocationInformation {
+                            id: location_id.clone(),
+                            name: location_name,
+                            country: country_id.clone(),
+                            coordinates,
+                        });
+                    }
+                } else {
+                    for (location_id, _) in locations.iter().filter(|(l, _)| **l != Location::Local)
+                    {
+                        let location_name = location_name(&location_id)?;
+                        let coordinates =
+                            coordinates_from_features(&cities.features, &location_id)?;
+                        locations_details.push(LocationInformation {
+                            id: location_id.clone(),
+                            name: location_name,
+                            country: country_id.clone(),
+                            coordinates,
+                        });
                     }
                 }
             }
@@ -397,25 +395,24 @@ fn construct_world(config: &Config, cca3: &BTreeMap<String, String>) -> Result<(
             // Create a new cities.json
             println!("No world/cities.json found, building one");
             let mut features: Vec<Feature> = Vec::new();
-            for (country_string, locations) in &config.places {
-                let (country_name, country_code) = country_details(&country_string, cca3)?;
+            for (country_id, locations) in &config.places {
+                let (country_name, country_code) = country_details(&country_id, cca3)?;
                 for (location_id, local_name) in
                     locations.iter().filter(|(l, _)| **l != Location::Local)
                 {
                     let location_name = location_name(&location_id)?;
                     let coords = search(&format!("{}, {}", location_name, country_name))?;
+                    thread::sleep(pause); //We can't hammer the Nominatim server.
 
                     let properties = Properties {
-                        name: location_name,
+                        name: location_name.clone(),
                         localname: local_name.to_owned(),
                         country: Some(country_code.to_string()),
                     };
+                    let coordinates = vec![coords.lon.parse::<f32>()?, coords.lat.parse::<f32>()?];
                     let geometry = Geometry {
                         type_: "Point".to_string(),
-                        coordinates: Coordinates::Point(vec![
-                            coords.lon.parse::<f32>()?,
-                            coords.lat.parse::<f32>()?,
-                        ]),
+                        coordinates: Coordinates::Point(coordinates.clone()),
                     };
 
                     println!("{} {:?}", location_id.to_string(), geometry.coordinates);
@@ -424,7 +421,12 @@ fn construct_world(config: &Config, cca3: &BTreeMap<String, String>) -> Result<(
                         properties,
                         geometry,
                     });
-                    thread::sleep(pause); //We can't hammer the Nominatim server.
+                    locations_details.push(LocationInformation {
+                        id: location_id.clone(),
+                        name: location_name,
+                        country: country_id.clone(),
+                        coordinates,
+                    });
                 }
             }
             //It's quicker to just redo the trips rather than checking them.
@@ -452,10 +454,14 @@ fn construct_world(config: &Config, cca3: &BTreeMap<String, String>) -> Result<(
         .arg("world/cities.json")
         .arg("world/trips.json")
         .status()?;
-    Ok(())
+    Ok(locations_details)
 }
 
-fn construct_manifest(config: &Config, cca3: &BTreeMap<String, String>) -> Result<(), Error> {
+fn construct_manifest(
+    config: &Config,
+    cca3: &BTreeMap<String, String>,
+    locations_information: &[LocationInformation],
+) -> Result<(), Error> {
     let mut manifest = File::create("Manifest.elm")?;
     writeln!(manifest, "module Manifest exposing (..)")?;
 
@@ -463,7 +469,7 @@ fn construct_manifest(config: &Config, cca3: &BTreeMap<String, String>) -> Resul
     write_countries(&mut manifest, config, cca3)?;
 
     writeln!(manifest, "-- LOCATIONS")?;
-    write_locations(&mut manifest, config)?;
+    write_locations(&mut manifest, config, locations_information)?;
 
     writeln!(manifest, "-- TRIPS")?;
     write_trips(&mut manifest, config)?;
@@ -550,8 +556,8 @@ fn write_countries(
 fn write_locations(
     manifest: &mut File,
     config: &Config,
+    locations_information: &[LocationInformation],
 ) -> Result<(), Error> {
-
     let mut config_locations = config
         .places
         .iter()
@@ -562,7 +568,7 @@ fn write_locations(
                 .collect::<Vec<(Location, Option<String>)>>()
         })
         .flatten()
-        .filter(|(l,_)| *l != Location::Local)
+        .filter(|(l, _)| *l != Location::Local)
         .collect::<Vec<(Location, Option<String>)>>();
     config_locations.sort();
     writeln!(manifest, "type Location")?;
@@ -600,7 +606,6 @@ fn write_locations(
     writeln!(manifest, "        _ ->")?;
     writeln!(manifest, "            Nothing")?;
 
-
     writeln!(manifest, "locationLocalName : Location -> Maybe String")?;
     writeln!(manifest, "locationLocalName location =")?;
     writeln!(manifest, "    case location of")?;
@@ -619,14 +624,19 @@ fn write_locations(
     writeln!(manifest, "    , coordinates : ( Float, Float )")?;
     writeln!(manifest, "    }}")?;
 
-    //writeln!(manifest, "locationInformation : Location -> LocationInformation")?;
-    //writeln!(manifest, "locationInformation location =")?;
-    //writeln!(manifest, "    case location of")?;
-    //    Amsterdam ->
-    //        { name = "Amsterdam"
-    //        , country = Netherlands
-    //        , coordinates = ( 4.9, 52.37 )
-    //        }
+    writeln!(
+        manifest,
+        "locationInformation : Location -> LocationInformation"
+    )?;
+    writeln!(manifest, "locationInformation location =")?;
+    writeln!(manifest, "    case location of")?;
+    for info in locations_information {
+        writeln!(manifest, "    {} ->", info.id)?;
+        writeln!(manifest, "    {{ name = \"{}\"", info.name)?;
+        writeln!(manifest, "    , country = {}", info.country)?;
+        writeln!(manifest, "    , coordinates = {:?}", info.coordinates)?;
+        writeln!(manifest, "    }}")?;
+    }
     Ok(())
 }
 
@@ -636,10 +646,7 @@ fn trip_id_string(description: &str) -> String {
     id
 }
 
-fn write_trips(
-    manifest: &mut File,
-    config: &Config,
-) -> Result<(), Error> {
+fn write_trips(manifest: &mut File, config: &Config) -> Result<(), Error> {
     writeln!(manifest, "type Trip")?;
     let mut idx = 0;
     for trip in &config.trips {
@@ -669,7 +676,11 @@ fn write_trips(
     writeln!(manifest, "    case trip of")?;
     for trip in &config.trips {
         writeln!(manifest, "        \"{}\" ->", trip.description)?;
-        writeln!(manifest, "            Just {}", trip_id_string(&trip.description))?;
+        writeln!(
+            manifest,
+            "            Just {}",
+            trip_id_string(&trip.description)
+        )?;
     }
     writeln!(manifest, "        _ ->")?;
     writeln!(manifest, "            Nothing")?;
@@ -681,14 +692,17 @@ fn write_trips(
     writeln!(manifest, "    , dates : List Date")?;
     writeln!(manifest, "    }}")?;
 
-
     writeln!(manifest, "tripInformation : Trip -> TripInformation")?;
     writeln!(manifest, "tripInformation trip =")?;
     writeln!(manifest, "    case trip of")?;
     for trip in &config.trips {
         writeln!(manifest, "        {} ->", trip_id_string(&trip.description))?;
         writeln!(manifest, "            {{ name = \"{}\"", trip.name)?;
-        writeln!(manifest, "            , description = \"{}\"", trip.description)?;
+        writeln!(
+            manifest,
+            "            , description = \"{}\"",
+            trip.description
+        )?;
         write!(manifest, "            , locations = [ ")?;
         idx = 0;
         for place in &trip.cities {
@@ -703,14 +717,29 @@ fn write_trips(
         write!(manifest, "            , dates = [ ")?;
         idx = 0;
         for date in &trip.dates {
-            let splitidx = date.find('/').ok_or_else(|| failure::err_msg(format!("{} has a malformed date string", trip_id_string(&trip.description))))?;
+            let splitidx = date.find('/').ok_or_else(|| {
+                failure::err_msg(format!(
+                    "{} has a malformed date string",
+                    trip_id_string(&trip.description)
+                ))
+            })?;
             let (year, month_str) = date.split_at(splitidx);
             let mut month_string = month_str.to_string();
             month_string.retain(|c| c != '/');
             if idx != 0 {
-                write!(manifest, ", Date {} {}", year, Month::from_str(&month_string)?)?;
+                write!(
+                    manifest,
+                    ", Date {} {}",
+                    year,
+                    Month::from_str(&month_string)?
+                )?;
             } else {
-                write!(manifest, "Date {} {}", year, Month::from_str(&month_string)?)?;
+                write!(
+                    manifest,
+                    "Date {} {}",
+                    year,
+                    Month::from_str(&month_string)?
+                )?;
             }
             idx += 1;
         }
@@ -744,10 +773,7 @@ fn write_trips(
     Ok(())
 }
 
-fn write_manifest(
-    manifest: &mut File,
-    config: &Config,
-) -> Result<(), Error> {
+fn write_manifest(manifest: &mut File, config: &Config) -> Result<(), Error> {
     //writeln!(manifest, "manifest : List Image")?;
     //writeln!(manifest, "manifest =")?;
     Ok(())
@@ -787,9 +813,9 @@ fn main() -> Result<(), Error> {
     let cca3_read: CountryCodes = serde_json::from_reader(cca3_file)?;
     let cca3 = &cca3_read.codes;
 
-    construct_world(&config, &cca3)?;
+    let locations_information = construct_world(&config, &cca3)?;
 
-    construct_manifest(&config, &cca3)?;
+    construct_manifest(&config, &cca3, &locations_information)?;
 
     return Ok(()); // Temporary whilst we build the automation.
 
@@ -878,6 +904,47 @@ fn main() -> Result<(), Error> {
     bar.finish();
 
     Ok(())
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+enum Month {
+    Jan,
+    Feb,
+    Mar,
+    Apr,
+    May,
+    Jun,
+    Jul,
+    Aug,
+    Sep,
+    Oct,
+    Nov,
+    Dec,
+}
+
+impl FromStr for Month {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Month, Error> {
+        match s {
+            "01" => Ok(Month::Jan),
+            "02" => Ok(Month::Feb),
+            "03" => Ok(Month::Mar),
+            "04" => Ok(Month::Apr),
+            "05" => Ok(Month::May),
+            "06" => Ok(Month::Jun),
+            "07" => Ok(Month::Jul),
+            "08" => Ok(Month::Aug),
+            "09" => Ok(Month::Sep),
+            "10" => Ok(Month::Oct),
+            "11" => Ok(Month::Nov),
+            "12" => Ok(Month::Dec),
+            err => Err(failure::err_msg(format!(
+                "{} makes no sense to be a month.",
+                err
+            ))),
+        }
+    }
 }
 
 macro_attr! {
