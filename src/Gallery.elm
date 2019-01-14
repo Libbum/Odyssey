@@ -1,4 +1,4 @@
-module Gallery exposing (Filter(..), blurURL, countryNames, filterImages, imageURL, locale, locationCoordinates, locationNames, sortImages, thumbURL, tripId, tripNames)
+module Gallery exposing (Filter(..), blurURL, countryNames, displayURL, filterImages, imageURL, locale, locationCoordinates, locationNames, sortImages, thumbURL, tripId, tripNames)
 
 import List.Extra exposing (unconsLast)
 import Manifest exposing (Country(..), Date, Image, Location(..), Month(..), Trip(..), Year)
@@ -17,7 +17,7 @@ imagePath image =
             Manifest.locationInformation image.location
     in
     String.join "/"
-        [ "gallery"
+        [ "/gallery"
         , String.fromInt image.date.year
         , monthToDirectory image.date.month
         , Manifest.countryName info.country |> String.replace " " "_"
@@ -38,6 +38,18 @@ thumbURL image =
 blurURL : Image -> String
 blurURL image =
     String.join "/" [ imagePath image, alternateFile Blur image.file ]
+
+
+displayURL : Image -> String
+displayURL image =
+    let
+        info =
+            Manifest.locationInformation image.location
+
+        countryString =
+            Manifest.countryName info.country
+    in
+    "/" ++ countryString ++ "/" ++ info.name
 
 
 alternateFile : Alternate -> String -> String

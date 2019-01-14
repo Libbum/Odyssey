@@ -15,10 +15,9 @@ import List.Zipper as Zipper exposing (Zipper)
 import Manifest exposing (Country(..), Image, Location(..), Month(..), Trip(..), manifest)
 import Partition exposing (KPartition, greedyK)
 import Ports exposing (nearBottom)
-import Svg
-import Svg.Attributes
 import Task
 import Url exposing (Url)
+import Url.Parser as Parser exposing ((</>), Parser, custom, fragment, map, oneOf, s, top)
 
 
 main : Program Int Model Msg
@@ -355,15 +354,15 @@ update msg model =
         -- IMAGE VIEWER
         ZoomImage image ->
             let
-                map =
+                ( map, url ) =
                     case image of
-                        Just _ ->
-                            Cmd.none
+                        Just current ->
+                            ( Cmd.none, Nav.pushUrl model.key (Gallery.displayURL current) )
 
                         Nothing ->
-                            Ports.drawMap ()
+                            ( Ports.drawMap (), Nav.pushUrl model.key "/" )
             in
-            ( model, Cmd.batch [ Task.attempt (SetZoom image) getViewport, map ] )
+            ( model, Cmd.batch [ Task.attempt (SetZoom image) getViewport, map, url ] )
 
         SetZoom image result ->
             case result of
@@ -390,17 +389,17 @@ update msg model =
 
         NextZoom ->
             let
-                ( layout, image ) =
+                ( layout, image, url ) =
                     getNextZoom model
             in
-            ( { model | zoom = image, layout = layout }, Cmd.none )
+            ( { model | zoom = image, layout = layout }, url )
 
         PreviousZoom ->
             let
-                ( layout, image ) =
+                ( layout, image, url ) =
                     getPreviousZoom model
             in
-            ( { model | zoom = image, layout = layout }, Cmd.none )
+            ( { model | zoom = image, layout = layout }, url )
 
         ToggleModal ->
             ( { model | showModal = not model.showModal }, Cmd.none )
@@ -429,6 +428,7 @@ update msg model =
             , Cmd.batch
                 [ Task.attempt (Partition Filter) (getViewportOf "gallery")
                 , updateMap radio selection True
+                , Nav.pushUrl model.key <| "/" ++ (String.replace " " "_" selection |> String.replace "/" "-")
                 ]
             )
 
@@ -443,10 +443,10 @@ update msg model =
                             case Zipper.next zip of
                                 Just _ ->
                                     let
-                                        ( layout, image ) =
+                                        ( layout, image, url ) =
                                             getPreviousZoom model
                                     in
-                                    ( { model | zoom = image, layout = layout }, Cmd.none )
+                                    ( { model | zoom = image, layout = layout }, url )
 
                                 Nothing ->
                                     ( model, Cmd.none )
@@ -460,10 +460,10 @@ update msg model =
                             case Zipper.previous zip of
                                 Just _ ->
                                     let
-                                        ( layout, image ) =
+                                        ( layout, image, url ) =
                                             getNextZoom model
                                     in
-                                    ( { model | zoom = image, layout = layout }, Cmd.none )
+                                    ( { model | zoom = image, layout = layout }, url )
 
                                 Nothing ->
                                     ( model, Cmd.none )
@@ -494,10 +494,10 @@ update msg model =
                                     case Zipper.next zip of
                                         Just _ ->
                                             let
-                                                ( layout, image ) =
+                                                ( layout, image, url ) =
                                                     getPreviousZoom model
                                             in
-                                            ( { model | zoom = image, layout = layout, currentSwipeStart = Nothing }, Cmd.none )
+                                            ( { model | zoom = image, layout = layout, currentSwipeStart = Nothing }, url )
 
                                         Nothing ->
                                             ( { model | currentSwipeStart = Nothing }, Cmd.none )
@@ -511,10 +511,10 @@ update msg model =
                                     case Zipper.previous zip of
                                         Just _ ->
                                             let
-                                                ( layout, image ) =
+                                                ( layout, image, url ) =
                                                     getNextZoom model
                                             in
-                                            ( { model | zoom = image, layout = layout, currentSwipeStart = Nothing }, Cmd.none )
+                                            ( { model | zoom = image, layout = layout, currentSwipeStart = Nothing }, url )
 
                                         Nothing ->
                                             ( { model | currentSwipeStart = Nothing }, Cmd.none )
@@ -534,6 +534,10 @@ update msg model =
         ClickedLink urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
+                    let
+                        _ =
+                            Debug.log "url" url
+                    in
                     ( model, Nav.pushUrl model.key (Url.toString url) )
 
                 Browser.External url ->
@@ -907,7 +911,7 @@ getWidths images viewportWidth arSum widths =
 -- Veiw Helpers
 
 
-getNextZoom : Model -> ( Maybe (Zipper Image), Maybe Image )
+getNextZoom : Model -> ( Maybe (Zipper Image), Maybe Image, Cmd Msg )
 getNextZoom model =
     let
         layout =
@@ -925,11 +929,19 @@ getNextZoom model =
 
                 Nothing ->
                     Nothing
+
+        url =
+            case image of
+                Just current ->
+                    Nav.replaceUrl model.key (Gallery.displayURL current)
+
+                Nothing ->
+                    Cmd.none
     in
-    ( layout, image )
+    ( layout, image, url )
 
 
-getPreviousZoom : Model -> ( Maybe (Zipper Image), Maybe Image )
+getPreviousZoom : Model -> ( Maybe (Zipper Image), Maybe Image, Cmd Msg )
 getPreviousZoom model =
     let
         layout =
@@ -947,8 +959,16 @@ getPreviousZoom model =
 
                 Nothing ->
                     Nothing
+
+        url =
+            case image of
+                Just current ->
+                    Nav.replaceUrl model.key (Gallery.displayURL current)
+
+                Nothing ->
+                    Cmd.none
     in
-    ( layout, image )
+    ( layout, image, url )
 
 
 radioView : Radio -> Radio -> Html Msg
@@ -1125,7 +1145,7 @@ getSwipeDirection start end =
 
 
 
--- Map Helpers
+-- Map Helper
 
 
 updateMap : Radio -> String -> Bool -> Cmd msg
@@ -1170,17 +1190,3 @@ updateMap radio selected clearPrevious =
 
         RadioAll ->
             Ports.viewAll ()
-
-
-drawGlobe : Html Msg
-drawGlobe =
-    Svg.svg
-        [ Svg.Attributes.viewBox "0 0 400 400"
-        ]
-        [ Svg.circle
-            [ Svg.Attributes.cx "200"
-            , Svg.Attributes.cy "200"
-            , Svg.Attributes.r "190"
-            ]
-            []
-        ]
