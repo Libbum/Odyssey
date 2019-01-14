@@ -96,18 +96,18 @@ locale image =
         Just localCountry ->
             case Manifest.locationLocalName image.location of
                 Just localLocation ->
-                    ( localLocation ++ ", " ++ localCountry ++ " (" ++ info.name ++ ", " ++ countryString ++ "). " ++ date, info.name )
+                    ( localLocation ++ ", " ++ localCountry ++ " (" ++ info.name ++ ", " ++ countryString ++ "); " ++ date ++ ".", info.name )
 
                 Nothing ->
-                    ( info.name ++ ", " ++ countryString ++ " (" ++ localCountry ++ "). " ++ date, info.name )
+                    ( info.name ++ ", " ++ countryString ++ " (" ++ localCountry ++ "); " ++ date ++ ".", info.name )
 
         Nothing ->
             case Manifest.locationLocalName image.location of
                 Just localLocation ->
-                    ( localLocation ++ " (" ++ info.name ++ "), " ++ countryString ++ ". " ++ date, info.name )
+                    ( localLocation ++ " (" ++ info.name ++ "), " ++ countryString ++ "; " ++ date ++ ".", info.name )
 
                 Nothing ->
-                    ( info.name ++ ", " ++ countryString ++ ". " ++ date, info.name )
+                    ( info.name ++ ", " ++ countryString ++ "; " ++ date ++ ".", info.name )
 
 
 dateString : Date -> String
