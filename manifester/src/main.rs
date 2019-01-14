@@ -331,7 +331,10 @@ fn construct_world(
                         });
                     }
                 } else {
-                    for (location, _) in locations.iter().filter(|(l, _)| **l != Location::Local) {
+                    for (location, _) in locations
+                        .iter()
+                        .filter(|(l, _)| **l != Location::Local && !new_locations.contains(*l))
+                    {
                         let coordinates = location.feature_coordinates(&cities.features)?;
                         locations_details.push(LocationInformation {
                             id: location.clone(),
