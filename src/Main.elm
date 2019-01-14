@@ -1,8 +1,9 @@
 module Main exposing (main)
 
-import Browser
+import Browser exposing (Document)
 import Browser.Dom exposing (getViewport, getViewportOf, setViewport)
 import Browser.Events
+import Browser.Navigation as Nav
 import Gallery exposing (Filter(..))
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
@@ -17,15 +18,18 @@ import Ports exposing (nearBottom)
 import Svg
 import Svg.Attributes
 import Task
+import Url exposing (Url)
 
 
 main : Program Int Model Msg
 main =
-    Browser.element
+    Browser.application
         { init = init
         , view = view
         , update = update
         , subscriptions = subscriptions
+        , onUrlChange = ChangedUrl
+        , onUrlRequest = ClickedLink
         }
 
 
@@ -101,8 +105,8 @@ emptyViewport =
     }
 
 
-init : Int -> ( Model, Cmd Msg )
-init scrollWidth =
+init : Int -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init scrollWidth url key =
     ( initialModel scrollWidth
     , Cmd.batch
         [ getWindow Init
@@ -168,6 +172,8 @@ type Msg
     | KeyPress Keyboard
     | SwipeStart ( Float, Float )
     | SwipeEnd ( Float, Float )
+    | ChangedUrl Url
+    | ClickedLink Browser.UrlRequest
     | NoOp
 
 
@@ -523,6 +529,12 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        ClickedLink urlRequest ->
+            ( model, Cmd.none )
+
+        ChangedUrl url ->
+            ( model, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
 
@@ -570,7 +582,7 @@ toKeyboard key =
 --- View
 
 
-view : Model -> Html Msg
+view : Model -> Document Msg
 view model =
     case model.zoom of
         Nothing ->
@@ -594,7 +606,8 @@ view model =
                         False ->
                             Html.Attributes.class ""
             in
-            div [ Html.Attributes.class "content" ]
+            { title = "Odyssey"
+            , body =
                 [ Html.header [ Html.Attributes.id "title" ]
                     [ Html.button [ Html.Attributes.class "title", onClick GoToTop ] [ Html.text "Odyssey" ]
                     , Html.span [ Html.Attributes.class "burger" ]
@@ -645,6 +658,7 @@ view model =
                 , coverView model.showModal
                 , modalView model.showModal
                 ]
+            }
 
         Just image ->
             let
@@ -667,7 +681,10 @@ view model =
                         Nothing ->
                             ( False, False )
             in
-            zoomImage image model.showControls previousVisible nextVisible model.showDescription
+            { title = "Odyssey"
+            , body =
+                [ zoomImage image model.showControls previousVisible nextVisible model.showDescription ]
+            }
 
 
 displayImages : List Image -> Float -> KPartition Int -> List (Html Msg) -> List (Html Msg)
