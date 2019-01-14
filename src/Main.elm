@@ -56,11 +56,12 @@ type alias Model =
     , showControls : Bool
     , showMenu : Bool
     , currentSwipeStart : Maybe Position
+    , key : Nav.Key
     }
 
 
-initialModel : Int -> Model
-initialModel scrollWidth =
+initialModel : Int -> Nav.Key -> Model
+initialModel scrollWidth key =
     { partition = []
     , images = manifest
     , layout = Nothing
@@ -79,6 +80,7 @@ initialModel scrollWidth =
     , showControls = False
     , showMenu = False
     , currentSwipeStart = Nothing
+    , key = key
     }
 
 
@@ -107,7 +109,7 @@ emptyViewport =
 
 init : Int -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init scrollWidth url key =
-    ( initialModel scrollWidth
+    ( initialModel scrollWidth key
     , Cmd.batch
         [ getWindow Init
         , Ports.drawMap ()
@@ -530,7 +532,12 @@ update msg model =
                     ( model, Cmd.none )
 
         ClickedLink urlRequest ->
-            ( model, Cmd.none )
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model, Nav.pushUrl model.key (Url.toString url) )
+
+                Browser.External url ->
+                    ( model, Nav.load url )
 
         ChangedUrl url ->
             ( model, Cmd.none )
