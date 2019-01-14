@@ -1,4 +1,4 @@
-JSTARGETS := dist/assets/js/odyssey.js dist/assets/js/odyssey.min.js dist/assets/js/init.js manifester/world/cities.json manifester/world/trips.json
+JSTARGETS := dist/assets/js/odyssey.js dist/assets/js/odyssey.min.js dist/assets/js/init.js manifester/world/cities.json manifester/world/trips.json dist/assets/world.json
 seed := $(shell cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)
 
 .PHONY: clean build rebuild deploy
@@ -12,8 +12,8 @@ dist/assets/js/odyssey.min.js: dist/assets/js/odyssey.js
 prodjs: dist/assets/js/odyssey.min.js
 	mv dist/assets/js/odyssey.min.js dist/assets/js/odyssey.${seed}.min.js
 
-dist/assets/js/init.js: src/init.js
-	cp src/init.js dist/assets/js/init.js
+dist/assets/js/init.js: src/init.js vendor/d3.v3.min.js vendor/topojson.1.6.19.min.js
+	uglifyjs vendor/d3.v3.min.js vendor/topojson.1.6.19.min.js src/init.js --output dist/assets/js/init.js
 
 prodindex: dist/index.html
 	sed -i 's/odyssey.*.js/odyssey.${seed}.min.js/' dist/index.html

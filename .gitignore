@@ -10,3 +10,4 @@ manifester/target
 manifester/world/cities.json
 manifester/world/trips.json
 src/Manifest.elm
+vendor
