@@ -17,7 +17,7 @@ import Partition exposing (KPartition, greedyK)
 import Ports exposing (nearBottom)
 import Task
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, custom, fragment, map, oneOf, s, top)
+import Url.Parser as Parser exposing ((</>), Parser)
 
 
 main : Program Int Model Msg
@@ -59,8 +59,21 @@ type alias Model =
     }
 
 
-initialModel : Int -> Nav.Key -> Model
-initialModel scrollWidth key =
+initialModel : Int -> Nav.Key -> Url -> Model
+initialModel scrollWidth key url =
+    let
+        _ =
+            Debug.log "url" <|
+                Parser.parse
+                    (Parser.oneOf
+                        [ Parser.map (\c l -> Loc (c |> String.replace "_" " " |> Manifest.stringToCountry |> Maybe.withDefault Greece) (l |> String.replace "_" " " |> Manifest.stringToLocation |> Maybe.withDefault Crete)) (Parser.top </> Parser.string </> Parser.string)
+                        , Parser.map Trp (Parser.top </> Parser.s "trip" </> Parser.string)
+                        , Parser.map (\c -> Cntry (c |> String.replace "_" " " |> Manifest.stringToCountry |> Maybe.withDefault Greece)) (Parser.top </> Parser.string)
+                        , Parser.map Home Parser.top
+                        ]
+                    )
+                    url
+    in
     { partition = []
     , images = manifest
     , layout = Nothing
@@ -81,6 +94,13 @@ initialModel scrollWidth key =
     , currentSwipeStart = Nothing
     , key = key
     }
+
+
+type Route
+    = Cntry Country
+    | Loc Country Location
+    | Trp String
+    | Home
 
 
 type alias Viewport =
@@ -108,7 +128,7 @@ emptyViewport =
 
 init : Int -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init scrollWidth url key =
-    ( initialModel scrollWidth key
+    ( initialModel scrollWidth key url
     , Cmd.batch
         [ getWindow Init
         , Ports.drawMap ()
@@ -292,6 +312,7 @@ update msg model =
                             , Cmd.batch
                                 [ Task.attempt (Partition Filter) (getViewportOf "gallery")
                                 , updateMap selected "" True
+                                , Nav.pushUrl model.key "/"
                                 ]
                             )
 
@@ -360,6 +381,7 @@ update msg model =
                             ( Cmd.none, Nav.pushUrl model.key (Gallery.displayURL current) )
 
                         Nothing ->
+                            --TODO: This is not true, we may start from all, but may start from a trip for example
                             ( Ports.drawMap (), Nav.pushUrl model.key "/" )
             in
             ( model, Cmd.batch [ Task.attempt (SetZoom image) getViewport, map, url ] )
@@ -423,12 +445,32 @@ update msg model =
 
                 filter =
                     newFilter ( radio, selection ) model.filter
+
+                url =
+                    case radio of
+                        RadioLocation ->
+                            let
+                                country =
+                                    case Manifest.stringToLocation selection of
+                                        Just location ->
+                                            "/" ++ (Manifest.locationInformation location |> (\info -> Manifest.countryName info.country)) ++ "/"
+
+                                        Nothing ->
+                                            "/"
+                            in
+                            country ++ String.replace " " "_" selection
+
+                        RadioTrip ->
+                            "/trip/" ++ (String.replace " " "_" selection |> String.replace "/" "-")
+
+                        _ ->
+                            "/" ++ String.replace " " "_" selection
             in
             ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ) }
             , Cmd.batch
                 [ Task.attempt (Partition Filter) (getViewportOf "gallery")
                 , updateMap radio selection True
-                , Nav.pushUrl model.key <| "/" ++ (String.replace " " "_" selection |> String.replace "/" "-")
+                , Nav.pushUrl model.key url
                 ]
             )
 
@@ -534,16 +576,25 @@ update msg model =
         ClickedLink urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
-                    let
-                        _ =
-                            Debug.log "url" url
-                    in
-                    ( model, Nav.pushUrl model.key (Url.toString url) )
+                    ( model, Cmd.none )
 
                 Browser.External url ->
                     ( model, Nav.load url )
 
         ChangedUrl url ->
+            let
+                _ =
+                    Debug.log "url" <|
+                        Parser.parse
+                            (Parser.oneOf
+                                [ Parser.map (\c l -> Loc (c |> String.replace "_" " " |> Manifest.stringToCountry |> Maybe.withDefault Greece) (l |> String.replace "_" " " |> Manifest.stringToLocation |> Maybe.withDefault Crete)) (Parser.string </> Parser.string)
+                                , Parser.map Trp (Parser.s "trip" </> Parser.string)
+                                , Parser.map (\c -> Cntry (c |> String.replace "_" " " |> Manifest.stringToCountry |> Maybe.withDefault Greece)) Parser.string
+                                , Parser.map Home Parser.top
+                                ]
+                            )
+                            url
+            in
             ( model, Cmd.none )
 
         NoOp ->
@@ -1096,11 +1147,11 @@ modalView show =
     in
     div modal
         [ Html.button [ Html.Attributes.class "close", onClick ToggleModal ] [ Icons.x ]
-        , Html.form [ Html.Attributes.id "contactModal", Html.Attributes.method "post", Html.Attributes.action "process.php" ]
+        , Html.form [ Html.Attributes.id "contactModal", Html.Attributes.method "post", Html.Attributes.action "/process.php" ]
             [ Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Name", Html.Attributes.type_ "text", Html.Attributes.name "name" ] []
             , Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Email", Html.Attributes.type_ "email", Html.Attributes.name "email" ] []
             , Html.textarea [ Html.Attributes.required True, Html.Attributes.placeholder "Message", Html.Attributes.spellcheck True, Html.Attributes.rows 4, Html.Attributes.name "message" ] []
-            , Html.img [ Html.Attributes.class "img-verify", Html.Attributes.src "image.php", Html.Attributes.width 80, Html.Attributes.height 30 ] []
+            , Html.img [ Html.Attributes.class "img-verify", Html.Attributes.src "/image.php", Html.Attributes.width 80, Html.Attributes.height 30 ] []
             , Html.input [ Html.Attributes.id "verify", Html.Attributes.autocomplete False, Html.Attributes.required True, Html.Attributes.placeholder "Copy the code", Html.Attributes.type_ "text", Html.Attributes.name "verify", Html.Attributes.title "This confirms you are a human user or strong AI and not a spam-bot." ] []
             , div [ Html.Attributes.class "center" ]
                 [ Html.input [ Html.Attributes.type_ "submit", Html.Attributes.value "Send Message" ] []
