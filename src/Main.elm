@@ -59,21 +59,8 @@ type alias Model =
     }
 
 
-initialModel : Int -> Nav.Key -> Url -> Model
-initialModel scrollWidth key url =
-    let
-        _ =
-            Debug.log "url" <|
-                Parser.parse
-                    (Parser.oneOf
-                        [ Parser.map (\c l -> Loc (c |> String.replace "_" " " |> Manifest.stringToCountry |> Maybe.withDefault Greece) (l |> String.replace "_" " " |> Manifest.stringToLocation |> Maybe.withDefault Crete)) (Parser.top </> Parser.string </> Parser.string)
-                        , Parser.map Trp (Parser.top </> Parser.s "trip" </> Parser.string)
-                        , Parser.map (\c -> Cntry (c |> String.replace "_" " " |> Manifest.stringToCountry |> Maybe.withDefault Greece)) (Parser.top </> Parser.string)
-                        , Parser.map Home Parser.top
-                        ]
-                    )
-                    url
-    in
+initialModel : Int -> Nav.Key -> Model
+initialModel scrollWidth key =
     { partition = []
     , images = manifest
     , layout = Nothing
@@ -94,13 +81,6 @@ initialModel scrollWidth key url =
     , currentSwipeStart = Nothing
     , key = key
     }
-
-
-type Route
-    = Cntry Country
-    | Loc Country Location
-    | Trp String
-    | Home
 
 
 type alias Viewport =
@@ -128,12 +108,7 @@ emptyViewport =
 
 init : Int -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init scrollWidth url key =
-    ( initialModel scrollWidth key url
-    , Cmd.batch
-        [ getWindow Init
-        , Ports.drawMap ()
-        ]
-    )
+    ( initialModel scrollWidth key, getWindow Init (Just url) )
 
 
 type Event
@@ -169,13 +144,92 @@ type SwipeDirection
 
 
 
+--- Routing
+
+
+type Route
+    = RouteCountry (Maybe Country)
+    | RouteLocation (Maybe Location)
+    | RouteTrip (Maybe Trip)
+    | RouteAll
+
+
+routeURL : Url.Url -> Model -> ( Model, List (Cmd Msg) )
+routeURL url model =
+    let
+        sanitise str =
+            str
+                |> String.replace "-" "/"
+                |> String.replace "_" " "
+
+        parser =
+            Parser.oneOf
+                [ mapRoute Parser.top RouteAll
+                , mapRoute (Parser.s "trip" </> Parser.string) (\trip -> RouteTrip (sanitise trip |> Manifest.stringToTrip))
+                , mapRoute Parser.string (\country -> RouteCountry (sanitise country |> Manifest.stringToCountry))
+                , mapRoute (Parser.string </> Parser.string) (\_ location -> RouteLocation (sanitise location |> Manifest.stringToLocation))
+                ]
+    in
+    case Parser.parse parser url of
+        Just found ->
+            routeModel found model
+
+        Nothing ->
+            ( model, [ Nav.replaceUrl model.key "/", Ports.drawMap () ] )
+
+
+routeModel : Route -> Model -> ( Model, List (Cmd Msg) )
+routeModel route model =
+    case route of
+        RouteCountry maybeCountry ->
+            case maybeCountry of
+                Just country ->
+                    ( { model | filter = ByCountry country, filterSelected = ( RadioCountry, Manifest.countryName country ) }, [ Ports.initMap ( 2, Manifest.countryId country, [] ) ] )
+
+                Nothing ->
+                    ( model, [ Nav.replaceUrl model.key "/", Ports.drawMap () ] )
+
+        RouteLocation maybeLocation ->
+            case maybeLocation of
+                Just location ->
+                    let
+                        info =
+                            Manifest.locationInformation location
+                    in
+                    ( { model | filter = ByLocation location, filterSelected = ( RadioLocation, info.name ) }, [ Ports.initMap ( 3, info.name |> String.replace " " "_", [ negate <| Tuple.first info.coordinates, negate <| Tuple.second info.coordinates ] ) ] )
+
+                Nothing ->
+                    ( model, [ Nav.replaceUrl model.key "/", Ports.drawMap () ] )
+
+        RouteTrip maybeTrip ->
+            case maybeTrip of
+                Just trip ->
+                    let
+                        info =
+                            Manifest.tripInformation trip
+                    in
+                    ( { model | filter = ByTrip trip, filterSelected = ( RadioTrip, info.name ) }, [ Ports.initMap ( 4, info.name |> String.replace " " "_", [] ) ] )
+
+                Nothing ->
+                    ( model, [ Nav.replaceUrl model.key "/", Ports.drawMap () ] )
+
+        RouteAll ->
+            ( model, [ Ports.drawMap () ] )
+
+
+mapRoute : Parser a b -> a -> Parser (b -> c) c
+mapRoute parser handler =
+    Parser.map handler parser
+
+
+
 --- Update
 
 
 type Msg
     = RePartition
     | Partition Event (Result Browser.Dom.Error Browser.Dom.Viewport)
-    | SetWindow Event (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | SetWindow Event (Maybe Url) (Result Browser.Dom.Error Browser.Dom.Viewport)
     | ToggleRadio Radio
     | LazyLoad
     | PutLocale ( String, String )
@@ -202,17 +256,28 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         -- VIEWPORT
-        SetWindow event result ->
+        SetWindow event maybeUrl result ->
             case result of
                 Ok vp ->
-                    ( { model | window = vp.viewport }, Task.attempt (Partition event) (getViewportOf "gallery") )
+                    let
+                        ( newModel, commands ) =
+                            case maybeUrl of
+                                Just url ->
+                                    routeURL url model
+
+                                Nothing ->
+                                    ( model, [ Cmd.none ] )
+                    in
+                    ( { newModel | window = vp.viewport }
+                    , Cmd.batch (Task.attempt (Partition event) (getViewportOf "gallery") :: commands)
+                    )
 
                 Err _ ->
                     ( model, Cmd.none )
 
         -- GALLERY
         RePartition ->
-            ( model, getWindow Resize )
+            ( model, getWindow Resize Nothing )
 
         Partition event result ->
             case result of
@@ -582,28 +647,15 @@ update msg model =
                     ( model, Nav.load url )
 
         ChangedUrl url ->
-            let
-                _ =
-                    Debug.log "url" <|
-                        Parser.parse
-                            (Parser.oneOf
-                                [ Parser.map (\c l -> Loc (c |> String.replace "_" " " |> Manifest.stringToCountry |> Maybe.withDefault Greece) (l |> String.replace "_" " " |> Manifest.stringToLocation |> Maybe.withDefault Crete)) (Parser.string </> Parser.string)
-                                , Parser.map Trp (Parser.s "trip" </> Parser.string)
-                                , Parser.map (\c -> Cntry (c |> String.replace "_" " " |> Manifest.stringToCountry |> Maybe.withDefault Greece)) Parser.string
-                                , Parser.map Home Parser.top
-                                ]
-                            )
-                            url
-            in
             ( model, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )
 
 
-getWindow : Event -> Cmd Msg
-getWindow event =
-    Task.attempt (SetWindow event) getViewport
+getWindow : Event -> Maybe Url -> Cmd Msg
+getWindow event maybeUrl =
+    Task.attempt (SetWindow event maybeUrl) getViewport
 
 
 
