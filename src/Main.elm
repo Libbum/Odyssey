@@ -56,11 +56,12 @@ type alias Model =
     , showMenu : Bool
     , currentSwipeStart : Maybe Position
     , key : Nav.Key
+    , url : Url
     }
 
 
-initialModel : Int -> Nav.Key -> Model
-initialModel scrollWidth key =
+initialModel : Int -> Nav.Key -> Url -> Model
+initialModel scrollWidth key url =
     { partition = []
     , images = manifest
     , layout = Nothing
@@ -80,6 +81,7 @@ initialModel scrollWidth key =
     , showMenu = False
     , currentSwipeStart = Nothing
     , key = key
+    , url = url
     }
 
 
@@ -108,7 +110,7 @@ emptyViewport =
 
 init : Int -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init scrollWidth url key =
-    ( initialModel scrollWidth key, getWindow Init (Just url) )
+    ( initialModel scrollWidth key url, getWindow Init (Just url) )
 
 
 type Event
@@ -156,21 +158,7 @@ type Route
 
 routeURL : Url.Url -> Model -> ( Model, List (Cmd Msg) )
 routeURL url model =
-    let
-        sanitise str =
-            str
-                |> String.replace "-" "/"
-                |> String.replace "_" " "
-
-        parser =
-            Parser.oneOf
-                [ mapRoute Parser.top RouteAll
-                , mapRoute (Parser.s "trip" </> Parser.string) (\trip -> RouteTrip (sanitise trip |> Manifest.stringToTrip))
-                , mapRoute Parser.string (\country -> RouteCountry (sanitise country |> Manifest.stringToCountry))
-                , mapRoute (Parser.string </> Parser.string) (\_ location -> RouteLocation (sanitise location |> Manifest.stringToLocation))
-                ]
-    in
-    case Parser.parse parser url of
+    case Parser.parse routeParser url of
         Just found ->
             routeModel found model
 
@@ -178,16 +166,63 @@ routeURL url model =
             ( model, [ Nav.replaceUrl model.key "/", Ports.drawMap () ] )
 
 
+routeParser : Parser (Route -> a) a
+routeParser =
+    let
+        sanitise str =
+            str
+                |> String.replace "-" "/"
+                |> String.replace "_" " "
+    in
+    Parser.oneOf
+        [ mapRoute Parser.top RouteAll
+        , mapRoute (Parser.s "trip" </> Parser.string) (\trip -> RouteTrip (sanitise trip |> Manifest.stringToTrip))
+        , mapRoute Parser.string (\country -> RouteCountry (sanitise country |> Manifest.stringToCountry))
+        , mapRoute (Parser.string </> Parser.string) (\_ location -> RouteLocation (sanitise location |> Manifest.stringToLocation))
+        ]
+
+
+clearFocus : Url -> Url
+clearFocus url =
+    case url.query of
+        Just focus ->
+            case focus of
+                "focus" ->
+                    { url | query = Nothing }
+
+                _ ->
+                    url
+
+        Nothing ->
+            url
+
+
 routeModel : Route -> Model -> ( Model, List (Cmd Msg) )
 routeModel route model =
+    let
+        url =
+            model.url
+
+        ( newModel, clearQuery ) =
+            case model.url.query of
+                Just _ ->
+                    let
+                        newUrl =
+                            { url | query = Nothing }
+                    in
+                    ( { model | url = newUrl }, Nav.replaceUrl model.key (Url.toString newUrl) )
+
+                Nothing ->
+                    ( model, Cmd.none )
+    in
     case route of
         RouteCountry maybeCountry ->
             case maybeCountry of
                 Just country ->
-                    ( { model | filter = ByCountry country, filterSelected = ( RadioCountry, Manifest.countryName country ) }, [ Ports.initMap ( 2, Manifest.countryId country, [] ) ] )
+                    ( { newModel | filter = ByCountry country, filterSelected = ( RadioCountry, Manifest.countryName country ) }, [ Ports.initMap ( 2, Manifest.countryId country, [] ), clearQuery ] )
 
                 Nothing ->
-                    ( model, [ Nav.replaceUrl model.key "/", Ports.drawMap () ] )
+                    resetRoute model
 
         RouteLocation maybeLocation ->
             case maybeLocation of
@@ -196,10 +231,10 @@ routeModel route model =
                         info =
                             Manifest.locationInformation location
                     in
-                    ( { model | filter = ByLocation location, filterSelected = ( RadioLocation, info.name ) }, [ Ports.initMap ( 3, info.name |> String.replace " " "_", [ negate <| Tuple.first info.coordinates, negate <| Tuple.second info.coordinates ] ) ] )
+                    ( { newModel | filter = ByLocation location, filterSelected = ( RadioLocation, info.name ) }, [ Ports.initMap ( 3, info.name |> String.replace " " "_", [ negate <| Tuple.first info.coordinates, negate <| Tuple.second info.coordinates ] ), clearQuery ] )
 
                 Nothing ->
-                    ( model, [ Nav.replaceUrl model.key "/", Ports.drawMap () ] )
+                    resetRoute model
 
         RouteTrip maybeTrip ->
             case maybeTrip of
@@ -208,13 +243,18 @@ routeModel route model =
                         info =
                             Manifest.tripInformation trip
                     in
-                    ( { model | filter = ByTrip trip, filterSelected = ( RadioTrip, info.name ) }, [ Ports.initMap ( 4, info.name |> String.replace " " "_", [] ) ] )
+                    ( { newModel | filter = ByTrip trip, filterSelected = ( RadioTrip, info.name ) }, [ Ports.initMap ( 4, info.name |> String.replace " " "_", [] ), clearQuery ] )
 
                 Nothing ->
-                    ( model, [ Nav.replaceUrl model.key "/", Ports.drawMap () ] )
+                    resetRoute model
 
         RouteAll ->
-            ( model, [ Ports.drawMap () ] )
+            ( newModel, [ Ports.drawMap (), clearQuery ] )
+
+
+resetRoute : Model -> ( Model, List (Cmd Msg) )
+resetRoute model =
+    ( model, [ Nav.replaceUrl model.key "/", Ports.drawMap () ] )
 
 
 mapRoute : Parser a b -> a -> Parser (b -> c) c
@@ -439,17 +479,7 @@ update msg model =
 
         -- IMAGE VIEWER
         ZoomImage image ->
-            let
-                ( map, url ) =
-                    case image of
-                        Just current ->
-                            ( Cmd.none, Nav.pushUrl model.key (Gallery.displayURL current) )
-
-                        Nothing ->
-                            --TODO: This is not true, we may start from all, but may start from a trip for example
-                            ( Ports.drawMap (), Nav.pushUrl model.key "/" )
-            in
-            ( model, Cmd.batch [ Task.attempt (SetZoom image) getViewport, map, url ] )
+            ( model, Cmd.batch [ Task.attempt (SetZoom image) getViewport, Ports.drawMap () ] )
 
         SetZoom image result ->
             case result of
@@ -462,13 +492,21 @@ update msg model =
 
                                 _ ->
                                     model.layout
+
+                        urlCmd =
+                            case image of
+                                Just current ->
+                                    Nav.pushUrl model.key "?focus"
+
+                                Nothing ->
+                                    Nav.pushUrl model.key (Url.toString (clearFocus model.url))
                     in
                     ( { model
                         | zoom = image
                         , viewportOffset = vp.viewport.y
                         , layout = layout
                       }
-                    , Task.attempt (\_ -> NoOp) (setViewport 0 model.viewportOffset)
+                    , Cmd.batch [ Task.attempt (\_ -> NoOp) (setViewport 0 model.viewportOffset), urlCmd ]
                     )
 
                 Err _ ->
@@ -476,17 +514,17 @@ update msg model =
 
         NextZoom ->
             let
-                ( layout, image, url ) =
+                ( layout, image ) =
                     getNextZoom model
             in
-            ( { model | zoom = image, layout = layout }, url )
+            ( { model | zoom = image, layout = layout }, Cmd.none )
 
         PreviousZoom ->
             let
-                ( layout, image, url ) =
+                ( layout, image ) =
                     getPreviousZoom model
             in
-            ( { model | zoom = image, layout = layout }, url )
+            ( { model | zoom = image, layout = layout }, Cmd.none )
 
         ToggleModal ->
             ( { model | showModal = not model.showModal }, Cmd.none )
@@ -511,7 +549,7 @@ update msg model =
                 filter =
                     newFilter ( radio, selection ) model.filter
 
-                url =
+                path =
                     case radio of
                         RadioLocation ->
                             let
@@ -523,7 +561,7 @@ update msg model =
                                         Nothing ->
                                             "/"
                             in
-                            country ++ String.replace " " "_" selection
+                            country ++ selection |> String.replace " " "_"
 
                         RadioTrip ->
                             "/trip/" ++ (String.replace " " "_" selection |> String.replace "/" "-")
@@ -535,7 +573,7 @@ update msg model =
             , Cmd.batch
                 [ Task.attempt (Partition Filter) (getViewportOf "gallery")
                 , updateMap radio selection True
-                , Nav.pushUrl model.key url
+                , Nav.pushUrl model.key path
                 ]
             )
 
@@ -550,10 +588,10 @@ update msg model =
                             case Zipper.next zip of
                                 Just _ ->
                                     let
-                                        ( layout, image, url ) =
+                                        ( layout, image ) =
                                             getPreviousZoom model
                                     in
-                                    ( { model | zoom = image, layout = layout }, url )
+                                    ( { model | zoom = image, layout = layout }, Cmd.none )
 
                                 Nothing ->
                                     ( model, Cmd.none )
@@ -567,10 +605,10 @@ update msg model =
                             case Zipper.previous zip of
                                 Just _ ->
                                     let
-                                        ( layout, image, url ) =
+                                        ( layout, image ) =
                                             getNextZoom model
                                     in
-                                    ( { model | zoom = image, layout = layout }, url )
+                                    ( { model | zoom = image, layout = layout }, Cmd.none )
 
                                 Nothing ->
                                     ( model, Cmd.none )
@@ -601,10 +639,10 @@ update msg model =
                                     case Zipper.next zip of
                                         Just _ ->
                                             let
-                                                ( layout, image, url ) =
+                                                ( layout, image ) =
                                                     getPreviousZoom model
                                             in
-                                            ( { model | zoom = image, layout = layout, currentSwipeStart = Nothing }, url )
+                                            ( { model | zoom = image, layout = layout, currentSwipeStart = Nothing }, Cmd.none )
 
                                         Nothing ->
                                             ( { model | currentSwipeStart = Nothing }, Cmd.none )
@@ -618,10 +656,10 @@ update msg model =
                                     case Zipper.previous zip of
                                         Just _ ->
                                             let
-                                                ( layout, image, url ) =
+                                                ( layout, image ) =
                                                     getNextZoom model
                                             in
-                                            ( { model | zoom = image, layout = layout, currentSwipeStart = Nothing }, url )
+                                            ( { model | zoom = image, layout = layout, currentSwipeStart = Nothing }, Cmd.none )
 
                                         Nothing ->
                                             ( { model | currentSwipeStart = Nothing }, Cmd.none )
@@ -647,10 +685,97 @@ update msg model =
                     ( model, Nav.load url )
 
         ChangedUrl url ->
-            ( model, Cmd.none )
+            case ( url.query, model.url.query, model.zoom ) of
+                ( Nothing, Just _, Just _ ) ->
+                    -- We have a close zoom event, but zoom is still open. Back button is hit.
+                    ( { model | url = url }, Cmd.batch [ Task.attempt (SetZoom Nothing) getViewport, Ports.drawMap () ] )
+
+                ( Just _, _, Nothing ) ->
+                    ( { model | url = url }, Nav.replaceUrl model.key (Url.toString (clearFocus url)) )
+
+                _ ->
+                    case Parser.parse routeParser url of
+                        Just route ->
+                            -- In the event that the back, forward buttons are clicked, update the view.
+                            case route of
+                                RouteCountry maybeCountry ->
+                                    case maybeCountry of
+                                        Just newCountry ->
+                                            case model.filter of
+                                                ByCountry country ->
+                                                    if country == newCountry then
+                                                        ( { model | url = url }, Cmd.none )
+
+                                                    else
+                                                        doUpdate (ByCountry newCountry) RadioCountry (Manifest.countryName newCountry) model
+
+                                                _ ->
+                                                    doUpdate (ByCountry newCountry) RadioCountry (Manifest.countryName newCountry) model
+
+                                        Nothing ->
+                                            ( { model | url = url }, Cmd.none )
+
+                                RouteLocation maybeLocation ->
+                                    case maybeLocation of
+                                        Just newLocation ->
+                                            case model.filter of
+                                                ByLocation location ->
+                                                    if location == newLocation then
+                                                        ( { model | url = url }, Cmd.none )
+
+                                                    else
+                                                        doUpdate (ByLocation newLocation) RadioLocation (Manifest.locationInformation newLocation |> .name) model
+
+                                                _ ->
+                                                    doUpdate (ByLocation newLocation) RadioLocation (Manifest.locationInformation newLocation |> .name) model
+
+                                        Nothing ->
+                                            ( { model | url = url }, Cmd.none )
+
+                                RouteTrip maybeTrip ->
+                                    case maybeTrip of
+                                        Just newTrip ->
+                                            case model.filter of
+                                                ByTrip trip ->
+                                                    if trip == newTrip then
+                                                        ( { model | url = url }, Cmd.none )
+
+                                                    else
+                                                        doUpdate (ByTrip newTrip) RadioTrip (Manifest.tripInformation newTrip |> .description) model
+
+                                                _ ->
+                                                    doUpdate (ByTrip newTrip) RadioTrip (Manifest.tripInformation newTrip |> .description) model
+
+                                        Nothing ->
+                                            ( { model | url = url }, Cmd.none )
+
+                                RouteAll ->
+                                    case model.filter of
+                                        All ->
+                                            ( { model | url = url }, Cmd.none )
+
+                                        _ ->
+                                            doUpdate All RadioAll "" model
+
+                        Nothing ->
+                            ( { model | url = url }, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )
+
+
+doUpdate : Filter -> Radio -> String -> Model -> ( Model, Cmd Msg )
+doUpdate filter radio selection model =
+    let
+        rows =
+            model.rows
+    in
+    ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ) }
+    , Cmd.batch
+        [ Task.attempt (Partition Filter) (getViewportOf "gallery")
+        , updateMap radio selection True
+        ]
+    )
 
 
 getWindow : Event -> Maybe Url -> Cmd Msg
@@ -1014,7 +1139,7 @@ getWidths images viewportWidth arSum widths =
 -- Veiw Helpers
 
 
-getNextZoom : Model -> ( Maybe (Zipper Image), Maybe Image, Cmd Msg )
+getNextZoom : Model -> ( Maybe (Zipper Image), Maybe Image )
 getNextZoom model =
     let
         layout =
@@ -1032,19 +1157,11 @@ getNextZoom model =
 
                 Nothing ->
                     Nothing
-
-        url =
-            case image of
-                Just current ->
-                    Nav.replaceUrl model.key (Gallery.displayURL current)
-
-                Nothing ->
-                    Cmd.none
     in
-    ( layout, image, url )
+    ( layout, image )
 
 
-getPreviousZoom : Model -> ( Maybe (Zipper Image), Maybe Image, Cmd Msg )
+getPreviousZoom : Model -> ( Maybe (Zipper Image), Maybe Image )
 getPreviousZoom model =
     let
         layout =
@@ -1062,16 +1179,8 @@ getPreviousZoom model =
 
                 Nothing ->
                     Nothing
-
-        url =
-            case image of
-                Just current ->
-                    Nav.replaceUrl model.key (Gallery.displayURL current)
-
-                Nothing ->
-                    Cmd.none
     in
-    ( layout, image, url )
+    ( layout, image )
 
 
 radioView : Radio -> Radio -> Html Msg
