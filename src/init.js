@@ -57,7 +57,7 @@ app.ports.initMap.subscribe(function(data) {
                 case 2:
                     currentCountry = data[1];
                     drawMap(function() {
-                        waitForMap(currentCountry, function() {
+                        waitForMap("AUS", function() { //Hard code the wait, otherwise tiny countries don't show up.
                             countryView(currentCountry);
                         });
                     });
