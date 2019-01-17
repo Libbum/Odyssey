@@ -69,7 +69,7 @@ initialModel scrollWidth key url =
     , filterSelected = ( RadioAll, "" )
     , resizedAfterLoad = False
     , rows = { total = 0, visible = 10 }
-    , window = emptyViewport --TODO: Drop this to viewport.height if we don't need anything else from this later
+    , window = emptyViewport
     , gallery = emptyViewport
     , viewportOffset = 0
     , scrollWidth = toFloat scrollWidth
@@ -487,7 +487,16 @@ update msg model =
 
         -- IMAGE VIEWER
         ZoomImage image ->
-            ( model, Cmd.batch [ Task.attempt (SetZoom image) getViewport, Ports.drawMap () ] )
+            let
+                mapCmd =
+                    case image of
+                        Just _ ->
+                            [ Cmd.none ]
+
+                        Nothing ->
+                            [ Ports.drawMap (), getWindow Resize Nothing ]
+            in
+            ( model, Cmd.batch (Task.attempt (SetZoom image) getViewport :: mapCmd) )
 
         SetZoom image result ->
             case result of
@@ -696,7 +705,7 @@ update msg model =
             case ( url.query, model.url.query, model.zoom ) of
                 ( Nothing, Just _, Just _ ) ->
                     -- We have a close zoom event, but zoom is still open. Back button is hit.
-                    ( { model | url = url }, Cmd.batch [ Task.attempt (SetZoom Nothing) getViewport, Ports.drawMap () ] )
+                    ( { model | url = url }, Cmd.batch [ getWindow Resize Nothing, Task.attempt (SetZoom Nothing) getViewport, Ports.drawMap () ] )
 
                 ( Just _, _, Nothing ) ->
                     ( { model | url = url }, Nav.replaceUrl model.key (Url.toString (clearFocus url)) )
