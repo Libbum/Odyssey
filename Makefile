@@ -30,10 +30,10 @@ manifest: manifester/odyssey.yaml manifester/world/cca3.json manifester/world/co
 	cd manifester; ./update_manifest.sh; cargo run --release; cd ..
 
 serve: dist/assets/js/init.js debugindex
-	elm-live src/Main.elm -d dist --open -- --output=dist/assets/js/odyssey.js --optimize
+	elm-live src/Main.elm -d dist --pushstate --open -- --output=dist/assets/js/odyssey.js --optimize
 
 debug: dist/assets/js/init.js debugindex
-	elm-live src/Main.elm -d dist --open -- --output=dist/assets/js/odyssey.js --debug
+	elm-live src/Main.elm -d dist --pushstate --open -- --output=dist/assets/js/odyssey.js --debug
 
 clean:
 	@-rm -f $(JSTARGETS)

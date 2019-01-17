@@ -46,6 +46,49 @@ currentCountry = "";
 currentLocation = "";
 currentTrip = "";
 
+app.ports.initMap.subscribe(function(data) {
+    current = data[0];
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+            switch (current) {
+                case 1:
+                    drawMap();
+                    break;
+                case 2:
+                    currentCountry = data[1];
+                    drawMap(function() {
+                        waitForMap("AUS", function() { //Hard code the wait, otherwise tiny countries don't show up.
+                            countryView(currentCountry);
+                        });
+                    });
+                    break;
+                case 3:
+                    currentLocation = data[1];
+                    currentCoords = data[2];
+                    drawMap(function() {
+                        waitForMap(currentLocation, function() {
+                            locationView(currentLocation, currentCoords);
+                        });
+                    });
+                    break;
+                case 4:
+                    currentTrip = data[1];
+                    drawMap(function() {
+                        waitForMap(currentTrip, function() {
+                            tripView(currentTrip);
+                        });
+                    });
+                    break;
+                default:
+                    current = 1;
+                    break;
+            }
+        });
+    });
+
+    return null;
+});
+
 app.ports.drawMap.subscribe(function() {
     requestAnimationFrame(function() {
         requestAnimationFrame(function() {
@@ -518,7 +561,7 @@ function drawMap(callback) {
         });
     });
 
-    d3.json("assets/world.json", function(t, n) {
+    d3.json("/assets/world.json", function(t, n) {
         var svg = d3.selectAll("svg");
         svg.insert("path", ".iglobe-graticule").datum({ type: "Sphere"}).attr("class", "iglobe-ocean");
         countries = topojson.feature(n, n.objects.countries).features;

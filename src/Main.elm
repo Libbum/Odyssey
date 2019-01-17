@@ -1,8 +1,9 @@
 module Main exposing (main)
 
-import Browser
+import Browser exposing (Document)
 import Browser.Dom exposing (getViewport, getViewportOf, setViewport)
 import Browser.Events
+import Browser.Navigation as Nav
 import Gallery exposing (Filter(..))
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
@@ -14,18 +15,20 @@ import List.Zipper as Zipper exposing (Zipper)
 import Manifest exposing (Country(..), Image, Location(..), Month(..), Trip(..), manifest)
 import Partition exposing (KPartition, greedyK)
 import Ports exposing (nearBottom)
-import Svg
-import Svg.Attributes
 import Task
+import Url exposing (Url)
+import Url.Parser as Parser exposing ((</>), Parser)
 
 
 main : Program Int Model Msg
 main =
-    Browser.element
+    Browser.application
         { init = init
         , view = view
         , update = update
         , subscriptions = subscriptions
+        , onUrlChange = ChangedUrl
+        , onUrlRequest = ClickedLink
         }
 
 
@@ -52,11 +55,13 @@ type alias Model =
     , showControls : Bool
     , showMenu : Bool
     , currentSwipeStart : Maybe Position
+    , key : Nav.Key
+    , url : Url
     }
 
 
-initialModel : Int -> Model
-initialModel scrollWidth =
+initialModel : Int -> Nav.Key -> Url -> Model
+initialModel scrollWidth key url =
     { partition = []
     , images = manifest
     , layout = Nothing
@@ -75,6 +80,8 @@ initialModel scrollWidth =
     , showControls = False
     , showMenu = False
     , currentSwipeStart = Nothing
+    , key = key
+    , url = url
     }
 
 
@@ -101,14 +108,9 @@ emptyViewport =
     }
 
 
-init : Int -> ( Model, Cmd Msg )
-init scrollWidth =
-    ( initialModel scrollWidth
-    , Cmd.batch
-        [ getWindow Init
-        , Ports.drawMap ()
-        ]
-    )
+init : Int -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init scrollWidth url key =
+    ( initialModel scrollWidth key url, getWindow Init (Just url) )
 
 
 type Event
@@ -144,13 +146,130 @@ type SwipeDirection
 
 
 
+--- Routing
+
+
+type Route
+    = RouteCountry (Maybe Country)
+    | RouteLocation (Maybe Location)
+    | RouteTrip (Maybe Trip)
+    | RouteAll
+
+
+routeURL : Url.Url -> Model -> ( Model, List (Cmd Msg) )
+routeURL url model =
+    case Parser.parse routeParser url of
+        Just found ->
+            routeModel found model
+
+        Nothing ->
+            ( model, [ Nav.replaceUrl model.key "/", Ports.drawMap () ] )
+
+
+routeParser : Parser (Route -> a) a
+routeParser =
+    let
+        sanitise str =
+            str
+                |> String.replace "-" "/"
+                |> String.replace "_" " "
+    in
+    Parser.oneOf
+        [ mapRoute Parser.top RouteAll
+        , mapRoute (Parser.s "trip" </> Parser.string) (\trip -> RouteTrip (sanitise trip |> Manifest.stringToTrip))
+        , mapRoute Parser.string (\country -> RouteCountry (sanitise country |> Manifest.stringToCountry))
+        , mapRoute (Parser.string </> Parser.string) (\_ location -> RouteLocation (sanitise location |> Manifest.stringToLocation))
+        ]
+
+
+clearFocus : Url -> Url
+clearFocus url =
+    case url.query of
+        Just focus ->
+            case focus of
+                "focus" ->
+                    { url | query = Nothing }
+
+                _ ->
+                    url
+
+        Nothing ->
+            url
+
+
+routeModel : Route -> Model -> ( Model, List (Cmd Msg) )
+routeModel route model =
+    let
+        url =
+            model.url
+
+        ( newModel, clearQuery ) =
+            case model.url.query of
+                Just _ ->
+                    let
+                        newUrl =
+                            { url | query = Nothing }
+                    in
+                    ( { model | url = newUrl }, Nav.replaceUrl model.key (Url.toString newUrl) )
+
+                Nothing ->
+                    ( model, Cmd.none )
+    in
+    case route of
+        RouteCountry maybeCountry ->
+            case maybeCountry of
+                Just country ->
+                    ( { newModel | filter = ByCountry country, filterSelected = ( RadioCountry, Manifest.countryName country ) }, [ Ports.initMap ( 2, Manifest.countryId country, [] ), clearQuery ] )
+
+                Nothing ->
+                    resetRoute model
+
+        RouteLocation maybeLocation ->
+            case maybeLocation of
+                Just location ->
+                    let
+                        info =
+                            Manifest.locationInformation location
+                    in
+                    ( { newModel | filter = ByLocation location, filterSelected = ( RadioLocation, info.name ) }, [ Ports.initMap ( 3, info.name |> String.replace " " "_", [ negate <| Tuple.first info.coordinates, negate <| Tuple.second info.coordinates ] ), clearQuery ] )
+
+                Nothing ->
+                    resetRoute model
+
+        RouteTrip maybeTrip ->
+            case maybeTrip of
+                Just trip ->
+                    let
+                        info =
+                            Manifest.tripInformation trip
+                    in
+                    ( { newModel | filter = ByTrip trip, filterSelected = ( RadioTrip, info.name ) }, [ Ports.initMap ( 4, info.name |> String.replace " " "_", [] ), clearQuery ] )
+
+                Nothing ->
+                    resetRoute model
+
+        RouteAll ->
+            ( newModel, [ Ports.drawMap (), clearQuery ] )
+
+
+resetRoute : Model -> ( Model, List (Cmd Msg) )
+resetRoute model =
+    ( model, [ Nav.replaceUrl model.key "/", Ports.drawMap () ] )
+
+
+mapRoute : Parser a b -> a -> Parser (b -> c) c
+mapRoute parser handler =
+    Parser.map handler parser
+
+
+
 --- Update
 
 
 type Msg
     = RePartition
     | Partition Event (Result Browser.Dom.Error Browser.Dom.Viewport)
-    | SetWindow Event (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | SetWindow Event (Maybe Url) (Result Browser.Dom.Error Browser.Dom.Viewport)
     | ToggleRadio Radio
     | LazyLoad
     | PutLocale ( String, String )
@@ -168,6 +287,8 @@ type Msg
     | KeyPress Keyboard
     | SwipeStart ( Float, Float )
     | SwipeEnd ( Float, Float )
+    | ChangedUrl Url
+    | ClickedLink Browser.UrlRequest
     | NoOp
 
 
@@ -175,17 +296,28 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         -- VIEWPORT
-        SetWindow event result ->
+        SetWindow event maybeUrl result ->
             case result of
                 Ok vp ->
-                    ( { model | window = vp.viewport }, Task.attempt (Partition event) (getViewportOf "gallery") )
+                    let
+                        ( newModel, commands ) =
+                            case maybeUrl of
+                                Just url ->
+                                    routeURL url model
+
+                                Nothing ->
+                                    ( model, [ Cmd.none ] )
+                    in
+                    ( { newModel | window = vp.viewport }
+                    , Cmd.batch (Task.attempt (Partition event) (getViewportOf "gallery") :: commands)
+                    )
 
                 Err _ ->
                     ( model, Cmd.none )
 
         -- GALLERY
         RePartition ->
-            ( model, getWindow Resize )
+            ( model, getWindow Resize Nothing )
 
         Partition event result ->
             case result of
@@ -237,7 +369,15 @@ update msg model =
                                             oldViewport.width
 
                                 Init ->
-                                    oldViewport.width - model.scrollWidth
+                                    let
+                                        multiplier =
+                                            if rowsGuess < 4 then
+                                                0
+
+                                            else
+                                                1
+                                    in
+                                    oldViewport.width - multiplier * model.scrollWidth
 
                                 Resize ->
                                     oldViewport.width
@@ -285,6 +425,7 @@ update msg model =
                             , Cmd.batch
                                 [ Task.attempt (Partition Filter) (getViewportOf "gallery")
                                 , updateMap selected "" True
+                                , Nav.pushUrl model.key "/"
                                 ]
                             )
 
@@ -346,16 +487,7 @@ update msg model =
 
         -- IMAGE VIEWER
         ZoomImage image ->
-            let
-                map =
-                    case image of
-                        Just _ ->
-                            Cmd.none
-
-                        Nothing ->
-                            Ports.drawMap ()
-            in
-            ( model, Cmd.batch [ Task.attempt (SetZoom image) getViewport, map ] )
+            ( model, Cmd.batch [ Task.attempt (SetZoom image) getViewport, Ports.drawMap () ] )
 
         SetZoom image result ->
             case result of
@@ -368,13 +500,21 @@ update msg model =
 
                                 _ ->
                                     model.layout
+
+                        urlCmd =
+                            case image of
+                                Just current ->
+                                    Nav.pushUrl model.key "?focus"
+
+                                Nothing ->
+                                    Nav.pushUrl model.key (Url.toString (clearFocus model.url))
                     in
                     ( { model
                         | zoom = image
                         , viewportOffset = vp.viewport.y
                         , layout = layout
                       }
-                    , Task.attempt (\_ -> NoOp) (setViewport 0 model.viewportOffset)
+                    , Cmd.batch [ Task.attempt (\_ -> NoOp) (setViewport 0 model.viewportOffset), urlCmd ]
                     )
 
                 Err _ ->
@@ -416,11 +556,32 @@ update msg model =
 
                 filter =
                     newFilter ( radio, selection ) model.filter
+
+                path =
+                    case radio of
+                        RadioLocation ->
+                            let
+                                country =
+                                    case Manifest.stringToLocation selection of
+                                        Just location ->
+                                            "/" ++ (Manifest.locationInformation location |> (\info -> Manifest.countryName info.country)) ++ "/"
+
+                                        Nothing ->
+                                            "/"
+                            in
+                            country ++ selection |> String.replace " " "_"
+
+                        RadioTrip ->
+                            "/trip/" ++ (String.replace " " "_" selection |> String.replace "/" "-")
+
+                        _ ->
+                            "/" ++ String.replace " " "_" selection
             in
             ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ) }
             , Cmd.batch
                 [ Task.attempt (Partition Filter) (getViewportOf "gallery")
                 , updateMap radio selection True
+                , Nav.pushUrl model.key path
                 ]
             )
 
@@ -523,13 +684,111 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        ClickedLink urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model, Cmd.none )
+
+                Browser.External url ->
+                    ( model, Nav.load url )
+
+        ChangedUrl url ->
+            case ( url.query, model.url.query, model.zoom ) of
+                ( Nothing, Just _, Just _ ) ->
+                    -- We have a close zoom event, but zoom is still open. Back button is hit.
+                    ( { model | url = url }, Cmd.batch [ Task.attempt (SetZoom Nothing) getViewport, Ports.drawMap () ] )
+
+                ( Just _, _, Nothing ) ->
+                    ( { model | url = url }, Nav.replaceUrl model.key (Url.toString (clearFocus url)) )
+
+                _ ->
+                    case Parser.parse routeParser url of
+                        Just route ->
+                            -- In the event that the back, forward buttons are clicked, update the view.
+                            case route of
+                                RouteCountry maybeCountry ->
+                                    case maybeCountry of
+                                        Just newCountry ->
+                                            case model.filter of
+                                                ByCountry country ->
+                                                    if country == newCountry then
+                                                        ( { model | url = url }, Cmd.none )
+
+                                                    else
+                                                        doUpdate (ByCountry newCountry) RadioCountry (Manifest.countryName newCountry) model
+
+                                                _ ->
+                                                    doUpdate (ByCountry newCountry) RadioCountry (Manifest.countryName newCountry) model
+
+                                        Nothing ->
+                                            ( { model | url = url }, Cmd.none )
+
+                                RouteLocation maybeLocation ->
+                                    case maybeLocation of
+                                        Just newLocation ->
+                                            case model.filter of
+                                                ByLocation location ->
+                                                    if location == newLocation then
+                                                        ( { model | url = url }, Cmd.none )
+
+                                                    else
+                                                        doUpdate (ByLocation newLocation) RadioLocation (Manifest.locationInformation newLocation |> .name) model
+
+                                                _ ->
+                                                    doUpdate (ByLocation newLocation) RadioLocation (Manifest.locationInformation newLocation |> .name) model
+
+                                        Nothing ->
+                                            ( { model | url = url }, Cmd.none )
+
+                                RouteTrip maybeTrip ->
+                                    case maybeTrip of
+                                        Just newTrip ->
+                                            case model.filter of
+                                                ByTrip trip ->
+                                                    if trip == newTrip then
+                                                        ( { model | url = url }, Cmd.none )
+
+                                                    else
+                                                        doUpdate (ByTrip newTrip) RadioTrip (Manifest.tripInformation newTrip |> .description) model
+
+                                                _ ->
+                                                    doUpdate (ByTrip newTrip) RadioTrip (Manifest.tripInformation newTrip |> .description) model
+
+                                        Nothing ->
+                                            ( { model | url = url }, Cmd.none )
+
+                                RouteAll ->
+                                    case model.filter of
+                                        All ->
+                                            ( { model | url = url }, Cmd.none )
+
+                                        _ ->
+                                            doUpdate All RadioAll "" model
+
+                        Nothing ->
+                            ( { model | url = url }, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
 
 
-getWindow : Event -> Cmd Msg
-getWindow event =
-    Task.attempt (SetWindow event) getViewport
+doUpdate : Filter -> Radio -> String -> Model -> ( Model, Cmd Msg )
+doUpdate filter radio selection model =
+    let
+        rows =
+            model.rows
+    in
+    ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ) }
+    , Cmd.batch
+        [ Task.attempt (Partition Filter) (getViewportOf "gallery")
+        , updateMap radio selection True
+        ]
+    )
+
+
+getWindow : Event -> Maybe Url -> Cmd Msg
+getWindow event maybeUrl =
+    Task.attempt (SetWindow event maybeUrl) getViewport
 
 
 
@@ -570,7 +829,7 @@ toKeyboard key =
 --- View
 
 
-view : Model -> Html Msg
+view : Model -> Document Msg
 view model =
     case model.zoom of
         Nothing ->
@@ -594,7 +853,8 @@ view model =
                         False ->
                             Html.Attributes.class ""
             in
-            div [ Html.Attributes.class "content" ]
+            { title = "Odyssey"
+            , body =
                 [ Html.header [ Html.Attributes.id "title" ]
                     [ Html.button [ Html.Attributes.class "title", onClick GoToTop ] [ Html.text "Odyssey" ]
                     , Html.span [ Html.Attributes.class "burger" ]
@@ -645,6 +905,7 @@ view model =
                 , coverView model.showModal
                 , modalView model.showModal
                 ]
+            }
 
         Just image ->
             let
@@ -667,7 +928,10 @@ view model =
                         Nothing ->
                             ( False, False )
             in
-            zoomImage image model.showControls previousVisible nextVisible model.showDescription
+            { title = "Odyssey"
+            , body =
+                [ zoomImage image model.showControls previousVisible nextVisible model.showDescription ]
+            }
 
 
 displayImages : List Image -> Float -> KPartition Int -> List (Html Msg) -> List (Html Msg)
@@ -1052,11 +1316,11 @@ modalView show =
     in
     div modal
         [ Html.button [ Html.Attributes.class "close", onClick ToggleModal ] [ Icons.x ]
-        , Html.form [ Html.Attributes.id "contactModal", Html.Attributes.method "post", Html.Attributes.action "process.php" ]
+        , Html.form [ Html.Attributes.id "contactModal", Html.Attributes.method "post", Html.Attributes.action "/process.php" ]
             [ Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Name", Html.Attributes.type_ "text", Html.Attributes.name "name" ] []
             , Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Email", Html.Attributes.type_ "email", Html.Attributes.name "email" ] []
             , Html.textarea [ Html.Attributes.required True, Html.Attributes.placeholder "Message", Html.Attributes.spellcheck True, Html.Attributes.rows 4, Html.Attributes.name "message" ] []
-            , Html.img [ Html.Attributes.class "img-verify", Html.Attributes.src "image.php", Html.Attributes.width 80, Html.Attributes.height 30 ] []
+            , Html.img [ Html.Attributes.class "img-verify", Html.Attributes.src "/image.php", Html.Attributes.width 80, Html.Attributes.height 30 ] []
             , Html.input [ Html.Attributes.id "verify", Html.Attributes.autocomplete False, Html.Attributes.required True, Html.Attributes.placeholder "Copy the code", Html.Attributes.type_ "text", Html.Attributes.name "verify", Html.Attributes.title "This confirms you are a human user or strong AI and not a spam-bot." ] []
             , div [ Html.Attributes.class "center" ]
                 [ Html.input [ Html.Attributes.type_ "submit", Html.Attributes.value "Send Message" ] []
@@ -1101,7 +1365,7 @@ getSwipeDirection start end =
 
 
 
--- Map Helpers
+-- Map Helper
 
 
 updateMap : Radio -> String -> Bool -> Cmd msg
@@ -1146,17 +1410,3 @@ updateMap radio selected clearPrevious =
 
         RadioAll ->
             Ports.viewAll ()
-
-
-drawGlobe : Html Msg
-drawGlobe =
-    Svg.svg
-        [ Svg.Attributes.viewBox "0 0 400 400"
-        ]
-        [ Svg.circle
-            [ Svg.Attributes.cx "200"
-            , Svg.Attributes.cy "200"
-            , Svg.Attributes.r "190"
-            ]
-            []
-        ]

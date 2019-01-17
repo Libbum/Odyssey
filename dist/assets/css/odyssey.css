@@ -18,10 +18,6 @@ h1 {
     color: #348899;
 }
 
-.content {
-    min-width: 360px;
-}
-
 #aside {
     background: #343642;
     color: #cce1e6;
@@ -287,6 +283,7 @@ label > .icon {
 #gallery {
     padding-bottom: 4px;
     margin-top: 50px;
+    min-width: 360px;
 }
 
 #gallery img:hover {
