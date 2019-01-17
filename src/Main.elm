@@ -369,7 +369,15 @@ update msg model =
                                             oldViewport.width
 
                                 Init ->
-                                    oldViewport.width - model.scrollWidth
+                                    let
+                                        multiplier =
+                                            if rowsGuess < 4 then
+                                                0
+
+                                            else
+                                                1
+                                    in
+                                    oldViewport.width - multiplier * model.scrollWidth
 
                                 Resize ->
                                     oldViewport.width
