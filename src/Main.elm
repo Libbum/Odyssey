@@ -986,18 +986,7 @@ displayRowOfImages images viewportWidth =
                     singleImageSize images
 
                 False ->
-                    let
-                        height =
-                            floor (viewportWidth / arSum)
-                    in
-                    case height > 550 of
-                        True ->
-                            -- This is to catch the case where a partiton cannot be found for the width since there
-                            -- is only perhaps 2 images and their aspectRatios can't traverse the width without blowing up their height
-                            ( List.reverse <| getWidths revImages (550 * arSum) arSum [], 550 )
-
-                        False ->
-                            ( List.reverse <| getWidths revImages viewportWidth arSum [], floor (viewportWidth / arSum) )
+                    ( List.reverse <| getWidths revImages viewportWidth arSum [], floor (viewportWidth / arSum) )
     in
     div [ Html.Attributes.class "flex" ] <| List.map2 (\img w -> displayImage img w h) revImages widths
 
