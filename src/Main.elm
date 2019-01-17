@@ -937,17 +937,17 @@ view model =
 displayImages : List Image -> Float -> KPartition Int -> List (Html Msg) -> List (Html Msg)
 displayImages images viewportWidth partition imageRows =
     let
-        gallerySingleImage =
-            List.length images == 1
+        galleryNoPartition =
+            not (List.isEmpty images) && List.isEmpty partition
     in
-    case ( partition, gallerySingleImage ) of
+    case ( partition, galleryNoPartition ) of
         ( one :: theRest, _ ) ->
             let
                 rowWidth =
                     List.length one
 
                 newImageRows =
-                    displayRowOfImages (List.take rowWidth images) viewportWidth gallerySingleImage :: imageRows
+                    displayRowOfImages (List.take rowWidth images) viewportWidth :: imageRows
             in
             displayImages (List.drop rowWidth images) viewportWidth theRest newImageRows
 
@@ -956,14 +956,14 @@ displayImages images viewportWidth partition imageRows =
                 rowOfImages =
                     List.take (List.length one) images
             in
-            displayRowOfImages rowOfImages viewportWidth gallerySingleImage :: imageRows
+            displayRowOfImages rowOfImages viewportWidth :: imageRows
 
         ( one, True ) ->
-            displayRowOfImages images viewportWidth gallerySingleImage :: imageRows
+            displayRowOfImages images viewportWidth :: imageRows
 
 
-displayRowOfImages : List Image -> Float -> Bool -> Html Msg
-displayRowOfImages images viewportWidth gallerySingleImage =
+displayRowOfImages : List Image -> Float -> Html Msg
+displayRowOfImages images viewportWidth =
     let
         revImages =
             List.reverse images
@@ -972,12 +972,23 @@ displayRowOfImages images viewportWidth gallerySingleImage =
             summedAspectRatios images
 
         ( widths, h ) =
-            case gallerySingleImage of
-                False ->
-                    ( List.reverse <| getWidths revImages viewportWidth arSum [], floor (viewportWidth / arSum) )
-
+            case List.length images == 1 of
                 True ->
                     singleImageSize images
+
+                False ->
+                    let
+                        height =
+                            floor (viewportWidth / arSum)
+                    in
+                    case height > 550 of
+                        True ->
+                            -- This is to catch the case where a partiton cannot be found for the width since there
+                            -- is only perhaps 2 images and their aspectRatios can't traverse the width without blowing up their height
+                            ( List.reverse <| getWidths revImages (550 * arSum) arSum [], 550 )
+
+                        False ->
+                            ( List.reverse <| getWidths revImages viewportWidth arSum [], floor (viewportWidth / arSum) )
     in
     div [ Html.Attributes.class "flex" ] <| List.map2 (\img w -> displayImage img w h) revImages widths
 
