@@ -243,7 +243,7 @@ routeModel route model =
                         info =
                             Manifest.tripInformation trip
                     in
-                    ( { newModel | filter = ByTrip trip, filterSelected = ( RadioTrip, info.name ) }, [ Ports.initMap ( 4, info.name |> String.replace " " "_", [] ), clearQuery ] )
+                    ( { newModel | filter = ByTrip trip, filterSelected = ( RadioTrip, info.description ) }, [ Ports.initMap ( 4, info.name |> String.replace " " "_", [] ), clearQuery ] )
 
                 Nothing ->
                     resetRoute model
