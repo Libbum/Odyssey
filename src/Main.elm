@@ -516,7 +516,7 @@ update msg model =
                                     Nav.pushUrl model.key "?focus"
 
                                 Nothing ->
-                                    Nav.pushUrl model.key (Url.toString (clearFocus model.url))
+                                    Nav.replaceUrl model.key (Url.toString (clearFocus model.url))
                     in
                     ( { model
                         | zoom = image
