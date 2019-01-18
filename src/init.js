@@ -20,7 +20,7 @@ window.onscroll = function(ev) {
 // Contact form post
 document.querySelector('form').addEventListener('submit', function(e) {
     var fd = new FormData(e.target);
-    var request = new Request('process.php', {
+    var request = new Request('/process.php', {
         method: 'POST',
         body: fd
     });

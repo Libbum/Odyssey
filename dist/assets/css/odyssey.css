@@ -314,10 +314,6 @@ label > .icon {
     filter: drop-shadow( 5px 5px 5px #000 );
 }
 
-#response {
-    padding-top: 1em;
-}
-
 .title {
     padding-top: 0.6em;
     font-size: 14pt;
@@ -414,7 +410,7 @@ label > .icon {
     bottom: 0;
     left: 0;
     width: 280px;
-    height: 470px;
+    height: 490px;
     z-index: 100;
     background: white;
     border: 1px solid #ccc;
