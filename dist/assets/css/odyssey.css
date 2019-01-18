@@ -671,11 +671,17 @@ label > .icon {
 }
 
 @media (max-height: 960px) and (min-width: 1801px) {
+    header {
+        padding: 0;
+    }
+    footer {
+        padding-bottom: 0.5em;
+    }
+}
+
+@media (max-height: 910px) and (min-width: 1801px) {
     #aside {
         min-height: 475px;
-    }
-    #map {
-        display: none;
     }
     .locale {
         margin-top: 1em;
