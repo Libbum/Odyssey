@@ -2,9 +2,7 @@
 
 A photoblog of my adventures. [https://odyssey.neophilus.net](https://odyssey.neophilus.net)
 
-<center>
-![Odyssey](odyssey.jpg)
-</center>
+<center><img src="odyssey.jpg" /></center>
 
 ## Usage
 
