@@ -17,6 +17,7 @@ import Partition exposing (KPartition, greedyK)
 import Ports exposing (nearBottom)
 import Task
 import Url exposing (Url)
+import Url.Builder
 import Url.Parser as Parser exposing ((</>), Parser)
 
 
@@ -56,7 +57,7 @@ type alias Model =
     , showMenu : Bool
     , currentSwipeStart : Maybe Position
     , key : Nav.Key
-    , url : Url
+    , history : List Url
     }
 
 
@@ -81,7 +82,7 @@ initialModel scrollWidth key url =
     , showMenu = False
     , currentSwipeStart = Nothing
     , key = key
-    , url = url
+    , history = [ url ]
     }
 
 
@@ -201,16 +202,21 @@ routeModel : Route -> Model -> ( Model, List (Cmd Msg) )
 routeModel route model =
     let
         url =
-            model.url
+            List.head model.history
 
         ( newModel, clearQuery ) =
-            case model.url.query of
-                Just _ ->
-                    let
-                        newUrl =
-                            { url | query = Nothing }
-                    in
-                    ( { model | url = newUrl }, Nav.replaceUrl model.key (Url.toString newUrl) )
+            case url of
+                Just currentUrl ->
+                    case currentUrl.query of
+                        Just _ ->
+                            let
+                                newUrl =
+                                    { currentUrl | query = Nothing }
+                            in
+                            ( { model | history = newUrl :: List.drop 1 model.history }, Nav.replaceUrl model.key (Url.toString newUrl) )
+
+                        Nothing ->
+                            ( model, Cmd.none )
 
                 Nothing ->
                     ( model, Cmd.none )
@@ -511,12 +517,23 @@ update msg model =
                                     model.layout
 
                         urlCmd =
-                            case image of
-                                Just current ->
-                                    Nav.pushUrl model.key "?focus"
+                            case ( image, List.head model.history ) of
+                                ( Just current, Just url ) ->
+                                    let
+                                        newUrl =
+                                            { url | query = Just "focus" }
+                                    in
+                                    Nav.pushUrl model.key (Url.toString newUrl)
 
-                                Nothing ->
-                                    Nav.pushUrl model.key (Url.toString (clearFocus model.url))
+                                ( Nothing, Just url ) ->
+                                    let
+                                        newUrl =
+                                            clearFocus url
+                                    in
+                                    Nav.pushUrl model.key (Url.toString newUrl)
+
+                                _ ->
+                                    Cmd.none
                     in
                     ( { model
                         | zoom = image
@@ -702,15 +719,39 @@ update msg model =
                     ( model, Nav.load url )
 
         ChangedUrl url ->
-            case ( url.query, model.url.query, model.zoom ) of
+            let
+                currentQuery =
+                    case List.head model.history of
+                        Just currentUrl ->
+                            currentUrl.query
+
+                        Nothing ->
+                            Nothing
+            in
+            case ( url.query, currentQuery, model.zoom ) of
                 ( Nothing, Just _, Just _ ) ->
                     -- We have a close zoom event, but zoom is still open. Back button is hit.
-                    ( { model | url = url }, Cmd.batch [ getWindow Resize Nothing, Task.attempt (SetZoom Nothing) getViewport, Ports.drawMap () ] )
+                    ( { model | history = url :: model.history }, Cmd.batch [ getWindow Resize Nothing, Task.attempt (SetZoom Nothing) getViewport, Ports.drawMap () ] )
 
                 ( Just _, _, Nothing ) ->
-                    ( { model | url = url }, Nav.replaceUrl model.key (Url.toString (clearFocus url)) )
+                    let
+                        newUrl =
+                            if Just (clearFocus url) == List.head model.history then
+                                List.drop 3 model.history |> List.head |> Maybe.withDefault url
+
+                            else
+                                clearFocus url
+
+                        _ =
+                            Debug.log "new" newUrl
+                    in
+                    ( { model | history = List.drop 3 model.history }, Nav.replaceUrl model.key (Url.toString newUrl) )
 
                 _ ->
+                    let
+                        history =
+                            url :: model.history
+                    in
                     case Parser.parse routeParser url of
                         Just route ->
                             -- In the event that the back, forward buttons are clicked, update the view.
@@ -721,16 +762,16 @@ update msg model =
                                             case model.filter of
                                                 ByCountry country ->
                                                     if country == newCountry then
-                                                        ( { model | url = url }, Cmd.none )
+                                                        ( { model | history = history }, Cmd.none )
 
                                                     else
-                                                        doUpdate (ByCountry newCountry) RadioCountry (Manifest.countryName newCountry) model
+                                                        doUpdate history (ByCountry newCountry) RadioCountry (Manifest.countryName newCountry) model
 
                                                 _ ->
-                                                    doUpdate (ByCountry newCountry) RadioCountry (Manifest.countryName newCountry) model
+                                                    doUpdate history (ByCountry newCountry) RadioCountry (Manifest.countryName newCountry) model
 
                                         Nothing ->
-                                            ( { model | url = url }, Cmd.none )
+                                            ( { model | history = history }, Cmd.none )
 
                                 RouteLocation maybeLocation ->
                                     case maybeLocation of
@@ -738,16 +779,16 @@ update msg model =
                                             case model.filter of
                                                 ByLocation location ->
                                                     if location == newLocation then
-                                                        ( { model | url = url }, Cmd.none )
+                                                        ( { model | history = history }, Cmd.none )
 
                                                     else
-                                                        doUpdate (ByLocation newLocation) RadioLocation (Manifest.locationInformation newLocation |> .name) model
+                                                        doUpdate history (ByLocation newLocation) RadioLocation (Manifest.locationInformation newLocation |> .name) model
 
                                                 _ ->
-                                                    doUpdate (ByLocation newLocation) RadioLocation (Manifest.locationInformation newLocation |> .name) model
+                                                    doUpdate history (ByLocation newLocation) RadioLocation (Manifest.locationInformation newLocation |> .name) model
 
                                         Nothing ->
-                                            ( { model | url = url }, Cmd.none )
+                                            ( { model | history = history }, Cmd.none )
 
                                 RouteTrip maybeTrip ->
                                     case maybeTrip of
@@ -755,39 +796,39 @@ update msg model =
                                             case model.filter of
                                                 ByTrip trip ->
                                                     if trip == newTrip then
-                                                        ( { model | url = url }, Cmd.none )
+                                                        ( { model | history = history }, Cmd.none )
 
                                                     else
-                                                        doUpdate (ByTrip newTrip) RadioTrip (Manifest.tripInformation newTrip |> .description) model
+                                                        doUpdate history (ByTrip newTrip) RadioTrip (Manifest.tripInformation newTrip |> .description) model
 
                                                 _ ->
-                                                    doUpdate (ByTrip newTrip) RadioTrip (Manifest.tripInformation newTrip |> .description) model
+                                                    doUpdate history (ByTrip newTrip) RadioTrip (Manifest.tripInformation newTrip |> .description) model
 
                                         Nothing ->
-                                            ( { model | url = url }, Cmd.none )
+                                            ( { model | history = history }, Cmd.none )
 
                                 RouteAll ->
                                     case model.filter of
                                         All ->
-                                            ( { model | url = url }, Cmd.none )
+                                            ( { model | history = history }, Cmd.none )
 
                                         _ ->
-                                            doUpdate All RadioAll "" model
+                                            doUpdate history All RadioAll "" model
 
                         Nothing ->
-                            ( { model | url = url }, Cmd.none )
+                            ( { model | history = history }, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )
 
 
-doUpdate : Filter -> Radio -> String -> Model -> ( Model, Cmd Msg )
-doUpdate filter radio selection model =
+doUpdate : List Url -> Filter -> Radio -> String -> Model -> ( Model, Cmd Msg )
+doUpdate history filter radio selection model =
     let
         rows =
             model.rows
     in
-    ( { model | rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ) }
+    ( { model | history = history, rows = { rows | visible = 10 }, filter = filter, filterSelected = ( radio, selection ) }
     , Cmd.batch
         [ Task.attempt (Partition Filter) (getViewportOf "gallery")
         , updateMap radio selection True
