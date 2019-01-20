@@ -441,13 +441,6 @@ update msg model =
 
                 newRows =
                     model.rows.visible + 5
-
-                visibleRows =
-                    if newRows > model.rows.total then
-                        model.rows.total
-
-                    else
-                        newRows
             in
             ( { model | rows = { rows | visible = newRows } }, Cmd.none )
 
@@ -512,7 +505,7 @@ update msg model =
 
                         urlCmd =
                             case image of
-                                Just current ->
+                                Just _ ->
                                     Nav.pushUrl model.key "?focus"
 
                                 Nothing ->
@@ -695,7 +688,7 @@ update msg model =
 
         ClickedLink urlRequest ->
             case urlRequest of
-                Browser.Internal url ->
+                Browser.Internal _ ->
                     ( model, Cmd.none )
 
                 Browser.External url ->
@@ -807,7 +800,7 @@ getWindow event maybeUrl =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Browser.Events.onResize (\w h -> RePartition)
+        [ Browser.Events.onResize (\_ _ -> RePartition)
         , Browser.Events.onKeyDown (Decode.map KeyPress keyDecoder)
         , nearBottom (\_ -> LazyLoad)
         ]
@@ -855,12 +848,11 @@ view model =
                             []
 
                 asideView =
-                    case model.showMenu of
-                        True ->
-                            Html.Attributes.class "show-aside"
+                    if model.showMenu then
+                        Html.Attributes.class "show-aside"
 
-                        False ->
-                            Html.Attributes.class ""
+                    else
+                        Html.Attributes.class ""
             in
             { title = "Odyssey"
             , body =
@@ -967,7 +959,7 @@ displayImages images viewportWidth partition imageRows =
             in
             displayRowOfImages rowOfImages viewportWidth :: imageRows
 
-        ( one, True ) ->
+        ( _, True ) ->
             displayRowOfImages images viewportWidth :: imageRows
 
 
@@ -981,12 +973,11 @@ displayRowOfImages images viewportWidth =
             summedAspectRatios images
 
         ( widths, h ) =
-            case List.length images == 1 of
-                True ->
-                    singleImageSize images
+            if List.length images == 1 then
+                singleImageSize images
 
-                False ->
-                    ( List.reverse <| getWidths revImages viewportWidth arSum [], floor (viewportWidth / arSum) )
+            else
+                ( List.reverse <| getWidths revImages viewportWidth arSum [], floor (viewportWidth / arSum) )
     in
     div [ Html.Attributes.class "flex" ] <| List.map2 (\img w -> displayImage img w h) revImages widths
 
@@ -1010,40 +1001,36 @@ zoomImage : Image -> Bool -> Bool -> Bool -> Bool -> Html Msg
 zoomImage image showControls showPrevious showNext showDescription =
     let
         ( description, descriptionIcon ) =
-            case showDescription of
-                True ->
-                    let
-                        ( locale, _ ) =
-                            Gallery.locale image
-                    in
-                    ( div [ Html.Attributes.class "description" ] [ Html.text locale, Html.br [] [], Html.text image.description ], Html.Attributes.class "" )
+            if showDescription then
+                let
+                    ( locale, _ ) =
+                        Gallery.locale image
+                in
+                ( div [ Html.Attributes.class "description" ] [ Html.text locale, Html.br [] [], Html.text image.description ], Html.Attributes.class "" )
 
-                _ ->
-                    ( Html.text "", Html.Attributes.class "desc-off" )
+            else
+                ( Html.text "", Html.Attributes.class "desc-off" )
 
         controlVisible =
-            case showControls of
-                True ->
-                    Html.Attributes.class "visible"
+            if showControls then
+                Html.Attributes.class "visible"
 
-                _ ->
-                    Html.Attributes.class "hidden"
+            else
+                Html.Attributes.class "hidden"
 
         previous =
-            case showPrevious of
-                True ->
-                    Html.button [ Html.Attributes.class "previous", controlVisible, onClick PreviousZoom ] [ Icons.chevronLeft ]
+            if showPrevious then
+                Html.button [ Html.Attributes.class "previous", controlVisible, onClick PreviousZoom ] [ Icons.chevronLeft ]
 
-                _ ->
-                    Html.text ""
+            else
+                Html.text ""
 
         next =
-            case showNext of
-                True ->
-                    Html.button [ Html.Attributes.class "next", controlVisible, onClick NextZoom ] [ Icons.chevronRight ]
+            if showNext then
+                Html.button [ Html.Attributes.class "next", controlVisible, onClick NextZoom ] [ Icons.chevronRight ]
 
-                _ ->
-                    Html.text ""
+            else
+                Html.text ""
 
         swipeOptions =
             { stopPropagation = False
@@ -1148,7 +1135,7 @@ getWidths images viewportWidth arSum widths =
             in
             getWidths theRest viewportWidth arSum (w :: widths)
 
-        one ->
+        _ ->
             viewportWidth - List.sum widths :: widths
 
 
@@ -1166,16 +1153,8 @@ getNextZoom model =
 
                 Nothing ->
                     model.layout
-
-        image =
-            case layout of
-                Just zip ->
-                    Just <| Zipper.current zip
-
-                Nothing ->
-                    Nothing
     in
-    ( layout, image )
+    ( layout, Maybe.map Zipper.current layout )
 
 
 getPreviousZoom : Model -> ( Maybe (Zipper Image), Maybe Image )
@@ -1188,16 +1167,8 @@ getPreviousZoom model =
 
                 Nothing ->
                     model.layout
-
-        image =
-            case layout of
-                Just zip ->
-                    Just <| Zipper.current zip
-
-                Nothing ->
-                    Nothing
     in
-    ( layout, image )
+    ( layout, Maybe.map Zipper.current layout )
 
 
 radioView : Radio -> Radio -> Html Msg
@@ -1302,12 +1273,11 @@ coverView : Bool -> Html Msg
 coverView show =
     let
         cover =
-            case show of
-                True ->
-                    [ Html.Attributes.class "modal-cover" ]
+            if show then
+                [ Html.Attributes.class "modal-cover" ]
 
-                _ ->
-                    [ Html.Attributes.class "modal-cover", Html.Attributes.class "none" ]
+            else
+                [ Html.Attributes.class "modal-cover", Html.Attributes.class "none" ]
     in
     div cover []
 
@@ -1316,12 +1286,11 @@ modalView : Bool -> Html Msg
 modalView show =
     let
         modal =
-            case show of
-                True ->
-                    [ Html.Attributes.class "modal" ]
+            if show then
+                [ Html.Attributes.class "modal" ]
 
-                _ ->
-                    [ Html.Attributes.class "modal", Html.Attributes.class "off" ]
+            else
+                [ Html.Attributes.class "modal", Html.Attributes.class "off" ]
     in
     div modal
         [ Html.button [ Html.Attributes.class "close", onClick ToggleModal ] [ Icons.x ]
@@ -1391,12 +1360,11 @@ updateMap radio selected clearPrevious =
         RadioLocation ->
             let
                 port_ =
-                    case clearPrevious of
-                        True ->
-                            Ports.viewLocation
+                    if clearPrevious then
+                        Ports.viewLocation
 
-                        False ->
-                            Ports.showLocation
+                    else
+                        Ports.showLocation
             in
             case Manifest.stringToLocation selected of
                 Just location ->

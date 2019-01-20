@@ -2,7 +2,7 @@ module Icons exposing (checkCircle, chevronDown, chevronLeft, chevronRight, chev
 
 import Html exposing (Html)
 import Svg exposing (Svg, svg)
-import Svg.Attributes exposing (..)
+import Svg.Attributes exposing (class, cx, cy, d, points, r, viewBox, x1, x2, y1, y2)
 
 
 svgIcon : String -> List (Svg msg) -> Html msg
