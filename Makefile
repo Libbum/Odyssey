@@ -1,7 +1,10 @@
-JSTARGETS := dist/assets/js/odyssey.js dist/assets/js/odyssey.min.js dist/assets/js/init.js manifester/world/cities.json manifester/world/trips.json dist/assets/world.json
+TARGETS := dist/assets/js/odyssey.js dist/assets/js/odyssey.min.js dist/assets/js/init.js manifester/world/cities.json manifester/world/trips.json dist/assets/world.json dist/assets/css/odyssey.css
 seed := $(shell cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)
 
 .PHONY: clean build rebuild deploy
+
+dist/assets/css/odyssey.css: src/odyssey.css
+	crass src/odyssey.css --optimize > dist/assets/css/odyssey.css
 
 dist/assets/js/odyssey.js:
 	elm make src/Main.elm --output=dist/assets/js/odyssey.js --optimize
@@ -21,7 +24,7 @@ prodindex: dist/index.html
 debugindex: dist/index.html
 	sed -i 's/odyssey.*.js/odyssey.js/' dist/index.html
 
-build: dist/assets/js/odyssey.min.js prodindex
+build: dist/assets/js/odyssey.min.js prodindex dist/assets/css/odyssey.css
 	@-rm -f dist/assets/js/odyssey.js
 
 rebuild: clean build
@@ -29,14 +32,14 @@ rebuild: clean build
 manifest: manifester/odyssey.yaml manifester/world/cca3.json manifester/world/countries.json
 	cd manifester; ./update_manifest.sh; cargo run --release; cd ..
 
-serve: dist/assets/js/init.js debugindex
+serve: dist/assets/js/init.js debugindex dist/assets/css/odyssey.css
 	elm-live src/Main.elm -d dist --pushstate --open -- --output=dist/assets/js/odyssey.js --optimize
 
-debug: dist/assets/js/init.js debugindex
+debug: dist/assets/js/init.js debugindex dist/assets/css/odyssey.css
 	elm-live src/Main.elm -d dist --pushstate --open -- --output=dist/assets/js/odyssey.js --debug
 
 clean:
-	@-rm -f $(JSTARGETS)
+	@-rm -f $(TARGETS)
 
-deploy: manifest prodindex dist/assets/js/init.js build prodjs
+deploy: manifest prodindex dist/assets/js/init.js dist/assets/css/odyssey.css build prodjs
 	rsync -avr --exclude='*.desc' --chown=www-data:www-data --checksum --delete -e ssh dist/ AkashaR:odyssey

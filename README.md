@@ -98,7 +98,7 @@ Once your files are organised, you can build your manifest by calling `make mani
 
 ## Development
 
-Assumes you're using a modern linux distro with [Elm 0.19](https://elm-lang.org/) and [Rust](https://www.rust-lang.org/) installed. As well as the inclusion of [elm-live](https://github.com/wking-io/elm-live) and [uglifyjs](http://lisperator.net/uglifyjs/) in your toolchain.
+Assumes you're using a modern linux distro with [Elm 0.19](https://elm-lang.org/) and [Rust](https://www.rust-lang.org/) installed. As well as the inclusion of [elm-live](https://github.com/wking-io/elm-live), [uglifyjs](http://lisperator.net/uglifyjs/) and [crass](https://github.com/mattbasta/crass) in your toolchain.
 
 `make debug` gives you the Elm time-travelling debugger when live-previewing your changes.
 
