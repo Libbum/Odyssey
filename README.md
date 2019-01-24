@@ -105,3 +105,5 @@ Assumes you're using a modern linux distro with [Elm 0.19](https://elm-lang.org/
 ## License
 
 Released under the BSD 3-Clause "New" or "Revised" License, in line with most Elm libraries used within.
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FLibbum%2FOdyssey.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FLibbum%2FOdyssey?ref=badge_large)
