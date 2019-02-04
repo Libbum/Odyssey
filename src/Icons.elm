@@ -1,10 +1,12 @@
-module Icons exposing (checkCircle, chevronDown, chevronLeft, chevronRight, chevronUp, circle, github, info, mail, menu, telegram, x)
+module Icons exposing (axiomatic, checkCircle, chevronDown, chevronLeft, chevronRight, chevronUp, circle, github, info, mail, menu, telegram, x)
 
+import Color
 import Html exposing (Html)
-import TypedSvg exposing (line, path, polyline, svg)
-import TypedSvg.Attributes exposing (class, cx, cy, d, points, r, viewBox, x1, x2, y1, y2)
+import Html.Attributes
+import TypedSvg exposing (defs, g, line, path, polyline, svg)
+import TypedSvg.Attributes exposing (class, clipPath, cx, cy, d, fill, mask, points, r, strokeWidth, viewBox, x1, x2, y1, y2)
 import TypedSvg.Core exposing (Svg)
-import TypedSvg.Types exposing (px)
+import TypedSvg.Types exposing (ClipPath(..), Fill(..), px)
 
 
 svgIcon : String -> List (Svg msg) -> Html msg
@@ -103,4 +105,25 @@ x =
     svgIcon "x"
         [ line [ x1 (px 18), y1 (px 6), x2 (px 6), y2 (px 18) ] []
         , line [ x1 (px 6), y1 (px 6), x2 (px 18), y2 (px 18) ] []
+        ]
+
+
+axiomatic : Html msg
+axiomatic =
+    svg
+        [ class [ "icon", "axiomatic" ]
+        , viewBox 0 0 100 93
+        ]
+        [ defs []
+            [ TypedSvg.mask [ Html.Attributes.id "a" ]
+                [ path [ fill (Fill Color.white), d "M0 0h100v45H0zM0 55h100v33H0z" ] []
+                ]
+            , TypedSvg.clipPath [ Html.Attributes.id "b" ]
+                [ path [ d "M-14 100l33-51.8V25h23.5l-5 10h37l-5-10h8.8l47.7 75h-19L87 60H25L5 100z" ] []
+                ]
+            ]
+        , g [ strokeWidth (px 9), fill FillNone ]
+            [ path [ mask "url(#a)", d "M16 90l40-80 40 80" ] []
+            , path [ clipPath (ClipPathFunc "url(#b)"), d "M83 30H34c-13 0-13 20-1 20h49c19 0 19 25 1 25H-2" ] []
+            ]
         ]

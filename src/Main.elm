@@ -895,6 +895,7 @@ view model =
                             [ Html.li [] [ Html.a [ Html.Attributes.href "https://www.github.com/Libbum/Odyssey" ] [ Icons.github ] ]
                             , Html.li [] [ Html.button [ onClick ToggleModal ] [ Icons.mail ] ]
                             , Html.li [] [ Html.a [ Html.Attributes.href "https://telegram.me/Libbum" ] [ Icons.telegram ] ]
+                            , Html.li [] [ Html.a [ Html.Attributes.href "https://axiomatic.neophilus.net" ] [ Icons.axiomatic ] ]
                             ]
                         ]
                     ]
