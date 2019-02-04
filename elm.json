@@ -11,14 +11,15 @@
             "elm/core": "1.0.2",
             "elm/html": "1.0.0",
             "elm/json": "1.1.2",
-            "elm/svg": "1.0.1",
             "elm/url": "1.0.0",
             "elm-community/list-extra": "8.1.0",
+            "elm-community/typed-svg": "5.0.1",
             "matthewsj/elm-ordering": "2.0.0",
             "mpizenberg/elm-pointer-events": "4.0.0",
             "wernerdegroot/listzipper": "3.2.0"
         },
         "indirect": {
+            "avh4/elm-color": "1.0.0",
             "avh4/elm-fifo": "1.0.4",
             "elm/bytes": "1.0.7",
             "elm/file": "1.0.1",
