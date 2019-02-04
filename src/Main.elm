@@ -272,7 +272,7 @@ type Msg
     | SetWindow Event (Maybe Url) (Result Browser.Dom.Error Browser.Dom.Viewport)
     | ToggleRadio Radio
     | LazyLoad
-    | PutLocale ( String, String )
+    | PutLocale ( String, String, String )
     | PopLocale
     | ZoomImage (Maybe Image)
     | SetZoom (Maybe Image) (Result Browser.Dom.Error Browser.Dom.Viewport)
@@ -447,7 +447,7 @@ update msg model =
         -- VIEW CHANGES
         PutLocale locale ->
             let
-                ( newLocale, name ) =
+                ( newLocale, name, path ) =
                     locale
 
                 map =
@@ -461,7 +461,7 @@ update msg model =
                         ( _, True ) ->
                             updateMap RadioLocation name False
             in
-            ( { model | locale = newLocale }, map )
+            ( { model | locale = newLocale }, Cmd.batch [ map, Ports.preloadImages [ path ] ] )
 
         PopLocale ->
             let
@@ -510,13 +510,29 @@ update msg model =
 
                                 Nothing ->
                                     Nav.replaceUrl model.key (Url.toString (clearFocus model.url))
+
+                        nextUrl =
+                            case layout of
+                                Just current ->
+                                    Zipper.previous current |> Maybe.map Zipper.current |> Maybe.map Gallery.imageURL
+
+                                _ ->
+                                    Nothing
+
+                        prevUrl =
+                            case layout of
+                                Just current ->
+                                    Zipper.next current |> Maybe.map Zipper.current |> Maybe.map Gallery.imageURL
+
+                                _ ->
+                                    Nothing
                     in
                     ( { model
                         | zoom = image
                         , viewportOffset = vp.viewport.y
                         , layout = layout
                       }
-                    , Cmd.batch [ Task.attempt (\_ -> NoOp) (setViewport 0 model.viewportOffset), urlCmd ]
+                    , Cmd.batch [ Task.attempt (\_ -> NoOp) (setViewport 0 model.viewportOffset), urlCmd, Ports.preloadImages (maybesToList [ nextUrl, prevUrl ]) ]
                     )
 
                 Err _ ->
@@ -524,17 +540,17 @@ update msg model =
 
         NextZoom ->
             let
-                ( layout, image ) =
+                ( layout, image, nextUrl ) =
                     getNextZoom model
             in
-            ( { model | zoom = image, layout = layout }, Cmd.none )
+            ( { model | zoom = image, layout = layout }, preloadCmd nextUrl )
 
         PreviousZoom ->
             let
-                ( layout, image ) =
+                ( layout, image, prevUrl ) =
                     getPreviousZoom model
             in
-            ( { model | zoom = image, layout = layout }, Cmd.none )
+            ( { model | zoom = image, layout = layout }, preloadCmd prevUrl )
 
         ToggleModal ->
             ( { model | showModal = not model.showModal }, Cmd.none )
@@ -598,10 +614,10 @@ update msg model =
                             case Zipper.next zip of
                                 Just _ ->
                                     let
-                                        ( layout, image ) =
+                                        ( layout, image, prevUrl ) =
                                             getPreviousZoom model
                                     in
-                                    ( { model | zoom = image, layout = layout }, Cmd.none )
+                                    ( { model | zoom = image, layout = layout }, preloadCmd prevUrl )
 
                                 Nothing ->
                                     ( model, Cmd.none )
@@ -615,10 +631,10 @@ update msg model =
                             case Zipper.previous zip of
                                 Just _ ->
                                     let
-                                        ( layout, image ) =
+                                        ( layout, image, nextUrl ) =
                                             getNextZoom model
                                     in
-                                    ( { model | zoom = image, layout = layout }, Cmd.none )
+                                    ( { model | zoom = image, layout = layout }, preloadCmd nextUrl )
 
                                 Nothing ->
                                     ( model, Cmd.none )
@@ -649,10 +665,10 @@ update msg model =
                                     case Zipper.next zip of
                                         Just _ ->
                                             let
-                                                ( layout, image ) =
+                                                ( layout, image, nextUrl ) =
                                                     getPreviousZoom model
                                             in
-                                            ( { model | zoom = image, layout = layout, currentSwipeStart = Nothing }, Cmd.none )
+                                            ( { model | zoom = image, layout = layout, currentSwipeStart = Nothing }, preloadCmd nextUrl )
 
                                         Nothing ->
                                             ( { model | currentSwipeStart = Nothing }, Cmd.none )
@@ -666,10 +682,10 @@ update msg model =
                                     case Zipper.previous zip of
                                         Just _ ->
                                             let
-                                                ( layout, image ) =
+                                                ( layout, image, prevUrl ) =
                                                     getNextZoom model
                                             in
-                                            ( { model | zoom = image, layout = layout, currentSwipeStart = Nothing }, Cmd.none )
+                                            ( { model | zoom = image, layout = layout, currentSwipeStart = Nothing }, preloadCmd prevUrl )
 
                                         Nothing ->
                                             ( { model | currentSwipeStart = Nothing }, Cmd.none )
@@ -791,6 +807,16 @@ doUpdate filter radio selection model =
 getWindow : Event -> Maybe Url -> Cmd Msg
 getWindow event maybeUrl =
     Task.attempt (SetWindow event maybeUrl) getViewport
+
+
+preloadCmd : Maybe String -> Cmd Msg
+preloadCmd url =
+    case url of
+        Just value ->
+            Ports.preloadImages [ value ]
+
+        Nothing ->
+            Cmd.none
 
 
 
@@ -1004,7 +1030,7 @@ zoomImage image showControls showPrevious showNext showDescription =
         ( description, descriptionIcon ) =
             if showDescription then
                 let
-                    ( locale, _ ) =
+                    ( locale, _, _ ) =
                         Gallery.locale image
                 in
                 ( div [ Html.Attributes.class "description" ] [ Html.text locale, Html.br [] [], Html.text image.description ], Html.Attributes.class "" )
@@ -1144,7 +1170,7 @@ getWidths images viewportWidth arSum widths =
 -- Veiw Helpers
 
 
-getNextZoom : Model -> ( Maybe (Zipper Image), Maybe Image )
+getNextZoom : Model -> ( Maybe (Zipper Image), Maybe Image, Maybe String )
 getNextZoom model =
     let
         layout =
@@ -1154,11 +1180,19 @@ getNextZoom model =
 
                 Nothing ->
                     model.layout
+
+        nextUrl =
+            case layout of
+                Just current ->
+                    Zipper.previous current |> Maybe.map Zipper.current |> Maybe.map Gallery.imageURL
+
+                _ ->
+                    Nothing
     in
-    ( layout, Maybe.map Zipper.current layout )
+    ( layout, Maybe.map Zipper.current layout, nextUrl )
 
 
-getPreviousZoom : Model -> ( Maybe (Zipper Image), Maybe Image )
+getPreviousZoom : Model -> ( Maybe (Zipper Image), Maybe Image, Maybe String )
 getPreviousZoom model =
     let
         layout =
@@ -1168,8 +1202,16 @@ getPreviousZoom model =
 
                 Nothing ->
                     model.layout
+
+        prevUrl =
+            case layout of
+                Just current ->
+                    Zipper.previous current |> Maybe.map Zipper.current |> Maybe.map Gallery.imageURL
+
+                _ ->
+                    Nothing
     in
-    ( layout, Maybe.map Zipper.current layout )
+    ( layout, Maybe.map Zipper.current layout, prevUrl )
 
 
 radioView : Radio -> Radio -> Html Msg
@@ -1307,6 +1349,21 @@ modalView show =
                 ]
             ]
         ]
+
+
+maybesToList : List (Maybe a) -> List a
+maybesToList =
+    List.foldr maybeListHelper []
+
+
+maybeListHelper : Maybe a -> List a -> List a
+maybeListHelper item list =
+    case item of
+        Nothing ->
+            list
+
+        Just v ->
+            v :: list
 
 
 

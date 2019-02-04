@@ -92,7 +92,7 @@ locationCoordinates location =
     Manifest.locationInformation location |> .coordinates
 
 
-locale : Image -> ( String, String )
+locale : Image -> ( String, String, String )
 locale image =
     let
         info =
@@ -103,23 +103,26 @@ locale image =
 
         date =
             dateString image.date
+
+        url =
+            imageURL image
     in
     case Manifest.countryLocalName info.country of
         Just localCountry ->
             case Manifest.locationLocalName image.location of
                 Just localLocation ->
-                    ( localLocation ++ ", " ++ localCountry ++ " (" ++ info.name ++ ", " ++ countryString ++ "); " ++ date ++ ".", info.name )
+                    ( localLocation ++ ", " ++ localCountry ++ " (" ++ info.name ++ ", " ++ countryString ++ "); " ++ date ++ ".", info.name, url )
 
                 Nothing ->
-                    ( info.name ++ ", " ++ countryString ++ " (" ++ localCountry ++ "); " ++ date ++ ".", info.name )
+                    ( info.name ++ ", " ++ countryString ++ " (" ++ localCountry ++ "); " ++ date ++ ".", info.name, url )
 
         Nothing ->
             case Manifest.locationLocalName image.location of
                 Just localLocation ->
-                    ( localLocation ++ " (" ++ info.name ++ "), " ++ countryString ++ "; " ++ date ++ ".", info.name )
+                    ( localLocation ++ " (" ++ info.name ++ "), " ++ countryString ++ "; " ++ date ++ ".", info.name, url )
 
                 Nothing ->
-                    ( info.name ++ ", " ++ countryString ++ "; " ++ date ++ ".", info.name )
+                    ( info.name ++ ", " ++ countryString ++ "; " ++ date ++ ".", info.name, url )
 
 
 dateString : Date -> String

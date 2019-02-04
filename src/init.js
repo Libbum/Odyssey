@@ -37,6 +37,32 @@ document.querySelector('form').addEventListener('submit', function(e) {
     e.preventDefault();
 });
 
+// Image preloader
+app.ports.preloadImages.subscribe(function(data) {
+    function insert(str, index, value) {
+        return str.substr(0, index) + value + str.substr(index);
+    }
+
+    function preload(imageArray, index) {
+        index = index || 0;
+        if (imageArray && imageArray.length > index) {
+            var img = new Image ();
+            img.onload = function() {
+                preload(imageArray, index + 1);
+            }
+            img.src = imageArray[index];
+        }
+    }
+
+    var loads = [];
+    for (var i = 0; i < data.length; i++){
+        var current = data[i];
+        loads.push(current);
+        loads.push(insert(current, current.lastIndexOf("."), "_blur"));
+    }
+    preload(loads);
+    return null;
+});
 
 // Ports and fuctions for map control
 current = 0;
