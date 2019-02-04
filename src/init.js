@@ -561,7 +561,7 @@ function drawMap(callback) {
     });
 
     d3.json("/assets/world.json", function(t, n) {
-        var svg = d3.selectAll("svg");
+        var svg = d3.selectAll("#map").selectAll("svg");
         svg.insert("path", ".iglobe-graticule").datum({ type: "Sphere"}).attr("class", "iglobe-ocean");
         countries = topojson.feature(n, n.objects.countries).features;
         cities = topojson.feature(n, n.objects.cities).features;
