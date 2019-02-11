@@ -643,7 +643,7 @@ update msg model =
                             ( model, Cmd.none )
 
                 ( Escape, Just _ ) ->
-                    ( model, Task.attempt (SetZoom Nothing) getViewport )
+                    ( model, Cmd.batch [ Task.attempt (SetZoom Nothing) getViewport, Ports.drawMap (), getWindow Resize Nothing ] )
 
                 _ ->
                     ( model, Cmd.none )
