@@ -287,6 +287,7 @@ type Msg
     | KeyPress Keyboard
     | SwipeStart ( Float, Float )
     | SwipeEnd ( Float, Float )
+    | TouchPreload Image
     | ChangedUrl Url
     | ClickedLink Browser.UrlRequest
     | NoOp
@@ -702,6 +703,9 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        TouchPreload image ->
+            ( model, Ports.preloadImages [ Gallery.imageURL image ] )
+
         ClickedLink urlRequest ->
             case urlRequest of
                 Browser.Internal _ ->
@@ -1011,12 +1015,19 @@ displayRowOfImages images viewportWidth =
 
 displayImage : Image -> Float -> Int -> Html Msg
 displayImage image w h =
+    let
+        swipeOptions =
+            { stopPropagation = False
+            , preventDefault = False
+            }
+    in
     -- Note the - 8 here on the width is to take into account the two 4px margins in the css
     -- We also send in a float as the width attribute to clean up the right edge
     Html.img
         [ src (Gallery.thumbURL image)
         , Html.Attributes.attribute "width" (String.fromFloat <| w - 8.0)
         , height h
+        , Touch.onWithOptions "touchstart" swipeOptions (\_ -> TouchPreload image)
         , onClick (ZoomImage <| Just image)
         , onMouseEnter (PutLocale <| Gallery.locale image)
         , onMouseLeave PopLocale
