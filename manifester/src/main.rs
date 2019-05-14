@@ -281,7 +281,7 @@ fn construct_world(
     let pause = Duration::from_secs(1);
     let cities_buffer = OpenOptions::new()
         .read(true)
-        .write(true)
+        .write(false) // Don't write unless needed
         .create(false) //Fail if we need to create the file
         .open("world/cities.json");
 
@@ -292,63 +292,51 @@ fn construct_world(
             let mut cities: FeatureCollection = serde_json::from_reader(&buffer)?;
             let (new_countries, new_locations) = get_new_places(&cities, config, cca3);
             for (country, locations) in &config.places {
-                if new_countries.contains(&country) {
-                    for (location, local_name) in
-                        locations.iter().filter(|(l, _)| **l != Location::Local)
-                    {
-                        let coordinates = if new_locations.contains(location) {
-                            let coords =
-                                search(&format!("{}, {}", location.name(), country.name()))?;
-                            thread::sleep(pause); //We can't hammer the Nominatim server.
+                for (location, local_name) in
+                    locations.iter().filter(|(l, _)| **l != Location::Local)
+                {
+                    let coordinates = if new_locations.contains(location) {
+                        let coords = search(&format!("{}, {}", location.name(), country.name()))?;
+                        thread::sleep(pause); //We can't hammer the Nominatim server.
 
-                            let properties = Properties {
-                                name: location.name(),
-                                localname: local_name.to_owned(),
-                                country: Some(country.code(&cca3)?),
-                            };
-                            let coordinates =
-                                vec![coords.lon.parse::<f32>()?, coords.lat.parse::<f32>()?];
-                            let geometry = Geometry {
-                                type_: "Point".to_string(),
-                                coordinates: Coordinates::Point(coordinates.clone()),
-                            };
-
-                            println!("{} {:?}", location.to_string(), geometry.coordinates);
-                            cities.features.push(Feature {
-                                type_: "Feature".to_string(),
-                                properties,
-                                geometry,
-                            });
-                            coordinates
-                        } else {
-                            location.feature_coordinates(&cities.features)?
+                        let properties = Properties {
+                            name: location.name(),
+                            localname: local_name.to_owned(),
+                            country: Some(country.code(&cca3)?),
                         };
-                        locations_details.push(LocationInformation {
-                            id: location.clone(),
-                            name: location.name(),
-                            country: country.clone(),
-                            coordinates,
+                        let coordinates =
+                            vec![coords.lon.parse::<f32>()?, coords.lat.parse::<f32>()?];
+                        let geometry = Geometry {
+                            type_: "Point".to_string(),
+                            coordinates: Coordinates::Point(coordinates.clone()),
+                        };
+
+                        println!("{} {:?}", location.to_string(), geometry.coordinates);
+                        cities.features.push(Feature {
+                            type_: "Feature".to_string(),
+                            properties,
+                            geometry,
                         });
-                    }
-                } else {
-                    for (location, _) in locations
-                        .iter()
-                        .filter(|(l, _)| **l != Location::Local && !new_locations.contains(*l))
-                    {
-                        let coordinates = location.feature_coordinates(&cities.features)?;
-                        locations_details.push(LocationInformation {
-                            id: location.clone(),
-                            name: location.name(),
-                            country: country.clone(),
-                            coordinates,
-                        });
-                    }
+                        coordinates
+                    } else {
+                        location.feature_coordinates(&cities.features)?
+                    };
+                    locations_details.push(LocationInformation {
+                        id: location.clone(),
+                        name: location.name(),
+                        country: country.clone(),
+                        coordinates,
+                    });
                 }
             }
             if new_countries.len() + new_locations.len() > 0 {
-                serde_json::to_writer(&buffer, &cities)?;
+                let cities_writer = OpenOptions::new()
+                    .write(true)
+                    .truncate(true) //We must truncate the file before writing the new data.
+                    .open("world/cities.json")?;
+                serde_json::to_writer(&cities_writer, &cities)?;
             }
-            //It's quicker to just redo the trips rather than checking them.
+
             write_trip(&config, &cities.features)?;
         }
         Err(_) => {
@@ -387,7 +375,7 @@ fn construct_world(
                     });
                 }
             }
-            //It's quicker to just redo the trips rather than checking them.
+
             write_trip(&config, &features)?;
 
             let cities = FeatureCollection {
@@ -1018,6 +1006,7 @@ macro_attr! {
         Bordoy,
         Bratislava,
         Bremen,
+        Brisbane,
         Budapest,
         Chernobyl,
         Copenhagen,
@@ -1101,6 +1090,7 @@ macro_attr! {
         Vik,
         Visby,
         Warsaw,
+        Yass,
         Yerevan,
     }
 }
