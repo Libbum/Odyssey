@@ -22,6 +22,9 @@ places:
   Austria:
     Local: Österreich
     Vienna: Wien
+  China:
+    Local: 中国
+    Shanghai: 上海
   CzechRepublic:
     Local: Česká republika
     Prague: Praha
@@ -363,3 +366,17 @@ trips:
       - 2018/08
       - 2018/09
       - 2018/10
+  - name: E19
+    description: Australia/China 2019
+    cities:
+      - Stockholm
+      - Paris
+      - Shanghai
+      - Melbourne
+      - Sydney
+      - Brisbane
+      - Shanghai
+      - Stockholm
+    dates:
+      - 2019/04
+      - 2019/05
