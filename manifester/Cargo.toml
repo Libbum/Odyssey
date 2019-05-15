@@ -5,9 +5,9 @@ authors = ["Tim DuBois <tim@neophilus.net>"]
 edition = "2018"
 
 [dependencies]
-image = "0.20"
-indicatif = "0.9"
-globwalk = "0.5"
+image = "0.21"
+indicatif = "0.11"
+globwalk = "0.7"
 failure = "0.1"
 reqwest = "0.9"
 macro-attr = "0.2"
