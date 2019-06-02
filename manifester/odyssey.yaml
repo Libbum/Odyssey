@@ -13,12 +13,17 @@ places:
     Local: Հայաստան
     Yerevan: Երևան
   Australia:
+    BellsBeach:
     Brisbane:
+    CapeOtwayLighthouse:
+    Healesville:
     Melbourne:
     Mooroopna:
     Shepparton:
     Sydney:
+    TheTwelveApostles:
     Yass:
+    Yering:
   Austria:
     Local: Österreich
     Vienna: Wien
@@ -53,14 +58,17 @@ places:
     Vidoy: Viðoy
   Germany:
     Local: Deutschland
+    BadBelzig:
     Berlin:
     Bremen:
     Frankfurt:
     Freiburg:
+    Hamburg:
     Heidelberg:
     Karlsruhe:
     Munich:
     Potsdam:
+    Puttgarden:
   Greece:
     Local: Ελλάδα
     Athens: Αθήνα
@@ -372,6 +380,13 @@ trips:
       - Stockholm
       - Paris
       - Shanghai
+      - Melbourne
+      - Yering
+      - Healesville
+      - Melbourne
+      - BellsBeach
+      - CapeOtwayLighthouse
+      - TheTwelveApostles
       - Melbourne
       - Sydney
       - Brisbane
