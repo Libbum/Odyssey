@@ -2,6 +2,7 @@
 extern crate failure;
 extern crate globwalk;
 extern crate image;
+extern crate rexiv2;
 extern crate indicatif;
 extern crate rayon;
 extern crate reqwest;
@@ -13,6 +14,8 @@ extern crate macro_attr;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate serde_yaml;
+extern crate url;
+extern crate url_serde;
 
 use failure::Error;
 use globwalk::DirEntry;
@@ -28,6 +31,7 @@ use std::process::Command;
 use std::str::FromStr;
 use std::time::Duration;
 use std::{fmt, thread};
+use url::Url;
 
 static NOMINATIM_ENDPOINT: &str = "http://nominatim.openstreetmap.org";
 const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
@@ -77,6 +81,22 @@ mod codes {
 struct Config {
     places: BTreeMap<Country, BTreeMap<Location, Option<String>>>,
     trips: Vec<Trip>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+struct Attribution {
+    marked: bool,
+    usage_terms: String,
+    #[serde(with = "url_serde")]
+    web_statement: Url,
+    #[serde(with = "url_serde")]
+    license: Url,
+    #[serde(with = "url_serde")]
+    more_permissions: Url,
+    #[serde(with = "url_serde")]
+    attribution_url: Url,
+    attribution_name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -862,22 +882,26 @@ fn write_manifest(manifest: &mut File) -> Result<(), Error> {
 }
 
 fn main() -> Result<(), Error> {
-    rayon::ThreadPoolBuilder::new()
-        .num_threads(14)
-        .build_global()?;
-
-    let config_file = File::open("odyssey.yaml")?;
-    let config: Config = serde_yaml::from_reader(config_file)?;
-
-    let cca3_file = File::open("world/cca3.json")?;
-    let cca3_read: CountryCodes = serde_json::from_reader(cca3_file)?;
-    let cca3 = &cca3_read.codes;
-
-    let locations_information = construct_world(&config, &cca3)?;
-
-    construct_manifest(&config, &cca3, &locations_information)?;
-
-    println!("World and Manifest builds complete.");
+//    rayon::ThreadPoolBuilder::new()
+//        .num_threads(14)
+//        .build_global()?;
+//
+//    let config_file = File::open("odyssey.yaml")?;
+//    let config: Config = serde_yaml::from_reader(config_file)?;
+//
+    let attribution_file = File::open("attribution.yaml")?;
+    let attrib: Attribution = serde_yaml::from_reader(attribution_file)?;
+    println!("{:?}", attrib);
+//
+//    let cca3_file = File::open("world/cca3.json")?;
+//    let cca3_read: CountryCodes = serde_json::from_reader(cca3_file)?;
+//    let cca3 = &cca3_read.codes;
+//
+//    let locations_information = construct_world(&config, &cca3)?;
+//
+//    construct_manifest(&config, &cca3, &locations_information)?;
+//
+//    println!("World and Manifest builds complete.");
 
     Ok(())
 }
