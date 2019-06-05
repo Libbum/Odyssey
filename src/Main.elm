@@ -153,6 +153,7 @@ type Route
     = RouteCountry (Maybe Country)
     | RouteLocation (Maybe Location)
     | RouteTrip (Maybe Trip)
+    | RouteLicense
     | RouteAll
 
 
@@ -176,6 +177,7 @@ routeParser =
     in
     Parser.oneOf
         [ mapRoute Parser.top RouteAll
+        , mapRoute (Parser.s "license") RouteLicense
         , mapRoute (Parser.s "trip" </> Parser.string) (\trip -> RouteTrip (sanitise trip |> Manifest.stringToTrip))
         , mapRoute Parser.string (\country -> RouteCountry (sanitise country |> Manifest.stringToCountry))
         , mapRoute (Parser.string </> Parser.string) (\_ location -> RouteLocation (sanitise location |> Manifest.stringToLocation))
@@ -247,6 +249,9 @@ routeModel route model =
 
                 Nothing ->
                     resetRoute model
+
+        RouteLicense ->
+            ( newModel, [] )
 
         RouteAll ->
             ( newModel, [ Ports.drawMap (), clearQuery ] )
@@ -779,6 +784,9 @@ update msg model =
                                         Nothing ->
                                             ( { model | url = url }, Cmd.none )
 
+                                RouteLicense ->
+                                    ( { model | url = url }, Cmd.none )
+
                                 RouteAll ->
                                     case model.filter of
                                         All ->
@@ -863,8 +871,12 @@ toKeyboard key =
 
 view : Model -> Document Msg
 view model =
-    case model.zoom of
-        Nothing ->
+    let
+        license =
+            model.url.path |> String.replace "/" "" |> (\path -> path == "license")
+    in
+    case ( model.zoom, license ) of
+        ( Nothing, False ) ->
             let
                 ( selected, _ ) =
                     model.filterSelected
@@ -939,7 +951,7 @@ view model =
                 ]
             }
 
-        Just image ->
+        ( Just image, False ) ->
             let
                 ( nextVisible, previousVisible ) =
                     case model.layout of
@@ -963,6 +975,12 @@ view model =
             { title = "Odyssey"
             , body =
                 [ zoomImage image model.showControls previousVisible nextVisible model.showDescription ]
+            }
+
+        _ ->
+            { title = "Odyssey"
+            , body =
+                licenseView
             }
 
 
@@ -1122,6 +1140,70 @@ singleImageSize images =
         images
         |> List.head
         |> Maybe.withDefault ( [ 300 ], 300 )
+
+
+licenseView : List (Html Msg)
+licenseView =
+    let
+        odyssey =
+            "https://odyssey.neophilus.net"
+
+        neophilus_about =
+            "https://axiomatic.neophilus.net/about"
+
+        cc_namespace =
+            Html.Attributes.attribute "xmlns:cc" "http://creativecommons.org/ns#"
+
+        by_nc_sa =
+            [ Html.Attributes.href "http://creativecommons.org/licenses/by-nc-sa/4.0/", Html.Attributes.rel "license" ]
+    in
+    [ Html.div [ Html.Attributes.id "license" ]
+        [ Html.div [ Html.Attributes.class "license-info" ]
+            [ Html.a by_nc_sa
+                [ Html.img [ src "https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" ] []
+                ]
+            , Html.br [] []
+            , Html.span
+                [ Html.Attributes.attribute "href" "http://purl.org/dc/dcmitype/StillImage"
+                , Html.Attributes.attribute "ref" "dct:type"
+                , Html.Attributes.attribute "xmlns:dct" "http://purl.org/dc/terms/"
+                ]
+                [ Html.text "Images" ]
+            , Html.text " displayed on this website ("
+            , Html.a
+                [ Html.Attributes.href odyssey
+                , Html.Attributes.rel "cc:attributionURL"
+                , cc_namespace
+                ]
+                [ Html.text odyssey ]
+            , Html.text ") are works by "
+            , Html.a
+                [ Html.Attributes.href neophilus_about
+                , Html.Attributes.attribute "property" "cc:attributionName"
+                , cc_namespace
+                ]
+                [ Html.text "Timothy C. DuBois" ]
+            , Html.text " and are licensed under a "
+            , Html.a by_nc_sa
+                [ Html.text "Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License" ]
+            , Html.text "."
+            , Html.br [] []
+            , Html.text "Permissions beyond the scope of this license will be considered on a case-by-case basis. Please contact me via "
+            , Html.a [ Html.Attributes.href "https://keybase.io/Libbum" ] [ Html.text "keybase" ]
+            , Html.text " or the email address on my "
+            , Html.a [ Html.Attributes.href neophilus_about ] [ Html.text "about page" ]
+            , Html.text " in this instance."
+            , Html.hr [] []
+            , Html.text "All code for the website is released under the BSD 3-Clause \"New\" or \"Revised\" License, in line with most Elm libraries used within. "
+            , Html.br [] []
+            , Html.a [ Html.Attributes.href "https://github.com/Libbum/Odyssey" ] [ Html.text "View on Github." ]
+            , Html.br [] []
+            , Html.a [ Html.Attributes.href "https://app.fossa.io/projects/git%2Bgithub.com%2FLibbum%2FOdyssey?ref=badge_large" ]
+                [ Html.img [ src "https://app.fossa.io/api/projects/git%2Bgithub.com%2FLibbum%2FOdyssey.svg?type=large" ] []
+                ]
+            ]
+        ]
+    ]
 
 
 

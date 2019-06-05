@@ -453,6 +453,37 @@ label > .icon {
     font-weight: 600;
 }
 
+#license {
+    width: 100%;
+    height: 100%;
+    margin: auto;
+    position: absolute;
+    background: #343642;
+}
+
+.license-info {
+    position: absolute;
+    text-align: center;
+    margin: auto;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 280px;
+    height: 650px;
+    z-index: 100;
+    background: white;
+    border: 1px solid #ccc;
+    transition: 0.5s ease-out;
+    box-shadow: -2rem 2rem 2rem rgba(52, 136, 153, 0.4);
+    -webkit-transform: scale(1);
+    transform: scale(1);
+    opacity: 1;
+    visibility: visible;
+    padding: 15px 30px;
+    border-radius: 8px;
+}
+
 .description-button {
     position: fixed;
     top: 10px;
