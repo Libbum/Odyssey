@@ -3,6 +3,7 @@ extern crate failure;
 extern crate globwalk;
 extern crate image;
 extern crate indicatif;
+extern crate num_cpus;
 extern crate rayon;
 extern crate reqwest;
 #[macro_use]
@@ -863,7 +864,7 @@ fn write_manifest(manifest: &mut File) -> Result<(), Error> {
 
 fn main() -> Result<(), Error> {
     rayon::ThreadPoolBuilder::new()
-        .num_threads(14)
+        .num_threads(num_cpus::get_physical())
         .build_global()?;
 
     let config_file = File::open("odyssey.yaml")?;
