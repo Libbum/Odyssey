@@ -2,6 +2,7 @@
 extern crate failure;
 extern crate globwalk;
 extern crate image;
+extern crate rexiv2;
 extern crate indicatif;
 extern crate num_cpus;
 extern crate rayon;
@@ -14,6 +15,8 @@ extern crate macro_attr;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate serde_yaml;
+extern crate url;
+extern crate url_serde;
 
 use failure::Error;
 use globwalk::DirEntry;
@@ -29,6 +32,7 @@ use std::process::Command;
 use std::str::FromStr;
 use std::time::Duration;
 use std::{fmt, thread};
+use url::Url;
 
 static NOMINATIM_ENDPOINT: &str = "http://nominatim.openstreetmap.org";
 const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
@@ -78,6 +82,22 @@ mod codes {
 struct Config {
     places: BTreeMap<Country, BTreeMap<Location, Option<String>>>,
     trips: Vec<Trip>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+struct Attribution {
+    marked: bool,
+    usage_terms: String,
+    #[serde(with = "url_serde")]
+    web_statement: Url,
+    #[serde(with = "url_serde")]
+    license: Url,
+    #[serde(with = "url_serde")]
+    more_permissions: Url,
+    #[serde(with = "url_serde")]
+    attribution_url: Url,
+    attribution_name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -406,6 +426,7 @@ fn construct_world(
 
 fn construct_manifest(
     config: &Config,
+    attrib: &Attribution,
     cca3: &BTreeMap<String, String>,
     locations_information: &[LocationInformation],
 ) -> Result<(), Error> {
@@ -423,7 +444,7 @@ fn construct_manifest(
     write_trips(&mut manifest, config)?;
 
     writeln!(manifest, "-- MANIFEST")?;
-    write_manifest(&mut manifest)?;
+    write_manifest(&mut manifest, attrib)?;
 
     Command::new("elm-format")
         .arg("--elm-version=0.19")
@@ -717,7 +738,7 @@ fn write_trips(manifest: &mut File, config: &Config) -> Result<(), Error> {
     Ok(())
 }
 
-fn write_manifest(manifest: &mut File) -> Result<(), Error> {
+fn write_manifest(manifest: &mut File, attrib: &Attribution) -> Result<(), Error> {
     // Ignore the thumbnails and blurs at this point. We will check for them later.
     let walker = globwalk::GlobWalkerBuilder::from_patterns(
         "../dist/gallery/",
@@ -758,6 +779,31 @@ fn write_manifest(manifest: &mut File) -> Result<(), Error> {
             bar.set_message(&format!(".../.../{}", msg.last().unwrap()));
         } else {
             bar.set_message(&bar_msg);
+        }
+
+        // Add licensing metadata if needed.
+        if attrib.marked {
+            let meta = rexiv2::Metadata::new_from_path(&file.path())?;
+            //Blanket clear all xmp data. TODO: this needs a better solution.
+            meta.clear_xmp();
+            rexiv2::unregister_all_xmp_namespaces();
+            rexiv2::register_xmp_namespace("http://creativecommons.org/ns#/", "cc")?;
+
+            let marked = match attrib.marked {
+                true => "True",
+                false => "False",
+            };
+
+            meta.set_tag_string("Xmp.xmpRights.Marked", marked)?;
+            meta.set_tag_string("Xmp.xmpRights.UsageTerms", &attrib.usage_terms)?;
+            meta.set_tag_string("Xmp.dc.rights", &attrib.usage_terms)?;
+            meta.set_tag_string("Xmp.xmpRights.WebStatement", attrib.web_statement.as_str())?;
+            meta.set_tag_string("Xmp.cc.license", attrib.license.as_str())?;
+            meta.set_tag_string("Xmp.cc.morePermissions", attrib.more_permissions.as_str())?;
+            meta.set_tag_string("Xmp.cc.attributionURL", attrib.attribution_url.as_str())?;
+            meta.set_tag_string("Xmp.cc.attributionName", &attrib.attribution_name)?;
+
+            meta.save_to_file(&file.path())?;
         }
 
         // Open image and grab its dimensions.
@@ -870,13 +916,16 @@ fn main() -> Result<(), Error> {
     let config_file = File::open("odyssey.yaml")?;
     let config: Config = serde_yaml::from_reader(config_file)?;
 
+    let attribution_file = File::open("attribution.yaml")?;
+    let attrib: Attribution = serde_yaml::from_reader(attribution_file)?;
+
     let cca3_file = File::open("world/cca3.json")?;
     let cca3_read: CountryCodes = serde_json::from_reader(cca3_file)?;
     let cca3 = &cca3_read.codes;
 
     let locations_information = construct_world(&config, &cca3)?;
 
-    construct_manifest(&config, &cca3, &locations_information)?;
+    construct_manifest(&config, &attrib, &cca3, &locations_information)?;
 
     println!("World and Manifest builds complete.");
 
