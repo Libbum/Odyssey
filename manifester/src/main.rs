@@ -425,6 +425,7 @@ fn construct_world(
 
 fn construct_manifest(
     config: &Config,
+    attrib: &Attribution,
     cca3: &BTreeMap<String, String>,
     locations_information: &[LocationInformation],
 ) -> Result<(), Error> {
@@ -442,7 +443,7 @@ fn construct_manifest(
     write_trips(&mut manifest, config)?;
 
     writeln!(manifest, "-- MANIFEST")?;
-    write_manifest(&mut manifest)?;
+    write_manifest(&mut manifest, attrib)?;
 
     Command::new("elm-format")
         .arg("--elm-version=0.19")
@@ -736,7 +737,7 @@ fn write_trips(manifest: &mut File, config: &Config) -> Result<(), Error> {
     Ok(())
 }
 
-fn write_manifest(manifest: &mut File) -> Result<(), Error> {
+fn write_manifest(manifest: &mut File, attrib: &Attribution) -> Result<(), Error> {
     // Ignore the thumbnails and blurs at this point. We will check for them later.
     let walker = globwalk::GlobWalkerBuilder::from_patterns(
         "../dist/gallery/",
@@ -777,6 +778,31 @@ fn write_manifest(manifest: &mut File) -> Result<(), Error> {
             bar.set_message(&format!(".../.../{}", msg.last().unwrap()));
         } else {
             bar.set_message(&bar_msg);
+        }
+
+        // Add licensing metadata if needed.
+        if attrib.marked {
+            let meta = rexiv2::Metadata::new_from_path(&file.path())?;
+            //Blanket clear all xmp data. TODO: this needs a better solution.
+            meta.clear_xmp();
+            rexiv2::unregister_all_xmp_namespaces();
+            rexiv2::register_xmp_namespace("http://creativecommons.org/ns#/", "cc")?;
+
+            let marked = match attrib.marked {
+                true => "True",
+                false => "False",
+            };
+
+            meta.set_tag_string("Xmp.xmpRights.Marked", marked)?;
+            meta.set_tag_string("Xmp.xmpRights.UsageTerms", &attrib.usage_terms)?;
+            meta.set_tag_string("Xmp.dc.rights", &attrib.usage_terms)?;
+            meta.set_tag_string("Xmp.xmpRights.WebStatement", attrib.web_statement.as_str())?;
+            meta.set_tag_string("Xmp.cc.license", attrib.license.as_str())?;
+            meta.set_tag_string("Xmp.cc.morePermissions", attrib.more_permissions.as_str())?;
+            meta.set_tag_string("Xmp.cc.attributionURL", attrib.attribution_url.as_str())?;
+            meta.set_tag_string("Xmp.cc.attributionName", &attrib.attribution_name)?;
+
+            meta.save_to_file(&file.path())?;
         }
 
         // Open image and grab its dimensions.
@@ -882,26 +908,25 @@ fn write_manifest(manifest: &mut File) -> Result<(), Error> {
 }
 
 fn main() -> Result<(), Error> {
-//    rayon::ThreadPoolBuilder::new()
-//        .num_threads(14)
-//        .build_global()?;
-//
-//    let config_file = File::open("odyssey.yaml")?;
-//    let config: Config = serde_yaml::from_reader(config_file)?;
-//
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(14)
+        .build_global()?;
+
+    let config_file = File::open("odyssey.yaml")?;
+    let config: Config = serde_yaml::from_reader(config_file)?;
+
     let attribution_file = File::open("attribution.yaml")?;
     let attrib: Attribution = serde_yaml::from_reader(attribution_file)?;
-    println!("{:?}", attrib);
-//
-//    let cca3_file = File::open("world/cca3.json")?;
-//    let cca3_read: CountryCodes = serde_json::from_reader(cca3_file)?;
-//    let cca3 = &cca3_read.codes;
-//
-//    let locations_information = construct_world(&config, &cca3)?;
-//
-//    construct_manifest(&config, &cca3, &locations_information)?;
-//
-//    println!("World and Manifest builds complete.");
+
+    let cca3_file = File::open("world/cca3.json")?;
+    let cca3_read: CountryCodes = serde_json::from_reader(cca3_file)?;
+    let cca3 = &cca3_read.codes;
+
+    let locations_information = construct_world(&config, &cca3)?;
+
+    construct_manifest(&config, &attrib, &cca3, &locations_information)?;
+
+    println!("World and Manifest builds complete.");
 
     Ok(())
 }
