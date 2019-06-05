@@ -90,6 +90,28 @@ The manifester generates empty `.desc` files for each image if one doesn't exist
 If you wish to add a short description to a photo, write it in this file and the manifester will add it next pass.
 This file is not escaped, so please use `\"` if you need quotations in your description.
 
+### attribution.yaml
+
+If you wish to assign a license to the images in your gallery, use the `manifester/attribution.yaml` file.
+Initially, you'll want to rename the `manifester/attribution.example.yaml` file to `manifester/attribution.yaml`.
+I've done this so that users just trying this repo out, don't apply my personal attribution to their photos accidentally.
+
+By default, `Marked` will be set to *false*, thus skipping this step in the manifest building process.
+Switching this value to *true* will turn on a routine the will inject xmp metadata into each of your images.
+It will not alter any other exif data, but will overwrite any licensing data that may exist on your image already.
+This is not ideal and will be [fixed in the future](https://github.com/Libbum/Odyssey/issues/51).
+In general though, this allows you to play around with your attribution file and each manifest build will change the agreement metadata in your images.
+
+#### Choosing a license
+
+I'd recommend a Creative Commons license.
+Many of which allow copying freely, but also have options for a non-commercial use clause.
+This is what I choose: [Creative Commons Attribution-NonCommercial-Share Alike 4.0 International License](http://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+Creative Commons have a great [selector](https://creativecommons.org/choose/) on their website with ample information about each choice.
+
+At the moment, the routines herein only support the CC scheme, so if you'd like to include something other than their licenses, please [file an issue](https://github.com/Libbum/Odyssey/issues).
+
 ### Updating a gallery
 
 Once your files are organised, you can build your manifest by calling `make manifest`. This will  generate all needed code for the updated `world.json` and `Manifest.elm` files.
