@@ -14,11 +14,16 @@ places:
     Yerevan: Երևան
   Australia:
     BellsBeach:
+    BlueMountains:
     Brisbane:
     CapeOtwayLighthouse:
+    CoffsHarbour:
+    Goulburn:
     Healesville:
+    Lorne:
     Melbourne:
     Mooroopna:
+    MyallLakes:
     Shepparton:
     Sydney:
     TheTwelveApostles:
@@ -387,8 +392,15 @@ trips:
       - BellsBeach
       - CapeOtwayLighthouse
       - TheTwelveApostles
+      - Lorne
       - Melbourne
+      - Mooroopna
+      - Yass
+      - Goulburn
+      - BlueMountains
       - Sydney
+      - MyallLakes
+      - CoffsHarbour
       - Brisbane
       - Shanghai
       - Stockholm
