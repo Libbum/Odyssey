@@ -38,6 +38,9 @@ serve: dist/assets/js/init.js debugindex dist/assets/css/odyssey.css
 debug: dist/assets/js/init.js debugindex dist/assets/css/odyssey.css
 	elm-live src/Main.elm -d dist --pushstate --open -- --output=dist/assets/js/odyssey.js --debug
 
+align:
+	for a in $(find dist/gallery/ -regextype sed -regex ".*/[0-9]\{8\}_[0-9]\{6\}.*"); do mv -v -f $a $(dirname $a)/IMG_$(basename $a); done
+
 clean:
 	@-rm -f $(TARGETS)
 
