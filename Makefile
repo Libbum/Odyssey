@@ -25,7 +25,7 @@ debugindex: dist/index.html
 	sed -i 's/odyssey.*.js/odyssey.js/' dist/index.html
 
 build: dist/assets/js/odyssey.min.js prodindex dist/assets/css/odyssey.css
-	@-rm -f dist/assets/js/odyssey.js
+	@-rm -f dist/assets/js/odyssey.js dist/assets/js/odyssey.*.min.js
 
 rebuild: clean build
 
