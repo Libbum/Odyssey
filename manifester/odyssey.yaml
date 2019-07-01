@@ -18,6 +18,7 @@ places:
     Brisbane:
     CapeOtwayLighthouse:
     CoffsHarbour:
+    GoldCoast:
     Goulburn:
     Healesville:
     Lorne:
@@ -26,6 +27,7 @@ places:
     MyallLakes:
     Shepparton:
     Sydney:
+    TamborineMountain:
     TheTwelveApostles:
     Yass:
     Yering:
@@ -401,6 +403,9 @@ trips:
       - Sydney
       - MyallLakes
       - CoffsHarbour
+      - Brisbane
+      - TamborineMountain
+      - GoldCoast
       - Brisbane
       - Shanghai
       - Stockholm
