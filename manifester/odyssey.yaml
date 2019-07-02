@@ -37,6 +37,8 @@ places:
   China:
     Local: 中国
     Shanghai: 上海
+    YellowMountain: 黄山
+    Quanzhou: 泉州市
   CzechRepublic:
     Local: Česká republika
     Prague: Praha
@@ -407,6 +409,9 @@ trips:
       - TamborineMountain
       - GoldCoast
       - Brisbane
+      - Quanzhou
+      - Shanghai
+      - YellowMountain
       - Shanghai
       - Stockholm
     dates:

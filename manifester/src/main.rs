@@ -1121,6 +1121,7 @@ macro_attr! {
         Pripyat,
         Pushkin,
         Puttgarden,
+        Quanzhou,
         Revsund,
         Reykjavik,
         Riga,
@@ -1157,6 +1158,7 @@ macro_attr! {
         Visby,
         Warsaw,
         Yass,
+        YellowMountain,
         Yerevan,
         Yering,
     }
