@@ -1,7 +1,7 @@
 TARGETS := dist/assets/js/odyssey.js dist/assets/js/odyssey.min.js dist/assets/js/init.js manifester/world/cities.json manifester/world/trips.json dist/assets/world.json dist/assets/css/odyssey.css
 seed := $(shell cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)
 
-.PHONY: clean build rebuild deploy
+.PHONY: clean build rebuild deploy clearthumb
 
 dist/assets/css/odyssey.css: src/odyssey.css
 	crass src/odyssey.css --optimize > dist/assets/css/odyssey.css
@@ -44,5 +44,8 @@ align:
 clean:
 	@-rm -f $(TARGETS)
 
-deploy: manifest prodindex dist/assets/js/init.js dist/assets/css/odyssey.css build prodjs
+clearthumb:
+	find dist/gallery -name 'Thumbs.db*' -exec rm {} \;
+
+deploy: manifest prodindex dist/assets/js/init.js dist/assets/css/odyssey.css build prodjs clearthumb
 	rsync -avr --exclude='*.desc' --chown=www-data:www-data --checksum --delete -e ssh dist/ AkashaR:odyssey
