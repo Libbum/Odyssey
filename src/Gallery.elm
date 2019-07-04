@@ -114,7 +114,7 @@ locale image =
                     ( localLocation ++ ", " ++ localCountry ++ " (" ++ info.name ++ ", " ++ countryString ++ "); " ++ date ++ ".", info.name, url )
 
                 Nothing ->
-                    ( info.name ++ ", " ++ countryString ++ " (" ++ localCountry ++ "); " ++ date ++ ".", info.name, url )
+                    ( info.name ++ ", " ++ localCountry ++ " (" ++ countryString ++ "); " ++ date ++ ".", info.name, url )
 
         Nothing ->
             case Manifest.locationLocalName image.location of
