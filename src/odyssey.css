@@ -706,7 +706,7 @@ label > .icon {
     }
 }
 
-@media (max-height: 910px) and (min-width: 1801px) {
+@media (max-height: 880px) and (min-width: 1801px) {
     #aside {
         min-height: 475px;
     }
