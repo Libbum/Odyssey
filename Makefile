@@ -12,7 +12,7 @@ endif
 
 TARGETS := dist/assets/js/odyssey.js dist/assets/js/odyssey.min.js dist/assets/js/init.js manifester/world/cities.json manifester/world/trips.json dist/assets/world.json dist/assets/css/odyssey.css
 seed := $(shell cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)
-
+LIVEARGS := src/Main.elm -S -c ../localhost.pem -k ../localhost.key -d dist --pushstate --open -- --output=dist/assets/js/odyssey.js
 .PHONY: clean build rebuild deploy clearthumb
 
 dist/assets/css/odyssey.css: src/odyssey.css
@@ -48,10 +48,10 @@ manifest: manifester/odyssey.yaml manifester/world/cca3.json manifester/world/co
 > cd ..
 
 serve: dist/assets/js/init.js debugindex dist/assets/css/odyssey.css
-> elm-live src/Main.elm -d dist --pushstate --open -- --output=dist/assets/js/odyssey.js --optimize
+> elm-live ${LIVEARGS} --optimize
 
 debug: dist/assets/js/init.js debugindex dist/assets/css/odyssey.css
-> elm-live src/Main.elm -d dist --pushstate --open -- --output=dist/assets/js/odyssey.js --debug
+> elm-live ${LIVEARGS} --debug
 
 align:
 > for a in $(find dist/gallery/ -regextype sed -regex ".*/[0-9]\{8\}_[0-9]\{6\}.*"); do mv -v -f $a $(dirname $a)/IMG_$(basename $a); done
