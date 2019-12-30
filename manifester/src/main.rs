@@ -1044,6 +1044,7 @@ macro_attr! {
     #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, EnumFromStr!, Serialize, Deserialize)]
     enum Location {
         Local,
+        Abisko,
         Amsterdam,
         Are,
         Arjang,
@@ -1100,6 +1101,7 @@ macro_attr! {
         Katowice,
         Kiev,
         Kinnekulle,
+        Kiruna,
         KoSamui,
         KoTao,
         Koyasan,
@@ -1113,6 +1115,7 @@ macro_attr! {
         Mooroopna,
         Munich,
         MyallLakes,
+        Nikkaluokta,
         Osaka,
         Oslo,
         Ostersund,

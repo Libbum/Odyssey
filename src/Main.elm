@@ -1160,7 +1160,7 @@ licenseView =
     [ Html.div [ Html.Attributes.id "license" ]
         [ Html.div [ Html.Attributes.class "license-info" ]
             [ Html.a by_nc_sa
-                [ Html.img [ src "https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" ] []
+                [ Html.img [ src "assets/88x31.png" ] []
                 ]
             , Html.br [] []
             , Html.span
@@ -1197,10 +1197,6 @@ licenseView =
             , Html.text "All code for the website is released under the BSD 3-Clause \"New\" or \"Revised\" License, in line with most Elm libraries used within. "
             , Html.br [] []
             , Html.a [ Html.Attributes.href "https://github.com/Libbum/Odyssey" ] [ Html.text "View on Github." ]
-            , Html.br [] []
-            , Html.a [ Html.Attributes.href "https://app.fossa.io/projects/git%2Bgithub.com%2FLibbum%2FOdyssey?ref=badge_large" ]
-                [ Html.img [ src "https://app.fossa.io/api/projects/git%2Bgithub.com%2FLibbum%2FOdyssey.svg?type=large" ] []
-                ]
             ]
         ]
     ]
