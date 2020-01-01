@@ -1,10 +1,10 @@
 module Main exposing (main)
 
-import Api
 import Browser exposing (Document)
 import Browser.Dom exposing (getViewport, getViewportOf, setViewport)
 import Browser.Events
 import Browser.Navigation as Nav
+import Contact exposing (Response(..))
 import Gallery exposing (Filter(..))
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
@@ -52,6 +52,7 @@ type alias Model =
     , locale : String
     , zoom : Maybe Image
     , showModal : Bool
+    , contact : Contact.Model
     , showDescription : Bool
     , showControls : Bool
     , showMenu : Bool
@@ -77,6 +78,7 @@ initialModel scrollWidth key url =
     , locale = ""
     , zoom = Nothing
     , showModal = False
+    , contact = Contact.Model "" "" "" "" "" Nothing NotSent True
     , showDescription = True
     , showControls = False
     , showMenu = False
@@ -285,6 +287,7 @@ type Msg
     | NextZoom
     | PreviousZoom
     | ToggleModal
+    | ContactView Contact.Msg
     | ToggleDescription
     | ToggleControls Bool
     | ToggleMenu
@@ -560,7 +563,22 @@ update msg model =
             ( { model | zoom = image, layout = layout }, preloadCmd prevUrl )
 
         ToggleModal ->
-            ( { model | showModal = not model.showModal }, Cmd.none )
+            let
+                toggleCmd =
+                    if model.showModal then
+                        Cmd.none
+
+                    else
+                        Cmd.map ContactView (Contact.getCaptcha Nothing)
+            in
+            ( { model | showModal = not model.showModal }, toggleCmd )
+
+        ContactView contactMsg ->
+            let
+                ( cont, conCmd ) =
+                    Contact.update contactMsg model.contact
+            in
+            ( { model | contact = cont }, Cmd.map ContactView conCmd )
 
         ToggleDescription ->
             ( { model | showDescription = not model.showDescription }, Cmd.none )
@@ -948,7 +966,7 @@ view model =
                     List.take model.rows.visible <|
                         displayImages layout model.gallery.width model.partition []
                 , coverView model.showModal
-                , modalView model.showModal
+                , Html.map ContactView (Contact.view model.showModal model.contact)
                 ]
             }
 
@@ -1413,32 +1431,6 @@ coverView show =
                 [ Html.Attributes.class "modal-cover", Html.Attributes.class "none" ]
     in
     div cover []
-
-
-modalView : Bool -> Html Msg
-modalView show =
-    let
-        modal =
-            if show then
-                [ Html.Attributes.class "modal" ]
-
-            else
-                [ Html.Attributes.class "modal", Html.Attributes.class "off" ]
-    in
-    div modal
-        [ Html.button [ Html.Attributes.class "close", onClick ToggleModal ] [ Icons.x ]
-        , Html.form [ Html.Attributes.id "contactModal", Html.Attributes.method "post", Html.Attributes.action "/process.php" ]
-            [ Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Name", Html.Attributes.type_ "text", Html.Attributes.name "name" ] []
-            , Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Email", Html.Attributes.type_ "email", Html.Attributes.name "email" ] []
-            , Html.textarea [ Html.Attributes.required True, Html.Attributes.placeholder "Message", Html.Attributes.spellcheck True, Html.Attributes.rows 4, Html.Attributes.name "message" ] []
-            , Html.img [ Html.Attributes.class "img-verify", Html.Attributes.src "/image.php", Html.Attributes.width 80, Html.Attributes.height 30 ] []
-            , Html.input [ Html.Attributes.id "verify", Html.Attributes.autocomplete False, Html.Attributes.required True, Html.Attributes.placeholder "Copy the code", Html.Attributes.type_ "text", Html.Attributes.name "verify", Html.Attributes.title "This confirms you are a human user or strong AI and not a spam-bot." ] []
-            , div [ Html.Attributes.class "center" ]
-                [ Html.input [ Html.Attributes.type_ "submit", Html.Attributes.value "Send Message" ] []
-                , div [ Html.Attributes.id "response" ] []
-                ]
-            ]
-        ]
 
 
 maybesToList : List (Maybe a) -> List a
