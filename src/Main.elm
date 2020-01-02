@@ -4,7 +4,7 @@ import Browser exposing (Document)
 import Browser.Dom exposing (getViewport, getViewportOf, setViewport)
 import Browser.Events
 import Browser.Navigation as Nav
-import Contact exposing (Response(..))
+import Contact
 import Gallery exposing (Filter(..))
 import Html exposing (Html, a, div)
 import Html.Attributes exposing (height, href, src, width)
@@ -78,7 +78,7 @@ initialModel scrollWidth key url =
     , locale = ""
     , zoom = Nothing
     , showModal = False
-    , contact = Contact.Model "" "" "" "" "" Nothing NotSent True
+    , contact = Contact.init
     , showDescription = True
     , showControls = False
     , showMenu = False
@@ -286,7 +286,7 @@ type Msg
     | SetZoom (Maybe Image) (Result Browser.Dom.Error Browser.Dom.Viewport)
     | NextZoom
     | PreviousZoom
-    | ToggleModal
+    | OpenModal
     | ContactView Contact.Msg
     | ToggleDescription
     | ToggleControls Bool
@@ -562,23 +562,15 @@ update msg model =
             in
             ( { model | zoom = image, layout = layout }, preloadCmd prevUrl )
 
-        ToggleModal ->
-            let
-                toggleCmd =
-                    if model.showModal then
-                        Cmd.none
-
-                    else
-                        Cmd.map ContactView (Contact.getCaptcha Nothing)
-            in
-            ( { model | showModal = not model.showModal }, toggleCmd )
+        OpenModal ->
+            ( { model | showModal = True }, Cmd.map ContactView (Contact.getCaptcha Nothing) )
 
         ContactView contactMsg ->
             let
-                ( cont, conCmd ) =
+                ( cont, conCmd, isVisible ) =
                     Contact.update contactMsg model.contact
             in
-            ( { model | contact = cont }, Cmd.map ContactView conCmd )
+            ( { model | contact = cont, showModal = isVisible }, Cmd.map ContactView conCmd )
 
         ToggleDescription ->
             ( { model | showDescription = not model.showDescription }, Cmd.none )
@@ -954,7 +946,7 @@ view model =
                     , Html.footer []
                         [ Html.ul [ Html.Attributes.class "icons" ]
                             [ Html.li [] [ Html.a [ Html.Attributes.href "https://www.github.com/Libbum/Odyssey" ] [ Icons.github ] ]
-                            , Html.li [] [ Html.button [ onClick ToggleModal ] [ Icons.mail ] ]
+                            , Html.li [] [ Html.button [ onClick OpenModal ] [ Icons.mail ] ]
                             , Html.li [] [ Html.a [ Html.Attributes.href "https://telegram.me/Libbum" ] [ Icons.telegram ] ]
                             , Html.li [] [ Html.a [ Html.Attributes.href "https://axiomatic.neophilus.net" ] [ Icons.axiomatic ] ]
                             ]

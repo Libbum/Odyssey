@@ -1,4 +1,4 @@
-module Contact exposing (Captcha, Error(..), Model, Msg(..), Response(..), getCaptcha, update, view)
+module Contact exposing (Model, Msg(..), getCaptcha, init, update, view)
 
 import Dict
 import Html exposing (Html, div)
@@ -13,8 +13,6 @@ import Session exposing (Session)
 type alias Model =
     { name : String
     , email : String
-
-    --, website : String
     , message : String
     , challenge : String
     , captcha : Captcha
@@ -31,9 +29,9 @@ type Msg
     | ConfirmSendContact (Result Error String)
     | UpdateName String
     | UpdateEmail String
-      --| UpdateWebsite String
     | UpdateMessage String
     | UpdateChallenge String
+    | CloseModal
 
 
 type alias Captcha =
@@ -53,21 +51,28 @@ type Error
     | Http Http.Error
 
 
+init : Model
+init =
+    Model "" "" "" "" "" Nothing NotSent True
+
+
 
 -- UPDATE
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg, Bool )
 update msg model =
     case msg of
         RequestCaptcha ->
             ( model
             , getCaptcha model.session
+            , True
             )
 
         GotCaptchaImage (Ok ( image, session )) ->
             ( { model | captcha = image, session = session, response = NotSent }
             , Cmd.none
+            , True
             )
 
         GotCaptchaImage (Err err) ->
@@ -88,15 +93,17 @@ update msg model =
             in
             ( { model | response = Bad response, formEnabled = formEnabled }
             , Cmd.none
+            , True
             )
 
         SendContact ->
             ( model
             , sendContactRequest model
+            , True
             )
 
         ConfirmSendContact (Ok _) ->
-            ( { model | response = Good "Your message has been recieved! We'll get back to you as soon as we can.", name = "", email = "", message = "", challenge = "", formEnabled = False }, getCaptcha Nothing )
+            ( { model | response = Good "Your message has been recieved! We'll get back to you as soon as we can.", name = "", email = "", message = "", challenge = "", formEnabled = False }, getCaptcha Nothing, True )
 
         ConfirmSendContact (Err err) ->
             let
@@ -114,21 +121,22 @@ update msg model =
                         _ ->
                             ( "An error occured processing your message. Please try again or a little later. The administrator has been notified of this failure so will hopefully fix this issue soon.", getCaptcha Nothing, True )
             in
-            ( { model | response = Bad response, challenge = "", formEnabled = formEnabled }, cmd )
+            ( { model | response = Bad response, challenge = "", formEnabled = formEnabled }, cmd, True )
 
         UpdateName name ->
-            ( { model | name = name }, Cmd.none )
+            ( { model | name = name }, Cmd.none, True )
 
         UpdateEmail email ->
-            ( { model | email = email }, Cmd.none )
+            ( { model | email = email }, Cmd.none, True )
 
-        --UpdateWebsite url ->
-        --( { model | website = url }, Cmd.none )
         UpdateMessage message ->
-            ( { model | message = message }, Cmd.none )
+            ( { model | message = message }, Cmd.none, True )
 
         UpdateChallenge challenge ->
-            ( { model | challenge = challenge }, Cmd.none )
+            ( { model | challenge = challenge }, Cmd.none, True )
+
+        CloseModal ->
+            ( model, Cmd.none, False )
 
 
 
@@ -150,9 +158,10 @@ getCaptcha session =
     Http.request
         { method = "GET"
         , headers = buildHeaders session
+        , url = "https://www.exactlyinfinite.com/notify/captcha"
 
         --, url = "https://odyssey.neophilus.net/notify/captcha"
-        , url = "http://127.0.0.1:7361/captcha"
+        --, url = "http://127.0.0.1:7361/captcha"
         , body = Http.emptyBody
         , expect = expectCaptcha GotCaptchaImage
         , timeout = Nothing
@@ -172,7 +181,9 @@ sendContactRequestHelper contact_block headers =
         , headers = headers
 
         --, url = "https://odyssey.neophilus.net/notify/contact"
-        , url = "http://127.0.0.1:7361/contact"
+        , url = "https://www.exactlyinfinite.com/notify/contact"
+
+        --, url = "http://127.0.0.1:7361/contact"
         , body = Http.jsonBody contact_block
         , expect = expectContactConfirm ConfirmSendContact
         , timeout = Nothing
@@ -251,8 +262,8 @@ contact model =
     Encode.object
         [ ( "name", Encode.string model.name )
         , ( "email", Encode.string model.email )
-
-        --, ( "website", Encode.string model.website )
+        , ( "website", Encode.string "" )
+        , ( "subject", Encode.string "" )
         , ( "message", Encode.string model.message )
         , ( "challenge", Encode.string model.challenge )
         ]
@@ -283,39 +294,46 @@ view show model =
                 NotSent ->
                     ( "", "" )
     in
-    div modal
-        [ Html.button
-            [ Html.Attributes.class "close"
-
-            -- , onClick ToggleModal
-            ]
-            [ Icons.x ]
-        , Html.form [ Html.Attributes.id "contactModal", Html.Attributes.method "post", onSubmit SendContact ]
-            [ Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Name", Html.Attributes.type_ "text", Html.Attributes.name "name", Html.Attributes.value model.name, onInput UpdateName ] []
-            , Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Email", Html.Attributes.type_ "email", Html.Attributes.name "email", Html.Attributes.value model.email, onInput UpdateEmail ] []
-            , Html.textarea [ Html.Attributes.required True, Html.Attributes.placeholder "Message", Html.Attributes.spellcheck True, Html.Attributes.rows 4, Html.Attributes.name "message", Html.Attributes.value model.message, onInput UpdateMessage ] []
-            , div [ Html.Attributes.class "captcha" ]
-                [ Html.img [ Html.Attributes.class "img-verify", Html.Attributes.src model.captcha ] []
-                , div [ Html.Attributes.class "control" ]
-                    [ Html.button [ onClick RequestCaptcha ] [ Html.text "Refresh" ]
-                    , Html.input [ Html.Attributes.id "verify", Html.Attributes.autocomplete False, Html.Attributes.required True, Html.Attributes.placeholder "Copy the code", Html.Attributes.type_ "text", Html.Attributes.name "verify", Html.Attributes.title "This confirms you are a human user or strong AI and not a spam-bot.", Html.Attributes.value model.challenge, onInput UpdateChallenge ] []
+    if model.formEnabled then
+        div modal
+            [ Html.button [ Html.Attributes.class "close", onClick CloseModal ] [ Icons.x ]
+            , Html.form [ Html.Attributes.id "contactModal", Html.Attributes.method "post", onSubmit SendContact ]
+                [ Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Name", Html.Attributes.type_ "text", Html.Attributes.name "name", Html.Attributes.value model.name, onInput UpdateName ] []
+                , Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Email", Html.Attributes.type_ "email", Html.Attributes.name "email", Html.Attributes.value model.email, onInput UpdateEmail ] []
+                , Html.textarea [ Html.Attributes.required True, Html.Attributes.placeholder "Message", Html.Attributes.spellcheck True, Html.Attributes.rows 4, Html.Attributes.name "message", Html.Attributes.value model.message, onInput UpdateMessage ] []
+                , div [ Html.Attributes.class "captcha" ]
+                    [ Html.img [ Html.Attributes.class "img-verify", Html.Attributes.src model.captcha ] []
+                    , div [ Html.Attributes.class "captchacontrol" ]
+                        [ Html.button [ onClick RequestCaptcha ] [ Html.text "Refresh" ]
+                        , Html.input [ Html.Attributes.class "verify", Html.Attributes.autocomplete False, Html.Attributes.required True, Html.Attributes.placeholder "Copy code", Html.Attributes.type_ "text", Html.Attributes.name "verify", Html.Attributes.title "This confirms you are a human user or strong AI and not a spam-bot.", Html.Attributes.value model.challenge, onInput UpdateChallenge ] []
+                        ]
+                    ]
+                , div [ Html.Attributes.class "center" ]
+                    [ Html.input [ Html.Attributes.type_ "submit", Html.Attributes.value "Send Message" ] []
+                    , div [ Html.Attributes.class "response", Html.Attributes.class responseClass ] [ Html.text responseText ]
                     ]
                 ]
-            , div []
-                [ Html.input [ Html.Attributes.type_ "submit", Html.Attributes.value "Send Message" ] []
-                , div [ Html.Attributes.id "response", Html.Attributes.class responseClass ] [ Html.text responseText ]
-                ]
             ]
 
-        --, Html.form [ Html.Attributes.id "contactModal", Html.Attributes.method "post", Html.Attributes.action "/process.php" ]
-        --[ Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Name", Html.Attributes.type_ "text", Html.Attributes.name "name" ] []
-        --, Html.input [ Html.Attributes.required True, Html.Attributes.placeholder "Email", Html.Attributes.type_ "email", Html.Attributes.name "email" ] []
-        --, Html.textarea [ Html.Attributes.required True, Html.Attributes.placeholder "Message", Html.Attributes.spellcheck True, Html.Attributes.rows 4, Html.Attributes.name "message" ] []
-        --, Html.img [ Html.Attributes.class "img-verify", Html.Attributes.src "/image.php", Html.Attributes.width 80, Html.Attributes.height 30 ] []
-        --, Html.input [ Html.Attributes.id "verify", Html.Attributes.autocomplete False, Html.Attributes.required True, Html.Attributes.placeholder "Copy the code", Html.Attributes.type_ "text", Html.Attributes.name "verify", Html.Attributes.title "This confirms you are a human user or strong AI and not a spam-bot." ] []
-        --, div [ Html.Attributes.class "center" ]
-        --[ Html.input [ Html.Attributes.type_ "submit", Html.Attributes.value "Send Message" ] []
-        --, div [ Html.Attributes.id "response" ] []
-        --]
-        --]
-        ]
+    else
+        let
+            alternate =
+                if responseClass == "green" then
+                    Html.text ""
+
+                else
+                    div [ Html.Attributes.class "alternate" ]
+                        [ Html.text "Alternatively, contact Tim directly on "
+                        , Html.a [ Html.Attributes.href "https://keybase.io/Libbum" ] [ Html.text "Keybase" ]
+                        , Html.text " or "
+                        , Html.a [ Html.Attributes.href "https://telegram.me/Libbum" ] [ Html.text "Telegram" ]
+                        , Html.text "."
+                        ]
+        in
+        div (Html.Attributes.class "disabled" :: modal)
+            [ Html.button [ Html.Attributes.class "close", onClick CloseModal ] [ Icons.x ]
+            , div [ Html.Attributes.class "response", Html.Attributes.class responseClass ]
+                [ Html.text responseText
+                , alternate
+                ]
+            ]
