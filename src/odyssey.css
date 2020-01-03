@@ -398,7 +398,6 @@ label > .icon {
     left: 0;
     width: 280px;
     height: 520px;
-    height: fit-content;
     z-index: 100;
     background: white;
     border: 1px solid #ccc;
