@@ -79,7 +79,7 @@ input[type="email"], input[type="text"], textarea {
     border-radius: 5px;
     border-width: 2px;
     border-style: solid;
-    border-color: rgb(228, 228, 228);
+    border-color: #e4e4e4;
     border-image: initial;
     outline: 0px;
     padding: 0px 1em;
@@ -398,7 +398,6 @@ label > .icon {
     left: 0;
     width: 280px;
     height: 520px;
-    height: fit-content;
     z-index: 100;
     background: white;
     border: 1px solid #ccc;
@@ -432,6 +431,7 @@ label > .icon {
     margin-bottom: 22px;
     border: 1px solid #cccccc;
     border-radius: 5px;
+    min-width: 181px;
 }
 
 .verify {
