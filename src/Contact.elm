@@ -86,7 +86,7 @@ update msg model =
                             ( "Cannot generate a captcha image. Please try again later.", False )
 
                         Http.BadStatus 503 ->
-                            ( "Please refresh a little slower, we have limited your requests.", True )
+                            ( "Please refresh a little slower, I have limited your requests.", True )
 
                         _ ->
                             ( "Something is currently wong with the contact system. The administrator has been notified. Please try again later.", False )
@@ -103,7 +103,7 @@ update msg model =
             )
 
         ConfirmSendContact (Ok _) ->
-            ( { model | response = Good "Your message has been recieved! We'll get back to you as soon as we can.", name = "", email = "", message = "", challenge = "", formEnabled = False }, getCaptcha Nothing, True )
+            ( { model | response = Good "Your message has been recieved! I'll get back to you as soon as I can.", name = "", email = "", message = "", challenge = "", formEnabled = False }, Cmd.none, True )
 
         ConfirmSendContact (Err err) ->
             let
@@ -136,7 +136,7 @@ update msg model =
             ( { model | challenge = challenge }, Cmd.none, True )
 
         CloseModal ->
-            ( model, Cmd.none, False )
+            ( { model | formEnabled = True }, Cmd.none, False )
 
 
 
@@ -158,10 +158,7 @@ getCaptcha session =
     Http.request
         { method = "GET"
         , headers = buildHeaders session
-        , url = "https://www.exactlyinfinite.com/notify/captcha"
-
-        --, url = "https://odyssey.neophilus.net/notify/captcha"
-        --, url = "http://127.0.0.1:7361/captcha"
+        , url = "https://odyssey.neophilus.net/notify/captcha"
         , body = Http.emptyBody
         , expect = expectCaptcha GotCaptchaImage
         , timeout = Nothing
@@ -179,11 +176,7 @@ sendContactRequestHelper contact_block headers =
     Http.request
         { method = "POST"
         , headers = headers
-
-        --, url = "https://odyssey.neophilus.net/notify/contact"
-        , url = "https://www.exactlyinfinite.com/notify/contact"
-
-        --, url = "http://127.0.0.1:7361/contact"
+        , url = "https://odyssey.neophilus.net/notify/contact"
         , body = Http.jsonBody contact_block
         , expect = expectContactConfirm ConfirmSendContact
         , timeout = Nothing
