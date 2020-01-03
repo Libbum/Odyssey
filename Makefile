@@ -12,11 +12,15 @@ endif
 
 TARGETS := dist/assets/js/odyssey.js dist/assets/js/odyssey.min.js dist/assets/js/init.js manifester/world/cities.json manifester/world/trips.json dist/assets/world.json dist/assets/css/odyssey.css
 seed := $(shell cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)
-LIVEARGS := src/Main.elm -S -c ../localhost.pem -k ../localhost.key -d dist --pushstate --open -- --output=dist/assets/js/odyssey.js
-.PHONY: clean build rebuild deploy clearthumb
+LIVEARGS := src/Main.elm -d dist --pushstate --open -- --output=dist/assets/js/odyssey.js
+#LIVEARGS := src/Main.elm -S -c ../localhost.pem -k ../localhost.key -d dist --pushstate --open -- --output=dist/assets/js/odyssey.js
+.PHONY: clean build rebuild deploy clearthumb prodindex debugindex prodcss debugcss
 
-dist/assets/css/odyssey.css: src/odyssey.css
+prodcss: src/odyssey.css
 > crass src/odyssey.css --optimize > dist/assets/css/odyssey.css
+
+debugcss: src/odyssey.css
+> cp src/odyssey.css dist/assets/css/odyssey.css
 
 dist/assets/js/odyssey.js:
 > elm make src/Main.elm --output=dist/assets/js/odyssey.js --optimize
@@ -36,7 +40,7 @@ prodindex: dist/index.html
 debugindex: dist/index.html
 > sed -i 's/odyssey.*.js/odyssey.js/' dist/index.html
 
-build: dist/assets/js/odyssey.min.js prodindex dist/assets/css/odyssey.css
+build: dist/assets/js/odyssey.min.js prodindex prodcss
 > @-rm -f dist/assets/js/odyssey.js dist/assets/js/odyssey.*.min.js
 
 rebuild: clean build
@@ -47,10 +51,10 @@ manifest: manifester/odyssey.yaml manifester/world/cca3.json manifester/world/co
 > cargo run --release
 > cd ..
 
-serve: dist/assets/js/init.js debugindex dist/assets/css/odyssey.css
+serve: dist/assets/js/init.js debugindex prodcss
 > elm-live ${LIVEARGS} --optimize
 
-debug: dist/assets/js/init.js debugindex dist/assets/css/odyssey.css
+debug: dist/assets/js/init.js debugindex debugcss
 > elm-live ${LIVEARGS} --debug
 
 align:

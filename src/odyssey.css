@@ -91,7 +91,7 @@ input[type="email"], input[type="text"] {
     height: 2.75em;
 }
 
-input[type="submit"] {
+input[type="submit"], .captchacontrol > button {
     -webkit-appearance: none;
     background-color: rgb(52, 136, 153);
     cursor: pointer;
@@ -110,12 +110,12 @@ input[type="submit"] {
     text-decoration: none;
 }
 
-input[type="submit"]:hover {
+input[type="submit"]:hover, .captchacontrol > button:hover {
     background-color: rgb(165, 165, 165);
     color: rgb(255, 255, 255) !important;
 }
 
-input[type="submit"]:active {
+input[type="submit"]:active, .captchacontrol > button:active {
     background-color: rgb(157, 197, 205);
 }
 
@@ -135,18 +135,6 @@ textarea {
 
 form {
     padding-top: 0.3em;
-}
-
-#verify {
-    display: inline-block;
-    width: 100px;
-    float: right;
-    margin-top: 0;
-}
-
-.img-verify {
-    padding: 1.2em;
-    padding-top: 0.5em;
 }
 
 select {
@@ -409,7 +397,8 @@ label > .icon {
     bottom: 0;
     left: 0;
     width: 280px;
-    height: 490px;
+    height: 520px;
+    height: fit-content;
     z-index: 100;
     background: white;
     border: 1px solid #ccc;
@@ -437,6 +426,56 @@ label > .icon {
     position: fixed;
     top: 5px;
     right: 0;
+}
+
+.img-verify {
+    margin-bottom: 22px;
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+}
+
+.verify {
+    text-align: center;
+    padding: 0 !important;
+    width: 100% !important;
+}
+
+.verify::placeholder {
+    font-size: 10px;
+    padding-bottom: 5px;
+}
+
+.captcha {
+    display: flex;
+    align-items: center;
+}
+
+.captchacontrol {
+    display: flex;
+    flex-flow: row wrap;
+}
+
+.green {
+    color: green;
+}
+
+.red {
+    color: red;
+}
+
+.disabled {
+    text-align: center;
+    height: 500px;
+    height: fit-content;
+}
+
+.response {
+    margin: 1em 0;
+}
+
+.alternate {
+    margin-top: 2em;
+    color: #000;
 }
 
 .description {

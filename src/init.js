@@ -17,26 +17,6 @@ window.onscroll = function(ev) {
     }
 };
 
-// Contact form post
-document.querySelector('form').addEventListener('submit', function(e) {
-    var fd = new FormData(e.target);
-    var request = new Request('/process.php', {
-        method: 'POST',
-        body: fd
-    });
-
-    fetch(request).then(function(data) {
-        return data.text();
-    }).then(function(result) {
-        document.getElementById('response').innerHTML = result;
-        if (~result.indexOf('Thanks')) {
-            e.target.reset();
-        }
-    });
-
-    e.preventDefault();
-});
-
 // Image preloader
 app.ports.preloadImages.subscribe(function(data) {
     function insert(str, index, value) {
