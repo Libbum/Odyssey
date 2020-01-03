@@ -66,5 +66,5 @@ clean:
 clearthumb:
 > find dist/gallery -name 'Thumbs.db*' -exec rm {} \;
 
-deploy: manifest prodindex dist/assets/js/init.js dist/assets/css/odyssey.css build prodjs clearthumb
+deploy: manifest prodindex dist/assets/js/init.js prodcss build prodjs clearthumb
 > rsync -avr --exclude='*.desc' --chown=http:www --checksum --delete -e ssh dist/ KalaR:odyssey
