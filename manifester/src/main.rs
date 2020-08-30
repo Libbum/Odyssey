@@ -1096,6 +1096,7 @@ macro_attr! {
         HoChiMinhCity,
         HongKongCity,
         Jokulsarlon,
+        Jukkasjarvi,
         Kanchanaburi,
         Karlsruhe,
         Katowice,

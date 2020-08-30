@@ -26,7 +26,7 @@ dist/assets/js/odyssey.js:
 > elm make src/Main.elm --output=dist/assets/js/odyssey.js --optimize
 
 dist/assets/js/odyssey.min.js: dist/assets/js/odyssey.js
-> uglifyjs dist/assets/js/odyssey.js --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --output=dist/assets/js/odyssey.min.js
+> uglifyjs dist/assets/js/odyssey.js --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle > dist/assets/js/odyssey.min.js
 
 prodjs: dist/assets/js/odyssey.min.js
 > mv dist/assets/js/odyssey.min.js dist/assets/js/odyssey.${seed}.min.js
