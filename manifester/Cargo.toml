@@ -5,7 +5,7 @@ authors = ["Tim DuBois <tim@neophilus.net>"]
 edition = "2018"
 
 [dependencies]
-image = "0.21"
+image = "0.22"
 rexiv2 = "0.7"
 indicatif = "0.11"
 globwalk = "0.7"
